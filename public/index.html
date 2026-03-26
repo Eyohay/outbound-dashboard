@@ -1082,9 +1082,22 @@ function render(data) {
       }
 
       const rate30  = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
-      const close30 = b.total === 0 ? '—' : `<span class="${rateClass(b.closeRate)}">${b.closeRate}%</span>`;
       const rate90  = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
-      const close90 = c.total === 0 ? '—' : `<span class="${rateClass(c.closeRate)}">${c.closeRate}%</span>`;
+
+      // Close rate with small-sample warning (< 5 proposals → muted ~ prefix + tooltip)
+      function closeRateCell(bucket) {
+        if (bucket.proposals === 0) return '—';
+        const smallSample = bucket.proposals < 5;
+        const cls   = smallSample ? '' : rateClass(bucket.closeRate);
+        const color = smallSample ? 'color:var(--muted)' : '';
+        const label = smallSample ? `~${bucket.closeRate}%` : `${bucket.closeRate}%`;
+        const title = smallSample ? ` title="Small sample — only ${bucket.proposals} proposal${bucket.proposals > 1 ? 's' : ''} (need ≥5 for reliable rate)"` : '';
+        const asterisk = smallSample
+          ? ` <span style="color:var(--muted);font-size:10px;cursor:help"${title}>*</span>` : '';
+        return `<span class="${cls}" style="${color}"${title}>${label}</span>${asterisk}`;
+      }
+      const close30 = closeRateCell(b);
+      const close90 = closeRateCell(c);
 
       const diff = b.hitRate - c.hitRate;
       let trendCell;
@@ -1096,10 +1109,12 @@ function render(data) {
         trendCell = `<span style="color:var(--red)">▼ ${diff}%</span>`;
       }
 
-      // Funnel: meetings → proposals → closes (30d numbers, muted)
+      // Funnel: meetings → proposals → closes (30d)
+      // closes = round(proposals × closeRate) to stay internally consistent with displayed rate
+      const funnelCloses = b.proposals > 0 ? Math.round(b.proposals * b.closeRate / 100) : 0;
       const funnelCell = b.total === 0
         ? '<span style="color:var(--muted);font-size:11px">—</span>'
-        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${b.total}<span style="opacity:0.5"> → </span>${b.proposals}<span style="opacity:0.5"> → </span>${b.closes}</span>`;
+        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${b.total}<span style="opacity:0.5"> → </span>${b.proposals}<span style="opacity:0.5"> → </span>${funnelCloses}</span>`;
 
       return `<tr style="${rowStyle}${rowBorder}">
         ${daysOutCell}
