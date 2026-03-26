@@ -1178,7 +1178,7 @@ async function fetchData(forceRefresh = false) {
   btn.classList.add('spinning');
 
   try {
-    const url = 'http://localhost:3000/api/data' + (forceRefresh ? '?refresh=1' : '');
+    const url = '/api/data' + (forceRefresh ? '?refresh=1' : '');
     const res = await fetch(url);
     const data = await res.json();
 
