@@ -199,29 +199,34 @@ async function buildDashboardData() {
     }
 
     for (const m of meetings) {
-      // Only past meetings
-      if (m.scheduledDate >= today) continue;
-      // Within window
-      if (m.scheduledDate < cutoff) continue;
-      // Need createdDate to compute days-out
+      // Need createdDate to compute days-out bucket for all metrics
       if (!m.createdDate) continue;
 
       const daysOut = daysBetween(m.scheduledDate, m.createdDate);
       const capped = Math.max(1, Math.min(10, daysOut));
 
-      buckets[capped].total++;
-      if (m.dealStatus === PROPOSAL_STATUS) {
-        buckets[capped].proposals++;
+      // Total meetings & proposals: Call Scheduled Date within window (past only)
+      if (m.scheduledDate < today && m.scheduledDate >= cutoff) {
+        buckets[capped].total++;
+        if (m.dealStatus === PROPOSAL_STATUS) {
+          buckets[capped].proposals++;
+        }
       }
+
+      // Closes: Date Deal Closed falls within the window (not scheduled date)
+      // Denominator will be proposals in the same bucket (close rate = closes / proposals)
       if (m.dateDealClosed) {
-        buckets[capped].closes++;
+        const closeDate = new Date(m.dateDealClosed);
+        if (closeDate >= cutoff && closeDate < today) {
+          buckets[capped].closes++;
+        }
       }
     }
 
     return Object.values(buckets).map(b => ({
       ...b,
-      hitRate:   b.total > 0 ? Math.round((b.proposals / b.total) * 100) : 0,
-      closeRate: b.total > 0 ? Math.round((b.closes    / b.total) * 100) : 0
+      hitRate:   b.total     > 0 ? Math.round((b.proposals / b.total)     * 100) : 0,
+      closeRate: b.proposals > 0 ? Math.round((b.closes    / b.proposals) * 100) : 0,
     }));
   }
 
