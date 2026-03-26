@@ -756,6 +756,7 @@
           </thead>
           <tbody id="m3-combined-table"></tbody>
         </table>
+        <div id="m3-sanity" style="padding:8px 14px 10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)"></div>
       </div>
     </div>
 
@@ -1114,6 +1115,13 @@ function render(data) {
         <td style="text-align:center">${funnelCell}</td>
       </tr>`;
     }).join('');
+
+    // Sanity check footer
+    const s = data.module3.sanity30;
+    const sanityEl = document.getElementById('m3-sanity');
+    if (sanityEl && s) {
+      sanityEl.innerHTML = `Last 30 days total: <strong style="color:var(--text)">${s.proposals}</strong> proposals &nbsp;·&nbsp; <strong style="color:var(--text)">${s.closes}</strong> closes &nbsp;·&nbsp; <strong style="color:var(--text)">${s.blendedCloseRate}%</strong> blended close rate`;
+    }
   })();
 
   // ── Module 4 ───────────────────────────────────────────────────────────────

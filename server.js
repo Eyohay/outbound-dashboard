@@ -233,6 +233,22 @@ async function buildDashboardData() {
   const hitRate30 = buildHitRateTable(30);
   const hitRate90 = buildHitRateTable(90);
 
+  // ── Close Rate Sanity Check ───────────────────────────────────────────────
+  const sanity30 = hitRate30.reduce((acc, b) => {
+    acc.proposals += b.proposals;
+    acc.closes    += b.closes;
+    return acc;
+  }, { proposals: 0, closes: 0 });
+  const sanityBlended = sanity30.proposals > 0
+    ? ((sanity30.closes / sanity30.proposals) * 100).toFixed(1)
+    : '0.0';
+  console.log('=== Close Rate Sanity Check (Last 30 days) ===');
+  console.log(`  Total proposals across all buckets : ${sanity30.proposals}`);
+  console.log(`  Total closes across all buckets    : ${sanity30.closes}`);
+  console.log(`  Blended close rate                 : ${sanityBlended}%`);
+  console.log(`  Expected from Airtable             : ~114 proposals, ~13 closes, ~11.4%`);
+  console.log('==============================================');
+
   // ── Booking Recommendation (powers M3 banner) ──────────────────────────────
   // Optimal cutoff: last day BEFORE a SUSTAINED drop below 15%.
   // A single dip doesn't count — the drop must hold for 2+ consecutive days.
@@ -387,7 +403,7 @@ async function buildDashboardData() {
     thisWeek,
     module1: { days: days10 },
     module2: { reps: repBreakdown },
-    module3: { hitRate30, hitRate90, bookingRec },
+    module3: { hitRate30, hitRate90, bookingRec, sanity30: { ...sanity30, blendedCloseRate: parseFloat(sanityBlended) } },
     module4: { meetingsNeeded }
   };
 }
