@@ -1,0 +1,28 @@
+node_modules/
+.env
+.DS_Store
+
+# Credentials & secrets
+credentials.json
+credentials.json.json
+
+# Logs
+*.log
+app_out.log
+app_err.log
+app_output.log
+
+# Python
+__pycache__/
+*.pyc
+*.py
+requirements.txt
+templates/
+fetch_data.py
+app.py
+
+# Claude internals
+.claude/
+
+# Other projects in this folder
+recruiter_automation/

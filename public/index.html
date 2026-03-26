@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Outbound Team Capacity Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1f2937;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --red:       #f85149;
+      --orange:    #e3b341;
+      --purple:    #a371f7;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .header-left .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.error { background: var(--red); animation: none; }
+    .status-dot.loading { background: var(--yellow); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .status-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .btn-refresh {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-refresh:hover { border-color: var(--accent); background: #1f2937; }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .refresh-icon { display: inline-block; transition: transform 0.6s; }
+    .btn-refresh.spinning .refresh-icon { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* ── Mini header countdown (replaces full-width bar) ─────────────────── */
+    .header-countdown {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header-countdown-text {
+      font-size: 11px;
+      color: var(--muted);
+      min-width: 26px;
+      text-align: right;
+    }
+    .header-progress-track {
+      width: 80px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .header-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 1s linear;
+    }
+
+    /* ── Cards ────────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-header .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .card-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ── Heat map ─────────────────────────────────────────────────────────── */
+    .heatmap-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .heatmap-table th {
+      padding: 8px 6px;
+      font-size: 10px;
+      text-align: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .heatmap-table th.rep-col {
+      text-align: left;
+      padding-left: 16px;
+      min-width: 140px;
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--surface);
+    }
+
+    .heatmap-table td.rep-name {
+      padding: 6px 10px 6px 16px;
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      position: sticky;
+      left: 0;
+      z-index: 1;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+    }
+
+    .heatmap-table tr:hover td.rep-name { background: #1a2130; }
+
+    .hm-cell {
+      text-align: center;
+      padding: 6px 4px;
+      min-width: 72px;
+      border: 1px solid rgba(0,0,0,0.2);
+      vertical-align: middle;
+      line-height: 1.3;
+    }
+
+    .hm-cell.today-col {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .hm-cell.weekend-col {
+      opacity: 0.3;
+      background: rgba(139,148,158,0.1) !important;
+    }
+
+    .hm-booking  { font-weight: 700; font-size: 12px; }
+    .hm-pct      { font-size: 10px; opacity: 0.85; margin-top: 1px; }
+
+    /* fill color scale */
+    .hm-empty    { background: #5c1a1a; color: #ffaaaa; }  /* 0% — deep red   */
+    .hm-low      { background: #7a2a2a; color: #ffcccc; }  /* 1–49% — light red */
+    .hm-mid      { background: #7a5c00; color: #ffe8a0; }  /* 50–79% — amber  */
+    .hm-good     { background: #1a4d2e; color: #a8f0c0; }  /* 80–99% — lt green */
+    .hm-full     { background: #1a6b35; color: #d0ffe0; }  /* 100% — solid green */
+
+    .hm-total-col {
+      padding: 6px 12px;
+      text-align: center;
+      border-left: 1px solid var(--border);
+      font-size: 11px;
+      min-width: 64px;
+    }
+
+    /* ── Module 3 side-by-side ─────────────────────────────────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+    .sub-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .sub-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ── Chart container ─────────────────────────────────────────────────── */
+    .chart-wrap {
+      height: 220px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    /* ── Tables ───────────────────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .today-row td { background: rgba(88,166,255,0.06); }
+    .today-row td:first-child { border-left: 2px solid var(--accent); }
+
+    .weekend-row td { opacity: 0.3; font-style: italic; }
+
+    .highlight-row td { background: rgba(63,185,80,0.08); }
+    .highlight-row td:first-child { border-left: 2px solid var(--green); }
+
+    /* ── Progress bars ───────────────────────────────────────────────────── */
+    .bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 160px;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill.green  { background: var(--green); }
+    .bar-fill.yellow { background: var(--yellow); }
+    .bar-fill.red    { background: var(--red); }
+    .bar-fill.accent { background: var(--accent); }
+
+    .bar-pct {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Hit rate colors ─────────────────────────────────────────────────── */
+    .rate-high  { color: #3fb950; font-weight: 700; }
+    .rate-mid   { color: #f0a030; font-weight: 700; }   /* bright orange-amber, clearly distinct from red */
+    .rate-low   { color: #f85149; font-weight: 700; }
+
+    /* ── Header booking pill ─────────────────────────────────────────────── */
+    .book-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(63,185,80,0.10);
+      border: 1px solid rgba(63,185,80,0.30);
+      border-radius: 8px;
+      padding: 6px 14px;
+      flex: 1;
+      min-width: 0;
+      max-width: 700px;
+      margin: 0 16px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .book-pill .bp-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      flex-shrink: 0;
+    }
+    .book-pill .bp-count {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: -0.5px;
+      flex-shrink: 0;
+    }
+    .book-pill .bp-unit {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .book-pill .bp-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(63,185,80,0.30);
+      flex-shrink: 0;
+      margin: 0 4px;
+    }
+    .book-pill .bp-detail {
+      font-size: 11px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .book-pill .bp-detail strong { color: var(--text); }
+
+    /* ── This Week glance bar ─────────────────────────────────────────────── */
+    #week-glance-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 5px 24px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: nowrap;
+      overflow: hidden;
+    }
+    #week-glance-bar .wg-title {
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-size: 10px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    #week-glance-bar .wg-sep {
+      color: var(--border);
+      margin: 0 8px;
+      flex-shrink: 0;
+    }
+    #week-glance-bar .wg-item { flex-shrink: 0; }
+    #week-glance-bar .wg-week { margin-left: auto; font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+    /* ── Module 3 combined table ─────────────────────────────────────────── */
+    .m3-group-row th { border-bottom: none; }
+    .m3-group-hdr {
+      text-align: center;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 8px 12px 4px;
+      border-bottom: none;
+    }
+    .m3-divider { border-left: 1px solid var(--border) !important; }
+
+    /* ── Module 4 ─────────────────────────────────────────────────────────── */
+    .needed-full td { opacity: 0.6; }
+    .slots-overbooked { color: #f85149; font-weight: 700; }
+    .slots-full       { color: #3fb950; font-weight: 700; }
+    .slots-near       { color: #f0a030; font-weight: 700; }
+    .slots-normal     { color: var(--text); font-weight: 600; }
+    .slots-plenty     { color: #6e90b8; font-weight: 600; }
+
+    .m4-fill-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+    .m4-fill-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .m4-fill-bar { height: 100%; border-radius: 3px; }
+
+    .m4-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    .m4-badge.badge-critical { background: rgba(248,81,73,0.18); color: #ff6b63; border: 1px solid rgba(248,81,73,0.4); }
+    .m4-badge.badge-warn     { background: rgba(240,160,48,0.18); color: #f0a030; border: 1px solid rgba(240,160,48,0.4); }
+    .m4-badge.badge-good     { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.35); }
+
+    .m4-open-slots { font-size: 15px; font-weight: 800; line-height: 1; }
+    .m4-open-slots.critical { color: #ff6b63; }
+    .m4-open-slots.warn     { color: #f0a030; }
+    .m4-open-slots.good     { color: #3fb950; }
+
+    /* ── Badges ───────────────────────────────────────────────────────────── */
+    .chip {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .chip-green  { background: rgba(63,185,80,0.15);  color: var(--green); }
+    .chip-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .chip-red    { background: rgba(248,81,73,0.15);  color: var(--red); }
+
+    /* ── Summary stats ────────────────────────────────────────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .stat-box .label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-box .sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── TV / Fullscreen mode ────────────────────────────────────────────── */
+    body.tv-mode { font-size: 18px; }
+    body.tv-mode .header-left h1 { font-size: 23px; }
+    body.tv-mode .card-header h2 { font-size: 19px; }
+    body.tv-mode .stat-box .value { font-size: 32px; }
+    body.tv-mode .stat-box .label { font-size: 13px; letter-spacing: 0.07em; }
+    body.tv-mode .stat-box .sub { font-size: 13px; }
+    body.tv-mode table { font-size: 16px; }
+    body.tv-mode th { font-size: 13px; }
+    body.tv-mode td { padding: 11px 12px; }
+    body.tv-mode .heatmap-table { font-size: 14px; }
+    body.tv-mode .hm-cell { min-height: 52px; padding: 8px 4px; }
+    body.tv-mode .hm-booking { font-size: 15px; }
+    body.tv-mode .hm-pct { font-size: 12px; }
+    /* "This Week" big numbers larger in TV mode */
+    body.tv-mode .week-banner .stat-box .value { font-size: 22px; }
+    body.tv-mode .week-banner .stat-box .label { font-size: 12px; }
+
+    /* TV LIVE indicator */
+    .tv-live-dot {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(22,27,34,0.85);
+      border: 1px solid rgba(63,185,80,0.4);
+      border-radius: 20px;
+      padding: 6px 14px;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+    }
+    .tv-live-pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: tv-pulse 2s ease-in-out infinite;
+    }
+    @keyframes tv-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .btn-tv {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-tv:hover { border-color: var(--accent); color: var(--text); background: #1f2937; }
+    .btn-tv.active { border-color: var(--accent); color: var(--accent); }
+
+    .exit-fs-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(22,27,34,0.9);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .exit-fs-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    /* ── Micro stat cards (Module 1) ─────────────────────────────────────── */
+    .micro-stats { margin-bottom: 12px; gap: 10px; }
+    .micro-stats .stat-box { padding: 6px 10px; }
+    .micro-stats .stat-box .value { font-size: 14px; font-weight: 700; }
+    .micro-stats .stat-box .label { font-size: 9px; margin-bottom: 1px; letter-spacing: 0.04em; }
+    .micro-stats .stat-box .sub { font-size: 9px; margin-top: 1px; }
+    /* hide the target-range sub-note in micro mode to save space */
+    .micro-stats .stat-box [data-sub-note] { display: none; }
+
+    /* ── Error banner ─────────────────────────────────────────────────────── */
+    .error-banner {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--red);
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    /* ── Loading overlay ─────────────────────────────────────────────────── */
+    .loading-overlay {
+      text-align: center;
+      padding: 48px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-left" style="flex-shrink:0">
+    <h1>Outbound Team Capacity Dashboard</h1>
+    <div class="subtitle" id="last-updated">Loading data...</div>
+  </div>
+  <!-- Booking recommendation pill — populated by JS -->
+  <div class="book-pill" id="header-book-pill" style="visibility:hidden">
+    <span class="bp-label">Book today:</span>
+    <span class="bp-count" id="pill-count">—</span>
+    <span class="bp-unit">meetings</span>
+    <div class="bp-divider"></div>
+    <span class="bp-detail" id="pill-detail"></span>
+  </div>
+  <div class="header-right" style="flex-shrink:0">
+    <div class="status-dot loading" id="status-dot"></div>
+    <span class="status-text" id="status-text">Connecting…</span>
+    <div class="header-countdown">
+      <div class="header-progress-track"><div class="header-progress-fill" id="countdown-fill" style="width:100%"></div></div>
+      <span class="header-countdown-text" id="countdown-text">60s</span>
+    </div>
+    <button class="btn-tv" id="btn-tv" onclick="toggleTV()" title="Toggle TV / Fullscreen mode">
+      ⛶ TV
+    </button>
+    <button class="btn-refresh" id="btn-refresh" onclick="manualRefresh()">
+      <span class="refresh-icon">↻</span> Refresh
+    </button>
+  </div>
+</header>
+<button class="exit-fs-btn" id="exit-fs-btn" onclick="exitTV()">✕ Exit fullscreen</button>
+<div class="tv-live-dot" id="tv-live-dot">
+  <div class="tv-live-pulse"></div>
+  LIVE
+</div>
+
+<!-- ── Week Glance Bar ───────────────────────────────────────────────────── -->
+<div id="week-glance-bar">
+  <span class="wg-title">This Week</span>
+  <span id="wg-content" style="display:contents"></span>
+</div>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Error banner -->
+  <div class="error-banner" id="error-banner"></div>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+    <div>Fetching Airtable data…</div>
+  </div>
+
+  <!-- Dashboard (hidden until data loads) -->
+  <div id="dashboard" style="display:none">
+
+    <!-- ── MODULE 1 ──────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <span class="badge">Module 1</span>
+        <h2>Daily Meeting Count — Next 10 Days</h2>
+      </div>
+      <div class="card-body">
+        <div class="stats-row micro-stats" id="m1-stats"></div>
+        <div class="chart-wrap"><canvas id="chart-m1"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ── MODULE 2 ──────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <span class="badge">Module 2</span>
+        <h2>Rep Capacity Heat Map — Next 10 Days</h2>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <div id="m2-heatmap"></div>
+      </div>
+    </div>
+
+    <!-- ── MODULE 3 ──────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <span class="badge">Module 3</span>
+        <h2>Proposal Hit Rate by Days-Out</h2>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table style="font-size:13px;width:100%">
+          <thead>
+            <tr class="m3-group-row">
+              <th rowspan="2" style="width:130px;padding:10px 12px;vertical-align:bottom">Days Out</th>
+              <th colspan="4" class="m3-group-hdr">30 days</th>
+              <th rowspan="2" style="width:90px;padding:10px 12px;vertical-align:bottom;text-align:center">Trend</th>
+              <th colspan="4" class="m3-group-hdr m3-divider">90 days</th>
+              <th rowspan="2" style="width:110px;padding:10px 12px;vertical-align:bottom;text-align:center;color:var(--muted);font-size:10px">Funnel</th>
+            </tr>
+            <tr>
+              <th style="width:90px">Meetings</th>
+              <th style="width:90px">Proposals</th>
+              <th style="width:90px">Hit Rate</th>
+              <th style="width:90px">Close Rate</th>
+              <th style="width:90px;border-left:1px solid var(--border)">Meetings</th>
+              <th style="width:90px">Proposals</th>
+              <th style="width:90px">Hit Rate</th>
+              <th style="width:90px">Close Rate</th>
+            </tr>
+          </thead>
+          <tbody id="m3-combined-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── MODULE 4 ──────────────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="card-header">
+        <span class="badge">Module 4</span>
+        <h2>Meetings Needed Today to Fill Future Capacity</h2>
+      </div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Horizon</th>
+              <th>Fill</th>
+              <th>Open Slots</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="m4-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /#dashboard -->
+</main>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let chartM1 = null;
+let countdownInterval = null;
+let REFRESH_INTERVAL = 60;
+let secondsLeft = REFRESH_INTERVAL;
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function fmtDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function barColor(pct) {
+  if (pct >= 80) return 'green';
+  if (pct >= 50) return 'yellow';
+  return 'red';
+}
+
+// Hit rate thresholds: <10 = red, 10–14 = amber, >=15 = green
+function rateClass(rate) {
+  if (rate >= 15) return 'rate-high';   // green:  ≥ 15%
+  if (rate >= 10) return 'rate-mid';    // amber:  10–14%
+  return 'rate-low';                    // red:    < 10%
+}
+
+function makeBar(pct, color) {
+  const cls = color || barColor(pct);
+  return `
+    <div class="bar-wrap">
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div>
+      </div>
+      <span class="bar-pct">${pct}%</span>
+    </div>`;
+}
+
+function chipFor(pct) {
+  if (pct >= 90) return `<span class="chip chip-red">${pct}%</span>`;
+  if (pct >= 65) return `<span class="chip chip-yellow">${pct}%</span>`;
+  return `<span class="chip chip-green">${pct}%</span>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(data) {
+  // ── This Week glance bar ──────────────────────────────────────────────────
+  if (data.thisWeek) {
+    const tw = data.thisWeek;
+    const fillClr = tw.teamFillPct >= 70 ? 'var(--yellow)' : tw.teamFillPct >= 50 ? 'var(--green)' : 'var(--red)';
+    // shorten last name to initial for space  e.g. "Robert Edelmann" → "R. Edelmann"
+    function shortName(n) {
+      if (!n) return '—';
+      const parts = n.trim().split(/\s+/);
+      return parts.length > 1 ? parts[0][0] + '. ' + parts.slice(1).join(' ') : n;
+    }
+    document.getElementById('wg-content').outerHTML =
+      `<span id="wg-content" style="display:contents">` +
+      `<span class="wg-item">Emptiest: <strong style="color:var(--red)">${tw.emptiestRep ? tw.emptiestRep.name : '—'} (${tw.emptiestRep ? tw.emptiestRep.fillPct : 0}%)</strong></span>` +
+      `<span class="wg-sep">·</span>` +
+      `<span class="wg-item">Fullest: <strong style="color:var(--green)">${tw.fullestRep ? shortName(tw.fullestRep.name) : '—'} (${tw.fullestRep ? tw.fullestRep.fillPct : 0}%)</strong></span>` +
+      `<span class="wg-sep">·</span>` +
+      `<span class="wg-item">Team fill: <strong style="color:${fillClr}">${tw.teamFillPct}%</strong> <span style="color:var(--muted)">(${tw.totalBooked}/${tw.totalCapacity})</span></span>` +
+      `<span class="wg-sep">·</span>` +
+      `<span class="wg-item">Open this week: <strong style="color:var(--text)">${tw.openSlots}</strong> slots</span>` +
+      `<span class="wg-week">${tw.weekLabel}</span>` +
+      `</span>`;
+  }
+
+  // ── Module 1 ───────────────────────────────────────────────────────────────
+  const days = data.module1.days;
+  const todayStr = data.todayStr;
+
+  // Summary stats
+  const todayData = days.find(d => d.date === todayStr) || {};
+  // Exclude weekends from both sides of the avg fill calculation
+  const weekdays10 = days.filter(d => !d.isWeekend);
+  const totalBooked10 = weekdays10.reduce((s, d) => s + d.booked, 0);
+  const totalCap10 = weekdays10.reduce((s, d) => s + d.capacity, 0);
+  const avgFill = totalCap10 > 0 ? Math.round((totalBooked10 / totalCap10) * 100) : 0;
+
+  // Avg fill color: <50% red, 50–70% green (good), >70% yellow (over-target)
+  const avgFillColor = avgFill >= 70 ? 'var(--yellow)' : avgFill >= 50 ? 'var(--green)' : 'var(--red)';
+  const avgFillLabel = avgFill >= 70 ? 'At or above target max' : avgFill >= 50 ? 'Good — within target' : 'Below target (aim for 50–70%)';
+
+  document.getElementById('m1-stats').innerHTML = `
+    <div class="stat-box">
+      <div class="label">Today Booked</div>
+      <div class="value">${todayData.booked ?? 0}</div>
+      <div class="sub">of ${todayData.capacity ?? data.totalDailyCapacity} slots</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">10-Day Total Booked</div>
+      <div class="value">${totalBooked10}</div>
+      <div class="sub">of ${totalCap10} total slots</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">10-Day Avg Fill</div>
+      <div class="value" style="color:${avgFillColor}">${avgFill}%</div>
+      <div class="sub">${avgFillLabel}</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Active Reps</div>
+      <div class="value">${data.outboundRepCount}</div>
+      <div class="sub">Outbound Direct</div>
+    </div>`;
+
+  // Bar chart
+  const labels = days.map(d => `${fmtDate(d.date)}\n${d.dayOfWeek.slice(0,3)}`);
+  const bookedVals = days.map(d => d.booked);
+  const capVals = days.map(d => Math.max(0, d.capacity - d.booked));
+  const bgBooked = days.map(d => {
+    if (d.isWeekend) return 'rgba(139,148,158,0.2)';
+    const c = barColor(d.fillPct);
+    if (c === 'green')  return '#3fb950';
+    if (c === 'yellow') return '#d29922';
+    return '#f85149';
+  });
+  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.08)' : 'rgba(255,255,255,0.05)');
+
+  if (chartM1) chartM1.destroy();
+  const ctx = document.getElementById('chart-m1').getContext('2d');
+  chartM1 = new Chart(ctx, {
+    type: 'bar',
+    plugins: [ChartDataLabels],
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Booked', data: bookedVals, backgroundColor: bgBooked, borderRadius: 3, stack: 'stack',
+          datalabels: {
+            display: (ctx) => {
+              const d = days[ctx.dataIndex];
+              return !d.isWeekend && d.booked > 0;
+            },
+            formatter: (_, ctx) => days[ctx.dataIndex].fillPct + '%',
+            color: '#fff',
+            font: { size: 10, weight: 'bold' },
+            anchor: (ctx) => days[ctx.dataIndex].fillPct < 10 ? 'end' : 'center',
+            align:  (ctx) => days[ctx.dataIndex].fillPct < 10 ? 'end'  : 'center',
+            offset: (ctx) => days[ctx.dataIndex].fillPct < 10 ? 4 : 0,
+          }
+        },
+        {
+          label: 'Open', data: capVals, backgroundColor: bgCap, borderRadius: 3, stack: 'stack',
+          datalabels: { display: false }
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8b949e', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const d = days[idx];
+              return [`Fill: ${d.fillPct}%`, `Capacity: ${d.capacity}`];
+            }
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(48,54,61,0.5)' } },
+        y: { stacked: true, ticks: { color: '#8b949e', stepSize: 1 }, grid: { color: 'rgba(48,54,61,0.5)' } }
+      }
+    }
+  });
+
+  // ── Module 2 — Heat Map ────────────────────────────────────────────────────
+  function hmCellClass(pct, isWeekend) {
+    if (isWeekend) return 'weekend-col';
+    if (pct === 0)   return 'hm-empty';
+    if (pct < 50)    return 'hm-low';
+    if (pct < 80)    return 'hm-mid';
+    if (pct < 100)   return 'hm-good';
+    return 'hm-full';
+  }
+
+  (function renderHeatMap() {
+    const container = document.getElementById('m2-heatmap');
+    const reps = data.module2.reps;
+    const days = data.module1.days; // reuse day metadata (date, dayOfWeek, isWeekend)
+
+    if (!reps.length) {
+      container.innerHTML = '<div style="padding:24px;color:var(--muted);text-align:center">No Outbound Direct reps found</div>';
+      return;
+    }
+
+    // Header row
+    const headerCols = days.map((d, i) => {
+      const isToday = d.date === todayStr;
+      const label = isToday
+        ? `<div style="color:var(--accent);font-weight:700">Today</div><div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0,3)}</div>`
+        : `<div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0,3)}</div>`;
+      const style = d.isWeekend ? 'opacity:0.4' : '';
+      return `<th style="${style}">${label}</th>`;
+    }).join('');
+
+    // Rep rows
+    const repRows = reps.map(rep => {
+      const cells = rep.days.map((d, i) => {
+        const day = days[i];
+        const isToday = day.date === todayStr;
+        const colorClass = hmCellClass(d.fillPct, d.isWeekend);
+        const todayClass = isToday ? ' today-col' : '';
+        if (d.isWeekend) {
+          return `<td class="hm-cell weekend-col${todayClass}">—</td>`;
+        }
+        return `<td class="hm-cell ${colorClass}${todayClass}">
+          <div class="hm-booking">${d.booked}/${rep.maxPerDay}</div>
+          <div class="hm-pct">${d.fillPct}%</div>
+        </td>`;
+      }).join('');
+
+      const p = rep.totalFillPct;
+      const totalColor = p >= 86 ? '#00e676' : p >= 71 ? '#3fb950' : p >= 51 ? '#a8c832' : p >= 31 ? '#e3762a' : p >= 16 ? '#d73a49' : '#8b1a1a';
+      return `<tr>
+        <td class="rep-name">${rep.name}</td>
+        ${cells}
+        <td class="hm-total-col" style="color:${totalColor}"><strong>${rep.totalFillPct}%</strong></td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th class="rep-col">Rep</th>
+            ${headerCols}
+            <th style="border-left:1px solid var(--border)">5D AVG<br><span style="color:var(--muted);font-weight:400;font-size:10px">weekdays only</span></th>
+          </tr>
+        </thead>
+        <tbody>${repRows}</tbody>
+      </table>`;
+  })();
+
+  // ── Header booking pill ───────────────────────────────────────────────────
+  (function renderBookingPill() {
+    const rec = data.module3.bookingRec;
+    const pill = document.getElementById('header-book-pill');
+    const pillCount = document.getElementById('pill-count');
+    const pillDetail = document.getElementById('pill-detail');
+    if (!pill || !rec) return;
+
+    if (!rec || rec.optimalCutoff === 0) {
+      pillCount.textContent = '—';
+      pillDetail.innerHTML = 'No clear booking window — hit rates below 15% across all days out';
+      pill.style.visibility = 'visible';
+      return;
+    }
+
+    const allFull = rec.meetingsToBook === 0;
+    pillCount.textContent = allFull ? '✓' : rec.meetingsToBook;
+    pillDetail.innerHTML = allFull
+      ? `All slots filled through day ${rec.optimalCutoff}`
+      : `Next <strong>${rec.optimalCutoff} days</strong> (${rec.windowStr})`
+        + ` &nbsp;·&nbsp; Best: <strong>${rec.bestDaysOut} day${rec.bestDaysOut > 1 ? 's' : ''} out</strong>`
+        + ` — ${rec.bestHitRate}% proposal · ${rec.bestCloseRate}% close`;
+    pill.style.visibility = 'visible';
+  })();
+
+  // ── Module 3 — combined 30d / 90d table ──────────────────────────────────
+  (function renderCombinedHitTable() {
+    const b30 = data.module3.hitRate30;
+    const b90 = data.module3.hitRate90;
+    const rec = data.module3.bookingRec;
+    const tbody = document.getElementById('m3-combined-table');
+
+    tbody.innerHTML = b30.map((b, i) => {
+      const c = b90[i];
+      const isCutoff  = rec && b.daysOut === rec.optimalCutoff && rec.optimalCutoff > 0;
+      const isDropoff = rec && rec.optimalCutoff > 0 && b.daysOut > rec.optimalCutoff;
+      const isBest    = rec && b.daysOut === rec.bestDaysOut && b.total > 0 && !isDropoff;
+
+      const rowStyle = isDropoff
+        ? 'background:rgba(248,81,73,0.04);'
+        : isBest ? 'background:rgba(63,185,80,0.06);' : '';
+      const rowBorder = isCutoff ? 'border-bottom:2px dashed rgba(63,185,80,0.45);' : '';
+
+      const daysLabel = `${b.daysOut} day${b.daysOut > 1 ? 's' : ''} out`;
+      let daysOutCell;
+      if (isCutoff) {
+        daysOutCell = `<td style="padding:8px 12px">
+          <div>${daysLabel}</div>
+          <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.04em;margin-top:2px">◀ OPTIMAL CUTOFF</div>
+        </td>`;
+      } else if (isDropoff) {
+        daysOutCell = `<td style="padding:8px 12px;opacity:0.7">
+          <div>${daysLabel}</div>
+          <div style="font-size:10px;color:var(--red);margin-top:2px">drop-off zone</div>
+        </td>`;
+      } else {
+        daysOutCell = `<td>${daysLabel}${isBest ? ' <span style="font-size:10px;color:var(--green);font-weight:600">★ best</span>' : ''}</td>`;
+      }
+
+      const rate30  = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
+      const close30 = b.total === 0 ? '—' : `<span class="${rateClass(b.closeRate)}">${b.closeRate}%</span>`;
+      const rate90  = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
+      const close90 = c.total === 0 ? '—' : `<span class="${rateClass(c.closeRate)}">${c.closeRate}%</span>`;
+
+      const diff = b.hitRate - c.hitRate;
+      let trendCell;
+      if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
+        trendCell = '<span style="color:var(--muted)">—</span>';
+      } else if (diff > 0) {
+        trendCell = `<span style="color:var(--green)">▲ +${diff}%</span>`;
+      } else {
+        trendCell = `<span style="color:var(--red)">▼ ${diff}%</span>`;
+      }
+
+      // Funnel: meetings → proposals → closes (30d numbers, muted)
+      const funnelCell = b.total === 0
+        ? '<span style="color:var(--muted);font-size:11px">—</span>'
+        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${b.total}<span style="opacity:0.5"> → </span>${b.proposals}<span style="opacity:0.5"> → </span>${b.closes}</span>`;
+
+      return `<tr style="${rowStyle}${rowBorder}">
+        ${daysOutCell}
+        <td>${b.total}</td>
+        <td>${b.proposals}</td>
+        <td>${rate30}</td>
+        <td>${close30}</td>
+        <td style="text-align:center">${trendCell}</td>
+        <td style="border-left:1px solid var(--border)">${c.total}</td>
+        <td>${c.proposals}</td>
+        <td>${rate90}</td>
+        <td>${close90}</td>
+        <td style="text-align:center">${funnelCell}</td>
+      </tr>`;
+    }).join('');
+  })();
+
+  // ── Module 4 ───────────────────────────────────────────────────────────────
+  const m4tbody = document.getElementById('m4-table');
+  const rows = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
+
+  m4tbody.innerHTML = rows.map(r => {
+    const isFull = r.openSlots <= 0;
+    const rowClass = isFull ? 'needed-full' : '';
+    const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
+    const openPct = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
+    const barFill = isFull ? '#3fb950' : bookedPct >= 70 ? '#f0a030' : '#58a6ff';
+
+    const fillCell = `<div class="m4-fill-wrap">
+      <div style="font-size:12px;color:var(--muted)">${r.totalBooked} / ${r.totalCapacity} slots &nbsp;<strong style="color:var(--text)">${bookedPct}%</strong></div>
+      <div class="m4-fill-bar-track"><div class="m4-fill-bar" style="width:${Math.min(100,bookedPct)}%;background:${barFill}"></div></div>
+    </div>`;
+
+    // Open slots — large bold number
+    const slotsCls = r.openSlots < 0 ? 'critical' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
+    const slotsCell = isFull
+      ? `<div class="m4-open-slots good">✓</div><div style="font-size:11px;color:var(--muted)">Fully booked</div>`
+      : `<div class="m4-open-slots ${slotsCls}">${r.openSlots < 0 ? '⚠' + Math.abs(r.openSlots) : r.openSlots}</div>`;
+
+    // Action badge
+    let actionCell;
+    if (r.openSlots <= 0) {
+      actionCell = `<span class="m4-badge badge-good">✅ Fully booked</span>`;
+    } else if (openPct < 20) {
+      actionCell = `<span class="m4-badge badge-good">✅ Nearly full</span>`;
+    } else if (openPct <= 50) {
+      actionCell = `<span class="m4-badge badge-warn">⚠️ Book ${r.openSlots} today</span>`;
+    } else {
+      actionCell = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots} now</span>`;
+    }
+
+    const weekendBadge = r.hasWeekend
+      ? ` <span style="font-size:10px;font-weight:500;color:var(--muted);background:rgba(139,148,158,0.15);border:1px solid rgba(139,148,158,0.3);border-radius:10px;padding:1px 7px;vertical-align:middle">incl. weekend</span>`
+      : '';
+    const dayRange = `<div style="font-size:11px;color:var(--muted);margin-top:2px">${r.firstDayName}–${r.lastDayName}${weekendBadge}</div>
+    <div style="font-size:10px;color:var(--muted);opacity:0.6;margin-top:1px">excl. today &amp; tomorrow</div>`;
+
+    return `<tr class="${rowClass}">
+      <td>Next <strong>${r.horizon}</strong> day${r.horizon > 1 ? 's' : ''}${dayRange}</td>
+      <td>${fillCell}</td>
+      <td>${slotsCell}</td>
+      <td>${actionCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Fetch & display ───────────────────────────────────────────────────────────
+async function fetchData(forceRefresh = false) {
+  const dot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const btn = document.getElementById('btn-refresh');
+  const errBanner = document.getElementById('error-banner');
+
+  dot.className = 'status-dot loading';
+  statusText.textContent = 'Fetching…';
+  btn.disabled = true;
+  btn.classList.add('spinning');
+
+  try {
+    const url = 'http://localhost:3000/api/data' + (forceRefresh ? '?refresh=1' : '');
+    const res = await fetch(url);
+    const data = await res.json();
+
+    errBanner.style.display = 'none';
+
+    if (data.error) {
+      errBanner.textContent = 'Warning: ' + data.error;
+      errBanner.style.display = 'block';
+    }
+
+    if (!data.todayStr) {
+      // Cache still building — retry in 3 seconds
+      setTimeout(() => fetchData(false), 3000);
+      return;
+    }
+
+    if (data.todayStr) {
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      render(data);
+
+      const ts = data.generatedAt
+        ? new Date(data.generatedAt).toLocaleTimeString()
+        : new Date().toLocaleTimeString();
+      document.getElementById('last-updated').textContent =
+        `Data as of ${ts} · Cache age: ${data.cacheAge ?? 0}s`;
+
+      dot.className = 'status-dot';
+      statusText.textContent = 'Live';
+    }
+  } catch (err) {
+    dot.className = 'status-dot error';
+    statusText.textContent = 'Error';
+    errBanner.textContent = 'Failed to fetch data: ' + err.message;
+    errBanner.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('spinning');
+  }
+}
+
+function manualRefresh() {
+  resetCountdown();
+  fetchData(true);
+}
+
+// ── Auto-refresh countdown ────────────────────────────────────────────────────
+function resetCountdown() {
+  secondsLeft = REFRESH_INTERVAL;
+  updateCountdownUI();
+}
+
+function updateCountdownUI() {
+  document.getElementById('countdown-text').textContent = secondsLeft + 's';
+  const pct = (secondsLeft / REFRESH_INTERVAL) * 100;
+  document.getElementById('countdown-fill').style.width = pct + '%';
+}
+
+function startCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    secondsLeft--;
+    updateCountdownUI();
+    if (secondsLeft <= 0) {
+      resetCountdown();
+      fetchData(false);
+    }
+  }, 1000);
+}
+
+// ── TV / Fullscreen mode ──────────────────────────────────────────────────────
+let tvMode = localStorage.getItem('tvMode') === '1';
+
+function applyTVMode() {
+  document.body.classList.toggle('tv-mode', tvMode);
+  document.getElementById('exit-fs-btn').style.display = tvMode ? 'flex' : 'none';
+  document.getElementById('tv-live-dot').style.display = tvMode ? 'flex' : 'none';
+  const btnTV = document.getElementById('btn-tv');
+  btnTV.classList.toggle('active', tvMode);
+  btnTV.innerHTML = tvMode ? '⛶ Exit TV' : '⛶ TV';
+  if (tvMode) {
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  } else {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+  }
+  localStorage.setItem('tvMode', tvMode ? '1' : '0');
+}
+
+function toggleTV() {
+  tvMode = !tvMode;
+  applyTVMode();
+}
+
+function exitTV() {
+  tvMode = false;
+  applyTVMode();
+}
+
+// Sync state if user presses Escape to exit fullscreen
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && tvMode) {
+    tvMode = false;
+    document.body.classList.remove('tv-mode');
+    document.getElementById('exit-fs-btn').style.display = 'none';
+    document.getElementById('tv-live-dot').style.display = 'none';
+    const btnTV = document.getElementById('btn-tv');
+    btnTV.classList.remove('active');
+    btnTV.innerHTML = '⛶ TV';
+    localStorage.setItem('tvMode', '0');
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+fetchData(false);
+startCountdown();
+if (tvMode) applyTVMode();
+</script>
+</body>
+</html>
