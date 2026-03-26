@@ -1110,8 +1110,11 @@ function render(data) {
       }
 
       // Funnel: meetings → proposals → closes (30d)
-      // closes = round(proposals × closeRate) to stay internally consistent with displayed rate
-      const funnelCloses = b.proposals > 0 ? Math.round(b.proposals * b.closeRate / 100) : 0;
+      // Always use raw b.closes from the server — never derive from rounded closeRate
+      const funnelCloses = b.closes ?? 0;
+      if (funnelCloses === 0 && b.closeRate > 0) {
+        console.error(`[M3 Funnel] Day ${b.daysOut}: closeRate=${b.closeRate}% but closes=0 — rounding bug detected`);
+      }
       const funnelCell = b.total === 0
         ? '<span style="color:var(--muted);font-size:11px">—</span>'
         : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${b.total}<span style="opacity:0.5"> → </span>${b.proposals}<span style="opacity:0.5"> → </span>${funnelCloses}</span>`;
