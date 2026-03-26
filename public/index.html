@@ -741,7 +741,7 @@
               <th colspan="4" class="m3-group-hdr">30 days</th>
               <th rowspan="2" style="width:90px;padding:10px 12px;vertical-align:bottom;text-align:center">Trend</th>
               <th colspan="4" class="m3-group-hdr m3-divider">90 days</th>
-              <th rowspan="2" style="width:110px;padding:10px 12px;vertical-align:bottom;text-align:center;color:var(--muted);font-size:10px">Funnel</th>
+              <th rowspan="2" style="width:110px;padding:10px 12px;vertical-align:bottom;text-align:center;color:var(--muted);font-size:10px">Funnel<br><span style="font-size:9px;opacity:0.6">(90d)</span></th>
             </tr>
             <tr>
               <th style="width:90px">Meetings</th>
@@ -1110,14 +1110,14 @@ function render(data) {
       }
 
       // Funnel: meetings → proposals → closes (30d)
-      // Always use raw b.closes from the server — never derive from rounded closeRate
-      const funnelCloses = b.closes ?? 0;
-      if (funnelCloses === 0 && b.closeRate > 0) {
-        console.error(`[M3 Funnel] Day ${b.daysOut}: closeRate=${b.closeRate}% but closes=0 — rounding bug detected`);
+      // Funnel uses 90d data (c), raw closes directly — never derive from rounded closeRate
+      const funnelCloses = c.closes ?? 0;
+      if (funnelCloses === 0 && c.closeRate > 0) {
+        console.error(`[M3 Funnel] Day ${c.daysOut}: 90d closeRate=${c.closeRate}% but closes=0 — rounding bug detected`);
       }
-      const funnelCell = b.total === 0
+      const funnelCell = c.total === 0
         ? '<span style="color:var(--muted);font-size:11px">—</span>'
-        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${b.total}<span style="opacity:0.5"> → </span>${b.proposals}<span style="opacity:0.5"> → </span>${funnelCloses}</span>`;
+        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${c.total}<span style="opacity:0.5"> → </span>${c.proposals}<span style="opacity:0.5"> → </span>${funnelCloses}</span>`;
 
       return `<tr style="${rowStyle}${rowBorder}">
         ${daysOutCell}
