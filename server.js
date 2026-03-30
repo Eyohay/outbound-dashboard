@@ -437,6 +437,9 @@ setInterval(refreshCache, CACHE_TTL_MS);
 // Serve the Sales Command Center dashboard directly from the project root
 // so edits to sales_command_center.html are live without any copy step.
 app.get('/sales_command_center.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'sales_command_center.html'));
 });
 
