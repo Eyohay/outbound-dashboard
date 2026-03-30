@@ -398,6 +398,10 @@ async function buildDashboardData() {
     fullestRep: sortedByFill[sortedByFill.length - 1] ? { name: sortedByFill[sortedByFill.length - 1].name, fillPct: sortedByFill[sortedByFill.length - 1].fillPct } : null
   };
 
+  // Show Rate Today — meetings scheduled today with any Deal Status set
+  const showRateTotal    = meetings.filter(m => m.scheduledStr === todayStr).length;
+  const showRateHappened = meetings.filter(m => m.scheduledStr === todayStr && m.dealStatus).length;
+
   return {
     generatedAt: new Date().toISOString(),
     todayStr,
@@ -407,7 +411,9 @@ async function buildDashboardData() {
     module1: { days: days10 },
     module2: { reps: repBreakdown },
     module3: { hitRate30, hitRate90, bookingRec, sanity30: { ...sanity30, blendedCloseRate: parseFloat(sanityBlended) } },
-    module4: { meetingsNeeded }
+    module4: { meetingsNeeded },
+    showRateTotal,
+    showRateHappened,
   };
 }
 

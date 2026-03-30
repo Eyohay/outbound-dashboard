@@ -312,7 +312,7 @@
     /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
     #m4-strip {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 7px;
       padding: 6px 14px;
       background: #0d1017;
@@ -494,6 +494,28 @@
       border-top: 0.5px solid rgba(255,255,255,0.04);
       flex-shrink: 0;
     }
+
+    /* ── Show Rate card ─────────────────────────────────────────────────────── */
+    .kpi-card {
+      background: rgba(255,255,255,0.04);
+      border: 0.5px solid rgba(255,255,255,0.08);
+      border-radius: 7px;
+      padding: 7px 12px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden; min-height: 68px;
+    }
+    .kpi-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      border-radius: 7px 7px 0 0;
+    }
+    .kpi-card.accent-rose::before { background: #e11d48; }
+    .kpi-label {
+      font-size: 9px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #475569; line-height: 1;
+    }
+    .kpi-value { font-size: 26px; font-weight: 800; line-height: 1; }
+    .kpi-sub   { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* ── Shared helpers ─────────────────────────────────────────────────────── */
     .bar-wrap  { display: flex; align-items: center; gap: 6px; }
@@ -926,7 +948,7 @@ function render(data) {
   const m4strip = document.getElementById('m4-strip');
   const m4rows  = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
 
-  m4strip.innerHTML = m4rows.map(r => {
+  m4strip.innerHTML = [m4rows.map(r => {
     const isFull    = r.openSlots <= 0;
     const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
     const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
@@ -962,7 +984,30 @@ function render(data) {
         <div class="m4-open-label">open slots</div>
       </div>
     </div>`;
-  }).join('');
+  }).join(''), `<div class="kpi-card accent-rose" id="card-showrate">
+    <div class="kpi-label">DEAL BOTS FILLED</div>
+    <div class="kpi-value" id="k-showrate-pct" style="color:#22c55e;">--%</div>
+    <div class="kpi-sub" id="k-showrate-sub" style="white-space:nowrap;">loading...</div>
+  </div>`].join('');
+
+  // Show Rate Today
+  const srTotal    = data.showRateTotal    || 0;
+  const srHappened = data.showRateHappened || 0;
+  const srPending  = srTotal - srHappened;
+  const srPct      = srTotal > 0 ? Math.round(srHappened / srTotal * 100) : null;
+  const srPctEl    = document.getElementById('k-showrate-pct');
+  const srSubEl    = document.getElementById('k-showrate-sub');
+  if (srPctEl) {
+    srPctEl.textContent = srPct !== null ? srPct + '%' : '--%';
+    srPctEl.style.color = srPct === null ? '#6b7280'
+      : srPct >= 70 ? '#22c55e'
+      : srPct >= 50 ? '#f59e0b' : '#ef4444';
+  }
+  if (srSubEl) {
+    srSubEl.textContent = srTotal > 0
+      ? srHappened + ' of ' + srTotal + ' updated · ' + srPending + ' pending'
+      : 'No meetings today';
+  }
 
   // ── Module 3 — 30d + 90d + Funnel table ─────────────────────────────────
   (function renderCombinedHitTable() {
