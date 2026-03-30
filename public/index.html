@@ -178,14 +178,14 @@
     }
     #m1-chart-wrap canvas { width: 100% !important; height: 100% !important; }
 
-    /* ── Row 4: M2 heatmap (190px) ─────────────────────────────────────────── */
+    /* ── Row 4: M2 heatmap (auto — sized by JS after render) ────────────────── */
     #m2-row {
       display: flex;
       flex-direction: column;
       background: #0d1017;
       border-bottom: 0.5px solid rgba(255,255,255,0.06);
       min-height: 0;
-      overflow: hidden;
+      overflow: visible;
       padding: 6px 16px;
       gap: 4px;
     }
@@ -196,13 +196,13 @@
       flex-shrink: 0; white-space: nowrap; margin-bottom: 2px;
     }
 
-    #m2-heatmap { flex: 1; overflow: hidden; min-height: 0; }
+    #m2-heatmap { flex: 1; overflow: visible; min-height: 0; }
 
     /* Heatmap table */
     #m2-heatmap .heatmap-table        { font-size: 9px; border-collapse: separate; border-spacing: 1px; width: 100%; table-layout: fixed; }
     #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
     #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 96px; padding-left: 6px; vertical-align: middle; }
-    #m2-heatmap tr                    { height: auto; max-height: 21px; }
+    #m2-heatmap tr                    { height: auto; }
     #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 4px; vertical-align: middle; overflow: hidden; line-height: 1; }
     #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
     #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
@@ -784,13 +784,8 @@ function render(data) {
         <tbody>${repRows}</tbody>
       </table>`;
 
-    // ── Dynamic row height based on actual rep count ──────────────────────
-    const repCount  = reps.length;
-    const rowHeight = Math.max(18, Math.min(30, Math.floor(180 / repCount)));
-    const m2Height  = 20 + 18 + (repCount * rowHeight);   // hdr label + th row + rep rows
-    document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
-
     // ── Dynamic font size + padding on all heatmap cells ──────────────────
+    const repCount    = reps.length;
     const fontSize    = repCount <= 6 ? '10px' : repCount <= 8 ? '9px' : '8px';
     const cellPadding = repCount <= 6 ? '4px 3px' : repCount <= 8 ? '2px 2px' : '1px 2px';
     document.querySelectorAll('#m2-heatmap .hm-cell, #m2-heatmap td, #m2-heatmap th').forEach(el => {
@@ -798,6 +793,16 @@ function render(data) {
       el.style.padding  = cellPadding;
     });
   })();
+
+  // ── Measure actual rendered M2 height and set grid row to match exactly ──
+  function adjustM2Height() {
+    const table  = document.querySelector('#m2-heatmap .heatmap-table');
+    const hdr    = document.getElementById('m2-row-hdr');
+    if (!table || !hdr) return;
+    const m2Height = table.scrollHeight + hdr.scrollHeight + 16; // 16px = padding + gap buffer
+    document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
+  }
+  setTimeout(adjustM2Height, 100);
 
   // ── Header booking pill ──────────────────────────────────────────────────
   (function renderBookingPill() {
