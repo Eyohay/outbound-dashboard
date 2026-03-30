@@ -104,7 +104,7 @@
   /* ROW 2 - KPI cards */
   #kpi-row {
     display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
     gap: 6px;
     height: 100%;
     align-items: stretch;
@@ -129,6 +129,7 @@
   .kpi-card.accent-violet::before { background: var(--violet); }
   .kpi-card.accent-amber::before  { background: var(--amber); }
   .kpi-card.accent-emerald::before { background: var(--emerald); }
+  .kpi-card.accent-rose::before    { background: #e11d48; }
   .kpi-label {
     font-size: 10px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; color: var(--muted);
@@ -495,6 +496,12 @@
       <div class="kpi-label">Close Rate</div>
       <div class="kpi-value amber" id="k7-big">—</div>
       <div class="kpi-sub" id="k7-sub">—</div>
+    </div>
+    <!-- Card 9: Show Rate Today -->
+    <div class="kpi-card accent-rose">
+      <div class="kpi-label">Show Rate Today</div>
+      <div class="kpi-value" id="k9-big" style="color:#64748b">—</div>
+      <div class="kpi-sub" id="k9-sub" style="white-space:nowrap;color:var(--muted)">—</div>
     </div>
   </div>
 
@@ -1045,6 +1052,20 @@ function processRecords(records) {
     todaySchedProposals, avgSchedProposalsPerWeekday,
     reps, weekKeys, weeklyData, dayKeys, dailyData, propDayMap,
     todayStr: today,
+    showRateTotal: (() => {
+      let t = 0;
+      for (const rec of salesRecs) {
+        if (toLocalDateStr(rec.fields[F.SCHEDULED]) === today) t++;
+      }
+      return t;
+    })(),
+    showRateHappened: (() => {
+      let h = 0;
+      for (const rec of salesRecs) {
+        if (toLocalDateStr(rec.fields[F.SCHEDULED]) === today && rec.fields[F.STATUS]) h++;
+      }
+      return h;
+    })(),
   };
 }
 
@@ -1112,6 +1133,18 @@ function renderKPIs(d) {
   set('k7-big', overallCR + '%', true);
   set('k7-sub',
     `<span class="teal">OC ${d.ocPropToCloseRate}%</span> · <span class="violet">Belkins ${d.belkinsPropToCloseRate}%</span>`);
+
+  // Card 9: Show Rate Today
+  {
+    const total    = d.showRateTotal    || 0;
+    const happened = d.showRateHappened || 0;
+    const pending  = total - happened;
+    const pct      = total > 0 ? Math.round(happened / total * 100) : null;
+    const color    = pct === null ? '#64748b' : pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+    const bigEl    = document.getElementById('k9-big');
+    if (bigEl) { bigEl.textContent = pct === null ? '—' : pct + '%'; bigEl.style.color = color; }
+    set('k9-sub', total === 0 ? 'no meetings scheduled today' : `${happened} of ${total} had a status · ${pending} pending`);
+  }
 }
 
 // ─── RENDER FUNNEL ────────────────────────────────────────────────────────────
