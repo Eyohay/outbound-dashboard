@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px 100px minmax(200px, auto) 56px 1fr;
+      grid-template-rows: 48px 28px 100px minmax(200px, auto) 72px 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -309,16 +309,16 @@
     /* Beyond-cutoff header slot pill */
     .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
 
-    /* ── Row 5: M4 cards (56px) ─────────────────────────────────────────────── */
+    /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
     #m4-strip {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 7px;
-      padding: 5px 14px;
+      padding: 6px 14px;
       background: #0d1017;
       border-bottom: 0.5px solid rgba(255,255,255,0.06);
       min-height: 0;
-      overflow: hidden;
+      overflow: visible;
       align-items: stretch;
     }
 
@@ -326,22 +326,23 @@
       background: rgba(255,255,255,0.04);
       border: 0.5px solid rgba(255,255,255,0.08);
       border-radius: 7px;
-      padding: 5px 12px;
+      padding: 7px 12px;
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
       gap: 8px;
-      min-height: 0;
-      overflow: hidden;
+      min-height: 68px;
+      overflow: visible;
     }
 
     .m4-card-left {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+      justify-content: center;
       gap: 2px;
       min-width: 0;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .m4-card-left > * { margin: 0; }
@@ -786,6 +787,12 @@ function render(data) {
       return `<th style="${[wkStyle, cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
     }).join('');
 
+    // Next 5 weekday indices starting from tomorrow (index 1)
+    const next5Idxs = [];
+    for (let i = 1; i < days.length && next5Idxs.length < 5; i++) {
+      if (!days[i].isWeekend) next5Idxs.push(i);
+    }
+
     const repRows = reps.map(rep => {
       const cells = rep.days.map((d, i) => {
         const day      = days[i];
@@ -811,12 +818,14 @@ function render(data) {
         </td>`;
       }).join('');
 
-      const p = rep.totalFillPct;
+      const n5Booked = next5Idxs.reduce((s, i) => s + (rep.days[i] ? rep.days[i].booked : 0), 0);
+      const n5Cap    = rep.maxPerDay * next5Idxs.length;
+      const p        = n5Cap > 0 ? Math.round((n5Booked / n5Cap) * 100) : 0;
       const totalColor = p >= 80 ? '#22c55e' : p >= 50 ? '#84cc16' : p >= 30 ? '#f59e0b' : '#ef4444';
       return `<tr>
         <td class="rep-name">${rep.name}</td>
         ${cells}
-        <td class="hm-total-col" style="color:${totalColor}"><strong>${rep.totalFillPct}%</strong></td>
+        <td class="hm-total-col" style="color:${totalColor}"><strong>${p}%</strong></td>
       </tr>`;
     }).join('');
 
@@ -826,7 +835,7 @@ function render(data) {
           <tr>
             <th class="rep-col">Rep</th>
             ${headerCols}
-            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">wkdays</span></th>
+            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">next 5 days</span></th>
           </tr>
         </thead>
         <tbody>${repRows}</tbody>
@@ -851,7 +860,7 @@ function render(data) {
     const measured  = table.scrollHeight + hdr.scrollHeight + 16;
     const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
     const m2Height  = Math.min(maxM2, Math.max(200, measured));
-    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 56px 1fr`;
+    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 72px 1fr`;
     // After M2 is sized, let M3 rows fill the rest
     setTimeout(expandM3Rows, 50);
   }
@@ -1012,8 +1021,8 @@ function render(data) {
 
       // Funnel: 90d meetings → proposals → closes · True rate (hit% × close%)
       const closesColor   = c.closeRate >= 15 ? '#22c55e' : c.closeRate >= 10 ? '#f59e0b' : '#ef4444';
-      const trueRate      = b.total > 0 && b.proposals > 0
-        ? ((b.hitRate / 100) * (b.closeRate / 100) * 100).toFixed(1)
+      const trueRate      = c.total > 0 && c.proposals > 0
+        ? ((c.hitRate / 100) * (c.closeRate / 100) * 100).toFixed(1)
         : null;
       const trueRateHtml  = trueRate !== null
         ? ` <span style="color:#8b5cf6;font-weight:600">${trueRate}%</span>`
