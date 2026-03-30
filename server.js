@@ -99,6 +99,9 @@ async function buildDashboardData() {
   const outboundRepNames = new Set(Object.keys(outboundReps));
   const totalDailyCapacity = Object.values(outboundReps).reduce((s, r) => s + r.maxPerDay, 0);
 
+  // Log every rep fetched so we can verify all are present
+  console.log(`[Reps] ${Object.keys(outboundReps).length} Outbound Direct reps fetched: ${Object.keys(outboundReps).join(', ')}`);
+
   // ── Filter meetings to outbound reps only ─────────────────────────────────
   const today = new Date();
   today.setHours(0, 0, 0, 0);

@@ -323,13 +323,17 @@
 
     .m4-open-label { font-size: 8px; color: #475569; text-align: center; }
 
-    /* Slim inline pill buttons */
+    /* Slim inline pill buttons — !important prevents flex-stretch from overriding */
     .m4-badge {
-      display: inline-block;
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 10px; font-weight: 600;
+      display: inline-block !important;
+      width: auto !important;
+      max-width: fit-content !important;
+      border-radius: 5px !important;
+      padding: 3px 10px !important;
+      font-size: 10px !important; font-weight: 600;
       white-space: nowrap;
+      margin-top: 4px !important;
+      align-self: flex-start !important;
     }
     .m4-badge.badge-critical { background: rgba(220,38,38,0.12);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.25); }
     .m4-badge.badge-warn     { background: rgba(245,158,11,0.15); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.30); }
@@ -382,8 +386,8 @@
     }
 
     #m3-row td {
-      padding: 0 8px;
-      height: 24px;
+      padding: 3px 5px;
+      font-size: 10px;
       border-bottom: 0.5px solid rgba(255,255,255,0.04);
       vertical-align: middle;
     }
@@ -680,6 +684,8 @@ function render(data) {
     const reps      = data.module2.reps;
     const days      = data.module1.days;
 
+    console.log(`M2: Rendering ${reps.length} Outbound Direct reps: ${reps.map(r => r.name).join(', ')}`);
+
     if (!reps.length) {
       container.innerHTML = '<div style="padding:8px;color:#64748b;font-size:11px">No Outbound Direct reps found</div>';
       return;
@@ -777,6 +783,20 @@ function render(data) {
         </thead>
         <tbody>${repRows}</tbody>
       </table>`;
+
+    // ── Dynamic row height based on actual rep count ──────────────────────
+    const repCount  = reps.length;
+    const rowHeight = Math.max(18, Math.min(30, Math.floor(180 / repCount)));
+    const m2Height  = 20 + 18 + (repCount * rowHeight);   // hdr label + th row + rep rows
+    document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
+
+    // ── Dynamic font size + padding on all heatmap cells ──────────────────
+    const fontSize    = repCount <= 6 ? '10px' : repCount <= 8 ? '9px' : '8px';
+    const cellPadding = repCount <= 6 ? '4px 3px' : repCount <= 8 ? '2px 2px' : '1px 2px';
+    document.querySelectorAll('#m2-heatmap .hm-cell, #m2-heatmap td, #m2-heatmap th').forEach(el => {
+      el.style.fontSize = fontSize;
+      el.style.padding  = cellPadding;
+    });
   })();
 
   // ── Header booking pill ──────────────────────────────────────────────────
