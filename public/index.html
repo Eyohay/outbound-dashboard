@@ -11,17 +11,19 @@
 
     :root {
       --bg:       #0a0d14;
-      --surface:  #111620;
-      --surface2: #161d2a;
-      --border:   #1e2635;
-      --text:     #e6edf3;
-      --muted:    #8b949e;
-      --accent:   #58a6ff;
-      --green:    #3fb950;
-      --yellow:   #d29922;
-      --red:      #f85149;
-      --orange:   #e3b341;
-      --purple:   #a371f7;
+      --surface:  #0d1017;
+      --surface2: #0b0e15;
+      --border:   rgba(255,255,255,0.08);
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --label:    #475569;
+      --accent:   #3b82f6;
+      --green:    #22c55e;
+      --green-hi: #86efac;
+      --yellow:   #f59e0b;
+      --yellow-hi:#fcd34d;
+      --red:      #ef4444;
+      --red-hi:   #fca5a5;
     }
 
     html, body {
@@ -64,8 +66,8 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      background: rgba(63,185,80,.10);
-      border: 1px solid rgba(63,185,80,.30);
+      background: rgba(99,153,34,0.15);
+      border: 0.5px solid rgba(99,153,34,0.4);
       border-radius: 6px;
       padding: 3px 12px;
       flex: 1;
@@ -76,9 +78,9 @@
       visibility: hidden;
     }
     #header-book-pill .bp-label  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0; }
-    #header-book-pill .bp-count  { font-size: 22px; font-weight: 800; color: var(--green); flex-shrink: 0; }
-    #header-book-pill .bp-unit   { font-size: 11px; font-weight: 600; color: var(--green); flex-shrink: 0; }
-    #header-book-pill .bp-sep    { width: 1px; height: 18px; background: rgba(63,185,80,.3); flex-shrink: 0; margin: 0 4px; }
+    #header-book-pill .bp-count  { font-size: 22px; font-weight: 800; color: var(--green-hi); flex-shrink: 0; }
+    #header-book-pill .bp-unit   { font-size: 11px; font-weight: 600; color: var(--green-hi); flex-shrink: 0; }
+    #header-book-pill .bp-sep    { width: 1px; height: 18px; background: rgba(99,153,34,0.4); flex-shrink: 0; margin: 0 4px; }
     #header-book-pill .bp-detail { font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
     #header-book-pill .bp-detail strong { color: var(--text); }
 
@@ -260,11 +262,11 @@
     #m2-heatmap .today-col              { outline: 1.5px solid var(--accent); outline-offset: -1px; }
 
     /* fill scale */
-    .hm-empty   { background: #5c1a1a; color: #ffaaaa; }
-    .hm-low     { background: #7a2a2a; color: #ffcccc; }
-    .hm-mid     { background: #7a5c00; color: #ffe8a0; }
-    .hm-good    { background: #1a4d2e; color: #a8f0c0; }
-    .hm-full    { background: #1a6b35; color: #d0ffe0; }
+    .hm-empty   { background: rgba(220,38,38,0.50); color: #fca5a5; }
+    .hm-low     { background: rgba(220,38,38,0.25); color: #fca5a5; }
+    .hm-mid     { background: rgba(245,158,11,0.30); color: #fcd34d; }
+    .hm-good    { background: rgba(34,197,94,0.25);  color: #86efac; }
+    .hm-full    { background: rgba(34,197,94,0.50);  color: #86efac; }
 
     /* ── Row 5: Bottom split (1fr) ─────────────────────────────────────────── */
     #bottom-split {
@@ -318,9 +320,9 @@
     .highlight-row td:first-child { border-left: 2px solid var(--green); }
 
     /* Hit rate colors */
-    .rate-high { color: #3fb950; font-weight: 700; }
-    .rate-mid  { color: #f0a030; font-weight: 700; }
-    .rate-low  { color: #f85149; font-weight: 700; }
+    .rate-high { color: #22c55e; font-weight: 700; }
+    .rate-mid  { color: #f59e0b; font-weight: 700; }
+    .rate-low  { color: #ef4444; font-weight: 700; }
 
     /* M4 table — compact */
     #m4-panel table { font-size: 11px; width: 100%; border-collapse: collapse; }
@@ -330,24 +332,24 @@
 
     .needed-full td        { opacity: 0.6; }
     .m4-fill-wrap          { display: flex; flex-direction: column; gap: 2px; min-width: 100px; }
-    .m4-fill-bar-track     { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .m4-fill-bar-track     { height: 4px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
     .m4-fill-bar           { height: 100%; border-radius: 3px; }
-    .m4-open-slots         { font-size: 14px; font-weight: 800; line-height: 1; }
-    .m4-open-slots.critical { color: #ff6b63; }
-    .m4-open-slots.warn    { color: #f0a030; }
-    .m4-open-slots.good    { color: #3fb950; }
+    .m4-open-slots         { font-size: 18px; font-weight: 800; line-height: 1; }
+    .m4-open-slots.critical { color: #fca5a5; }
+    .m4-open-slots.warn    { color: #fcd34d; }
+    .m4-open-slots.good    { color: #86efac; }
     .m4-badge {
       display: inline-flex; align-items: center; gap: 5px;
       padding: 4px 10px; border-radius: 6px;
       font-size: 11px; font-weight: 700; white-space: nowrap;
     }
-    .m4-badge.badge-critical { background: rgba(248,81,73,.18); color: #ff6b63; border: 1px solid rgba(248,81,73,.4); }
-    .m4-badge.badge-warn     { background: rgba(240,160,48,.18); color: #f0a030; border: 1px solid rgba(240,160,48,.4); }
-    .m4-badge.badge-good     { background: rgba(63,185,80,.15);  color: #3fb950; border: 1px solid rgba(63,185,80,.35); }
+    .m4-badge.badge-critical { background: rgba(220,38,38,0.20);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.35); }
+    .m4-badge.badge-warn     { background: rgba(245,158,11,0.20); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.35); }
+    .m4-badge.badge-good     { background: rgba(34,197,94,0.20);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.35); }
 
     /* Shared helpers */
     .bar-wrap  { display: flex; align-items: center; gap: 8px; min-width: 80px; }
-    .bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 60px; }
+    .bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; min-width: 60px; }
     .bar-fill  { height: 100%; border-radius: 3px; }
     .bar-fill.green  { background: var(--green); }
     .bar-fill.yellow { background: var(--yellow); }
@@ -356,9 +358,9 @@
     .bar-pct { font-size: 11px; color: var(--muted); min-width: 30px; text-align: right; }
 
     .chip        { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-    .chip-green  { background: rgba(63,185,80,.15);  color: var(--green); }
-    .chip-yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
-    .chip-red    { background: rgba(248,81,73,.15);  color: var(--red); }
+    .chip-green  { background: rgba(34,197,94,.15);   color: #86efac; }
+    .chip-yellow { background: rgba(245,158,11,.15);  color: #fcd34d; }
+    .chip-red    { background: rgba(220,38,38,.15);   color: #fca5a5; }
 
     /* Error banner */
     #error-banner {
@@ -430,9 +432,9 @@
         <thead>
           <tr class="m3-group-row">
             <th rowspan="2" style="width:80px;padding:5px 8px;vertical-align:bottom">Days Out</th>
-            <th colspan="4" class="m3-group-hdr">30 days</th>
+            <th colspan="4" class="m3-group-hdr" style="color:#60a5fa">30 days</th>
             <th rowspan="2" style="width:46px;padding:5px 6px;vertical-align:bottom;text-align:center">Trend</th>
-            <th colspan="4" class="m3-group-hdr m3-divider">90 days</th>
+            <th colspan="4" class="m3-group-hdr m3-divider" style="color:#334155">90 days</th>
           </tr>
           <tr>
             <th>Mtgs</th><th>Props</th><th>Hit%</th><th>Close%</th>
@@ -564,9 +566,9 @@ function render(data) {
   const bgBooked   = days.map(d => {
     if (d.isWeekend) return 'rgba(139,148,158,0.15)';
     const c = barColor(d.fillPct);
-    return c === 'green' ? '#3fb950' : c === 'yellow' ? '#d29922' : '#f85149';
+    return c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : '#ef4444';
   });
-  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.05)' : 'rgba(255,255,255,0.04)');
+  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.05)' : 'rgba(255,255,255,0.06)');
 
   if (chartM1) chartM1.destroy();
   const ctx = document.getElementById('chart-m1').getContext('2d');
@@ -656,7 +658,7 @@ function render(data) {
       }).join('');
 
       const p = rep.totalFillPct;
-      const totalColor = p >= 86 ? '#00e676' : p >= 71 ? '#3fb950' : p >= 51 ? '#a8c832' : p >= 31 ? '#e3762a' : p >= 16 ? '#d73a49' : '#8b1a1a';
+      const totalColor = p >= 80 ? '#86efac' : p >= 50 ? '#fcd34d' : '#fca5a5';
       return `<tr>
         <td class="rep-name">${rep.name}</td>
         ${cells}
@@ -715,7 +717,7 @@ function render(data) {
       const isDropoff = rec && rec.optimalCutoff > 0 && b.daysOut > rec.optimalCutoff;
       const isBest    = rec && b.daysOut === rec.bestDaysOut && b.total > 0 && !isDropoff;
 
-      const rowStyle  = isDropoff ? 'background:rgba(248,81,73,.04);' : isBest ? 'background:rgba(63,185,80,.06);' : '';
+      const rowStyle  = isDropoff ? 'background:rgba(220,38,38,0.05);' : isBest ? 'background:rgba(99,153,34,0.07);' : '';
       const rowBorder = isCutoff ? 'border-bottom:2px dashed rgba(63,185,80,.45);' : '';
 
       const daysLabel = `${b.daysOut} day${b.daysOut > 1 ? 's' : ''} out`;
@@ -723,12 +725,12 @@ function render(data) {
       if (isCutoff) {
         daysOutCell = `<td style="padding:5px 8px">
           <div>${daysLabel}</div>
-          <div style="font-size:9px;color:var(--green);font-weight:700;letter-spacing:.04em;margin-top:1px">◀ OPTIMAL</div>
+          <div style="font-size:9px;color:#22c55e;font-weight:700;letter-spacing:.04em;margin-top:1px">◀ OPTIMAL</div>
         </td>`;
       } else if (isDropoff) {
         daysOutCell = `<td style="padding:5px 8px;opacity:.7">
           <div>${daysLabel}</div>
-          <div style="font-size:9px;color:var(--red);margin-top:1px">drop-off</div>
+          <div style="font-size:9px;color:#374151;margin-top:1px">drop-off</div>
         </td>`;
       } else {
         daysOutCell = `<td>${daysLabel}${isBest ? ' <span style="font-size:9px;color:var(--green);font-weight:600">★</span>' : ''}</td>`;
@@ -754,11 +756,11 @@ function render(data) {
       const diff = b.hitRate - c.hitRate;
       let trendCell;
       if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
-        trendCell = '<span style="color:var(--muted)">—</span>';
+        trendCell = '<span style="color:#334155">—</span>';
       } else if (diff > 0) {
-        trendCell = `<span style="color:var(--green)">▲ +${diff}%</span>`;
+        trendCell = `<span style="color:#22c55e">▲ +${diff}%</span>`;
       } else {
-        trendCell = `<span style="color:var(--red)">▼ ${diff}%</span>`;
+        trendCell = `<span style="color:#ef4444">▼ ${diff}%</span>`;
       }
 
       return `<tr style="${rowStyle}${rowBorder}">
@@ -791,7 +793,7 @@ function render(data) {
     const rowClass  = isFull ? 'needed-full' : '';
     const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
     const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
-    const barFill   = isFull ? '#3fb950' : bookedPct >= 70 ? '#f0a030' : '#58a6ff';
+    const barFill   = isFull ? '#22c55e' : '#3b82f6';
 
     const fillCell = `<div class="m4-fill-wrap">
       <div style="font-size:10px;color:var(--muted)">${r.totalBooked}/${r.totalCapacity} &nbsp;<strong style="color:var(--text)">${bookedPct}%</strong></div>
