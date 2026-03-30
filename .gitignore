@@ -26,3 +26,10 @@ app.py
 
 # Other projects in this folder
 recruiter_automation/
+
+# Next.js dashboard
+dashboard/.env.local
+dashboard/.next/
+dashboard/node_modules/
+
+.vercel

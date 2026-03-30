@@ -431,6 +431,12 @@ setInterval(refreshCache, CACHE_TTL_MS);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
+// Serve the Sales Command Center dashboard directly from the project root
+// so edits to sales_command_center.html are live without any copy step.
+app.get('/sales_command_center.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'sales_command_center.html'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/data', async (req, res) => {
@@ -468,4 +474,7 @@ app.listen(PORT, () => {
   console.log(`║  Open: http://localhost:${PORT}                         ║`);
   console.log('║  Data refreshes automatically every 60 seconds       ║');
   console.log('╚══════════════════════════════════════════════════════╝\n');
+  console.log('================================');
+  console.log('TV URL: https://outbound-dashboard-production-52f3.up.railway.app/?tv=1');
+  console.log('================================\n');
 });

@@ -7,789 +7,490 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
-    /* ── Reset & Base ─────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0d1117;
-      --surface:   #161b22;
-      --surface2:  #1f2937;
-      --border:    #30363d;
-      --text:      #e6edf3;
-      --muted:     #8b949e;
-      --accent:    #58a6ff;
-      --green:     #3fb950;
-      --yellow:    #d29922;
-      --red:       #f85149;
-      --orange:    #e3b341;
-      --purple:    #a371f7;
+      --bg:       #0a0d14;
+      --surface:  #111620;
+      --surface2: #161d2a;
+      --border:   #1e2635;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --accent:   #58a6ff;
+      --green:    #3fb950;
+      --yellow:   #d29922;
+      --red:      #f85149;
+      --orange:   #e3b341;
+      --purple:   #a371f7;
     }
 
-    body {
+    html, body {
+      height: 100vh;
+      overflow: hidden;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
-      min-height: 100vh;
+      font-size: 12px;
     }
 
-    /* ── Layout ───────────────────────────────────────────────────────────── */
-    .header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
+    body {
+      display: grid;
+      grid-template-rows: 44px 28px 90px 160px 1fr;
+      overflow: hidden;
+    }
+
+    /* ── Row 1: Header (44px) ─────────────────────────────────────────────── */
+    #header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      gap: 10px;
+      padding: 0 16px;
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      min-height: 0;
     }
 
-    .header-left h1 {
-      font-size: 18px;
-      font-weight: 600;
+    .hdr-title {
+      font-size: 13px;
+      font-weight: 700;
       color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: .02em;
     }
 
-    .header-left .subtitle {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 2px;
+    /* Booking pill */
+    #header-book-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(63,185,80,.10);
+      border: 1px solid rgba(63,185,80,.30);
+      border-radius: 6px;
+      padding: 3px 12px;
+      flex: 1;
+      min-width: 0;
+      max-width: 560px;
+      white-space: nowrap;
+      overflow: hidden;
+      visibility: hidden;
     }
+    #header-book-pill .bp-label  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0; }
+    #header-book-pill .bp-count  { font-size: 22px; font-weight: 800; color: var(--green); flex-shrink: 0; }
+    #header-book-pill .bp-unit   { font-size: 11px; font-weight: 600; color: var(--green); flex-shrink: 0; }
+    #header-book-pill .bp-sep    { width: 1px; height: 18px; background: rgba(63,185,80,.3); flex-shrink: 0; margin: 0 4px; }
+    #header-book-pill .bp-detail { font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+    #header-book-pill .bp-detail strong { color: var(--text); }
 
-    .header-right {
+    /* Right-side group */
+    .hdr-right {
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-left: auto;
+      flex-shrink: 0;
     }
 
-    .status-dot {
+    .live-ind {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .live-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--green);
-      animation: pulse 2s infinite;
-    }
-    .status-dot.error { background: var(--red); animation: none; }
-    .status-dot.loading { background: var(--yellow); }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      box-shadow: 0 0 8px var(--green);
+      animation: live-pulse 1.5s ease-in-out infinite;
     }
 
-    .status-text {
-      font-size: 12px;
-      color: var(--muted);
+    @keyframes live-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .45; transform: scale(1.6); box-shadow: 0 0 14px var(--green); }
     }
 
-    .btn-refresh {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
+    /* Mini countdown bar */
+    .cd-wrap {
       display: flex;
       align-items: center;
-      gap: 6px;
-      transition: border-color 0.2s, background 0.2s;
+      gap: 5px;
     }
-    .btn-refresh:hover { border-color: var(--accent); background: #1f2937; }
-    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .refresh-icon { display: inline-block; transition: transform 0.6s; }
-    .btn-refresh.spinning .refresh-icon { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-
-    /* ── Mini header countdown (replaces full-width bar) ─────────────────── */
-    .header-countdown {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .header-countdown-text {
-      font-size: 11px;
-      color: var(--muted);
-      min-width: 26px;
-      text-align: right;
-    }
-    .header-progress-track {
-      width: 80px;
+    .cd-track {
+      width: 50px;
       height: 2px;
       background: var(--border);
       border-radius: 2px;
       overflow: hidden;
     }
-    .header-progress-fill {
+    .cd-fill {
       height: 100%;
       background: var(--accent);
       border-radius: 2px;
       transition: width 1s linear;
+      width: 100%;
+    }
+    .cd-text { font-size: 10px; color: var(--muted); min-width: 24px; }
+
+    #last-updated { font-size: 10px; color: var(--muted); }
+
+    /* ── Row 2: Glance bar (28px) ─────────────────────────────────────────── */
+    #glance-bar {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 0;
+      background: var(--surface2);
+      border-bottom: 0.5px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      overflow: hidden;
+      white-space: nowrap;
+      min-height: 0;
     }
 
-    /* ── Cards ────────────────────────────────────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 24px;
+    .gb-title {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    /* classes used by render() wg-content */
+    .wg-sep  { color: var(--border); margin: 0 7px; }
+    .wg-item { flex-shrink: 0; }
+    .wg-week { margin-left: auto; font-size: 10px; color: var(--muted); flex-shrink: 0; padding-left: 12px; }
+
+    /* ── Row 3: Module 1 strip (90px) ─────────────────────────────────────── */
+    #m1-row {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      border-bottom: 0.5px solid var(--border);
+      min-height: 0;
       overflow: hidden;
     }
 
-    .card-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
+    #m1-label {
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 8px 4px 16px;
+      border-right: 0.5px solid var(--border);
+      min-height: 0;
+    }
+
+    .badge-m {
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-    }
-
-    .card-header .badge {
+      justify-content: center;
       background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2px 10px;
-      font-size: 11px;
+      border: 0.5px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 9px;
+      font-weight: 700;
       color: var(--muted);
-      font-weight: 500;
+      width: fit-content;
+      letter-spacing: .04em;
     }
 
-    .card-header h2 {
-      font-size: 15px;
+    .m1-sub {
+      font-size: 8px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    #m1-chart-wrap {
+      padding: 3px 8px 0 8px;
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #m1-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+    /* ── Row 4: Module 2 heatmap (160px) ─────────────────────────────────── */
+    #m2-row {
+      display: flex;
+      flex-direction: column;
+      border-bottom: 0.5px solid var(--border);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .row-hdr {
+      padding: 2px 16px;
+      font-size: 8.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+      line-height: 1.8;
+    }
+
+    #m2-heatmap {
       flex: 1;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    .card-body { padding: 20px; }
+    /* Compact heatmap cells — 8–9px, 1px padding */
+    #m2-heatmap .heatmap-table          { font-size: 8.5px; border-collapse: collapse; width: 100%; }
+    #m2-heatmap .heatmap-table th       { font-size: 8px; padding: 2px 4px; background: var(--surface); border-bottom: 0.5px solid var(--border); white-space: nowrap; text-align: center; }
+    #m2-heatmap .heatmap-table th.rep-col { text-align: left; min-width: 100px; padding-left: 10px; position: sticky; left: 0; z-index: 2; background: var(--surface); }
+    #m2-heatmap .hm-cell                { min-width: 58px; padding: 1px 2px; line-height: 1.2; text-align: center; border: 0.5px solid rgba(0,0,0,.15); vertical-align: middle; }
+    #m2-heatmap .hm-booking             { font-size: 9px; font-weight: 700; }
+    #m2-heatmap .hm-pct                 { font-size: 7.5px; margin-top: 0; opacity: .85; }
+    #m2-heatmap td.rep-name             { font-size: 9px; font-weight: 600; min-width: 100px; max-width: 120px; padding: 2px 6px 2px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: sticky; left: 0; z-index: 1; background: var(--surface); border-right: 0.5px solid var(--border); }
+    #m2-heatmap tr:hover td.rep-name    { background: #1a2130; }
+    #m2-heatmap .hm-total-col           { font-size: 9px; padding: 2px 8px; text-align: center; border-left: 0.5px solid var(--border); }
+    #m2-heatmap .weekend-col            { opacity: 0.22; background: rgba(139,148,158,0.06) !important; }
+    #m2-heatmap .today-col              { outline: 1.5px solid var(--accent); outline-offset: -1px; }
 
-    /* ── Heat map ─────────────────────────────────────────────────────────── */
-    .heatmap-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
+    /* fill scale */
+    .hm-empty   { background: #5c1a1a; color: #ffaaaa; }
+    .hm-low     { background: #7a2a2a; color: #ffcccc; }
+    .hm-mid     { background: #7a5c00; color: #ffe8a0; }
+    .hm-good    { background: #1a4d2e; color: #a8f0c0; }
+    .hm-full    { background: #1a6b35; color: #d0ffe0; }
 
-    .heatmap-table th {
-      padding: 8px 6px;
-      font-size: 10px;
-      text-align: center;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    .heatmap-table th.rep-col {
-      text-align: left;
-      padding-left: 16px;
-      min-width: 140px;
-      position: sticky;
-      left: 0;
-      z-index: 2;
-      background: var(--surface);
-    }
-
-    .heatmap-table td.rep-name {
-      padding: 6px 10px 6px 16px;
-      font-weight: 600;
-      font-size: 12px;
-      white-space: nowrap;
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-    }
-
-    .heatmap-table tr:hover td.rep-name { background: #1a2130; }
-
-    .hm-cell {
-      text-align: center;
-      padding: 6px 4px;
-      min-width: 72px;
-      border: 1px solid rgba(0,0,0,0.2);
-      vertical-align: middle;
-      line-height: 1.3;
-    }
-
-    .hm-cell.today-col {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
-    }
-
-    .hm-cell.weekend-col {
-      opacity: 0.3;
-      background: rgba(139,148,158,0.1) !important;
-    }
-
-    .hm-booking  { font-weight: 700; font-size: 12px; }
-    .hm-pct      { font-size: 10px; opacity: 0.85; margin-top: 1px; }
-
-    /* fill color scale */
-    .hm-empty    { background: #5c1a1a; color: #ffaaaa; }  /* 0% — deep red   */
-    .hm-low      { background: #7a2a2a; color: #ffcccc; }  /* 1–49% — light red */
-    .hm-mid      { background: #7a5c00; color: #ffe8a0; }  /* 50–79% — amber  */
-    .hm-good     { background: #1a4d2e; color: #a8f0c0; }  /* 80–99% — lt green */
-    .hm-full     { background: #1a6b35; color: #d0ffe0; }  /* 100% — solid green */
-
-    .hm-total-col {
-      padding: 6px 12px;
-      text-align: center;
-      border-left: 1px solid var(--border);
-      font-size: 11px;
-      min-width: 64px;
-    }
-
-    /* ── Module 3 side-by-side ─────────────────────────────────────────────── */
-    .two-col {
+    /* ── Row 5: Bottom split (1fr) ─────────────────────────────────────────── */
+    #bottom-split {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
-
-    .sub-card {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      min-height: 0;
       overflow: hidden;
     }
-    .sub-card-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
+
+    #m3-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 0.5px solid var(--border);
+      min-height: 0;
+      overflow: hidden;
     }
 
-    /* ── Chart container ─────────────────────────────────────────────────── */
-    .chart-wrap {
-      height: 220px;
-      margin-bottom: 20px;
-      position: relative;
+    #m4-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    /* ── Tables ───────────────────────────────────────────────────────────── */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
+    .panel-scroll { flex: 1; overflow: auto; min-height: 0; }
 
-    th {
-      text-align: left;
-      padding: 8px 12px;
+    /* M3 table — compact */
+    #m3-panel table { font-size: 11px; width: 100%; border-collapse: collapse; }
+    #m3-panel th    { font-size: 9px; padding: 5px 8px; text-align: left; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; border-bottom: 0.5px solid var(--border); }
+    #m3-panel td    { padding: 5px 8px; border-bottom: 0.5px solid rgba(30,38,53,.5); vertical-align: middle; }
+    #m3-panel tr:last-child td { border-bottom: none; }
+
+    /* M3 group header rows */
+    .m3-group-hdr {
+      text-align: center;
       color: var(--muted);
-      font-weight: 500;
-      font-size: 11px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: .08em;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border);
+      padding: 5px 8px 2px;
+      border-bottom: none;
     }
+    .m3-group-row th { border-bottom: none; }
+    .m3-divider      { border-left: 0.5px solid var(--border) !important; }
 
-    td {
-      padding: 9px 12px;
-      border-bottom: 1px solid rgba(48,54,61,0.5);
-      vertical-align: middle;
-    }
-
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .today-row td { background: rgba(88,166,255,0.06); }
+    /* M3 row highlights */
+    .today-row td             { background: rgba(88,166,255,.06); }
     .today-row td:first-child { border-left: 2px solid var(--accent); }
-
-    .weekend-row td { opacity: 0.3; font-style: italic; }
-
-    .highlight-row td { background: rgba(63,185,80,0.08); }
+    .highlight-row td             { background: rgba(63,185,80,.08); }
     .highlight-row td:first-child { border-left: 2px solid var(--green); }
 
-    /* ── Progress bars ───────────────────────────────────────────────────── */
-    .bar-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 160px;
-    }
+    /* Hit rate colors */
+    .rate-high { color: #3fb950; font-weight: 700; }
+    .rate-mid  { color: #f0a030; font-weight: 700; }
+    .rate-low  { color: #f85149; font-weight: 700; }
 
-    .bar-track {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      min-width: 80px;
-    }
+    /* M4 table — compact */
+    #m4-panel table { font-size: 11px; width: 100%; border-collapse: collapse; }
+    #m4-panel th    { font-size: 9px; padding: 5px 10px; text-align: left; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; border-bottom: 0.5px solid var(--border); }
+    #m4-panel td    { padding: 7px 10px; border-bottom: 0.5px solid rgba(30,38,53,.5); vertical-align: middle; }
+    #m4-panel tr:last-child td { border-bottom: none; }
 
-    .bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.4s ease;
+    .needed-full td        { opacity: 0.6; }
+    .m4-fill-wrap          { display: flex; flex-direction: column; gap: 2px; min-width: 100px; }
+    .m4-fill-bar-track     { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .m4-fill-bar           { height: 100%; border-radius: 3px; }
+    .m4-open-slots         { font-size: 14px; font-weight: 800; line-height: 1; }
+    .m4-open-slots.critical { color: #ff6b63; }
+    .m4-open-slots.warn    { color: #f0a030; }
+    .m4-open-slots.good    { color: #3fb950; }
+    .m4-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; white-space: nowrap;
     }
+    .m4-badge.badge-critical { background: rgba(248,81,73,.18); color: #ff6b63; border: 1px solid rgba(248,81,73,.4); }
+    .m4-badge.badge-warn     { background: rgba(240,160,48,.18); color: #f0a030; border: 1px solid rgba(240,160,48,.4); }
+    .m4-badge.badge-good     { background: rgba(63,185,80,.15);  color: #3fb950; border: 1px solid rgba(63,185,80,.35); }
 
+    /* Shared helpers */
+    .bar-wrap  { display: flex; align-items: center; gap: 8px; min-width: 80px; }
+    .bar-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 60px; }
+    .bar-fill  { height: 100%; border-radius: 3px; }
     .bar-fill.green  { background: var(--green); }
     .bar-fill.yellow { background: var(--yellow); }
     .bar-fill.red    { background: var(--red); }
     .bar-fill.accent { background: var(--accent); }
+    .bar-pct { font-size: 11px; color: var(--muted); min-width: 30px; text-align: right; }
 
-    .bar-pct {
-      font-size: 12px;
-      color: var(--muted);
-      min-width: 36px;
-      text-align: right;
-    }
+    .chip        { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+    .chip-green  { background: rgba(63,185,80,.15);  color: var(--green); }
+    .chip-yellow { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .chip-red    { background: rgba(248,81,73,.15);  color: var(--red); }
 
-    /* ── Hit rate colors ─────────────────────────────────────────────────── */
-    .rate-high  { color: #3fb950; font-weight: 700; }
-    .rate-mid   { color: #f0a030; font-weight: 700; }   /* bright orange-amber, clearly distinct from red */
-    .rate-low   { color: #f85149; font-weight: 700; }
-
-    /* ── Header booking pill ─────────────────────────────────────────────── */
-    .book-pill {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(63,185,80,0.10);
-      border: 1px solid rgba(63,185,80,0.30);
-      border-radius: 8px;
-      padding: 6px 14px;
-      flex: 1;
-      min-width: 0;
-      max-width: 700px;
-      margin: 0 16px;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    .book-pill .bp-label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      flex-shrink: 0;
-    }
-    .book-pill .bp-count {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--green);
-      letter-spacing: -0.5px;
-      flex-shrink: 0;
-    }
-    .book-pill .bp-unit {
-      font-size: 12px;
-      color: var(--green);
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-    .book-pill .bp-divider {
-      width: 1px;
-      height: 18px;
-      background: rgba(63,185,80,0.30);
-      flex-shrink: 0;
-      margin: 0 4px;
-    }
-    .book-pill .bp-detail {
-      font-size: 11px;
-      color: var(--muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .book-pill .bp-detail strong { color: var(--text); }
-
-    /* ── This Week glance bar ─────────────────────────────────────────────── */
-    #week-glance-bar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 5px 24px;
-      display: flex;
-      align-items: center;
-      gap: 0;
-      font-size: 11px;
-      color: var(--muted);
-      flex-wrap: nowrap;
-      overflow: hidden;
-    }
-    #week-glance-bar .wg-title {
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      font-size: 10px;
-      margin-right: 10px;
-      flex-shrink: 0;
-    }
-    #week-glance-bar .wg-sep {
-      color: var(--border);
-      margin: 0 8px;
-      flex-shrink: 0;
-    }
-    #week-glance-bar .wg-item { flex-shrink: 0; }
-    #week-glance-bar .wg-week { margin-left: auto; font-size: 10px; color: var(--muted); flex-shrink: 0; }
-
-    /* ── Module 3 combined table ─────────────────────────────────────────── */
-    .m3-group-row th { border-bottom: none; }
-    .m3-group-hdr {
-      text-align: center;
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 8px 12px 4px;
-      border-bottom: none;
-    }
-    .m3-divider { border-left: 1px solid var(--border) !important; }
-
-    /* ── Module 4 ─────────────────────────────────────────────────────────── */
-    .needed-full td { opacity: 0.6; }
-    .slots-overbooked { color: #f85149; font-weight: 700; }
-    .slots-full       { color: #3fb950; font-weight: 700; }
-    .slots-near       { color: #f0a030; font-weight: 700; }
-    .slots-normal     { color: var(--text); font-weight: 600; }
-    .slots-plenty     { color: #6e90b8; font-weight: 600; }
-
-    .m4-fill-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
-    .m4-fill-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .m4-fill-bar { height: 100%; border-radius: 3px; }
-
-    .m4-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      white-space: nowrap;
-    }
-    .m4-badge.badge-critical { background: rgba(248,81,73,0.18); color: #ff6b63; border: 1px solid rgba(248,81,73,0.4); }
-    .m4-badge.badge-warn     { background: rgba(240,160,48,0.18); color: #f0a030; border: 1px solid rgba(240,160,48,0.4); }
-    .m4-badge.badge-good     { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.35); }
-
-    .m4-open-slots { font-size: 15px; font-weight: 800; line-height: 1; }
-    .m4-open-slots.critical { color: #ff6b63; }
-    .m4-open-slots.warn     { color: #f0a030; }
-    .m4-open-slots.good     { color: #3fb950; }
-
-    /* ── Badges ───────────────────────────────────────────────────────────── */
-    .chip {
-      display: inline-block;
-      padding: 1px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .chip-green  { background: rgba(63,185,80,0.15);  color: var(--green); }
-    .chip-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
-    .chip-red    { background: rgba(248,81,73,0.15);  color: var(--red); }
-
-    /* ── Summary stats ────────────────────────────────────────────────────── */
-    .stats-row {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .stat-box {
-      flex: 1;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 16px;
-    }
-
-    .stat-box .label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-    }
-
-    .stat-box .value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .stat-box .sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* ── TV / Fullscreen mode ────────────────────────────────────────────── */
-    body.tv-mode { font-size: 18px; }
-    body.tv-mode .header-left h1 { font-size: 23px; }
-    body.tv-mode .card-header h2 { font-size: 19px; }
-    body.tv-mode .stat-box .value { font-size: 32px; }
-    body.tv-mode .stat-box .label { font-size: 13px; letter-spacing: 0.07em; }
-    body.tv-mode .stat-box .sub { font-size: 13px; }
-    body.tv-mode table { font-size: 16px; }
-    body.tv-mode th { font-size: 13px; }
-    body.tv-mode td { padding: 11px 12px; }
-    body.tv-mode .heatmap-table { font-size: 14px; }
-    body.tv-mode .hm-cell { min-height: 52px; padding: 8px 4px; }
-    body.tv-mode .hm-booking { font-size: 15px; }
-    body.tv-mode .hm-pct { font-size: 12px; }
-    /* "This Week" big numbers larger in TV mode */
-    body.tv-mode .week-banner .stat-box .value { font-size: 22px; }
-    body.tv-mode .week-banner .stat-box .label { font-size: 12px; }
-
-    /* TV LIVE indicator */
-    .tv-live-dot {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
+    /* Error banner */
+    #error-banner {
       display: none;
-      align-items: center;
-      gap: 8px;
-      background: rgba(22,27,34,0.85);
-      border: 1px solid rgba(63,185,80,0.4);
-      border-radius: 20px;
-      padding: 6px 14px;
-      z-index: 9999;
-      backdrop-filter: blur(4px);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--green);
-    }
-    .tv-live-pulse {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: tv-pulse 2s ease-in-out infinite;
-    }
-    @keyframes tv-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.8); }
-    }
-
-    .btn-tv {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      padding: 6px 14px;
+      position: fixed;
+      top: 50px; left: 50%; transform: translateX(-50%);
+      background: rgba(248,81,73,.1);
+      border: 1px solid rgba(248,81,73,.3);
       border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .btn-tv:hover { border-color: var(--accent); color: var(--text); background: #1f2937; }
-    .btn-tv.active { border-color: var(--accent); color: var(--accent); }
-
-    .exit-fs-btn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(22,27,34,0.9);
-      border: 1px solid var(--border);
-      color: var(--muted);
       padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      display: none;
-      align-items: center;
-      gap: 6px;
-      z-index: 9999;
-      backdrop-filter: blur(4px);
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .exit-fs-btn:hover { color: var(--text); border-color: var(--accent); }
-
-    /* ── Micro stat cards (Module 1) ─────────────────────────────────────── */
-    .micro-stats { margin-bottom: 12px; gap: 10px; }
-    .micro-stats .stat-box { padding: 6px 10px; }
-    .micro-stats .stat-box .value { font-size: 14px; font-weight: 700; }
-    .micro-stats .stat-box .label { font-size: 9px; margin-bottom: 1px; letter-spacing: 0.04em; }
-    .micro-stats .stat-box .sub { font-size: 9px; margin-top: 1px; }
-    /* hide the target-range sub-note in micro mode to save space */
-    .micro-stats .stat-box [data-sub-note] { display: none; }
-
-    /* ── Error banner ─────────────────────────────────────────────────────── */
-    .error-banner {
-      background: rgba(248,81,73,0.1);
-      border: 1px solid rgba(248,81,73,0.3);
-      border-radius: 8px;
-      padding: 12px 16px;
       color: var(--red);
-      font-size: 13px;
-      margin-bottom: 20px;
-      display: none;
-    }
-
-    /* ── Loading overlay ─────────────────────────────────────────────────── */
-    .loading-overlay {
+      font-size: 12px;
+      z-index: 9999;
+      max-width: 500px;
       text-align: center;
-      padding: 48px;
-      color: var(--muted);
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 12px;
     }
   </style>
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────────────────────────────────── -->
-<header class="header">
-  <div class="header-left" style="flex-shrink:0">
-    <h1>Outbound Team Capacity Dashboard</h1>
-    <div class="subtitle" id="last-updated">Loading data...</div>
-  </div>
-  <!-- Booking recommendation pill — populated by JS -->
-  <div class="book-pill" id="header-book-pill" style="visibility:hidden">
+<!-- ── Row 1: Header (44px) ──────────────────────────────────────────────────── -->
+<header id="header">
+  <h1 class="hdr-title">Outbound Team Capacity Dashboard</h1>
+  <div id="header-book-pill">
     <span class="bp-label">Book today:</span>
     <span class="bp-count" id="pill-count">—</span>
     <span class="bp-unit">meetings</span>
-    <div class="bp-divider"></div>
+    <div class="bp-sep"></div>
     <span class="bp-detail" id="pill-detail"></span>
   </div>
-  <div class="header-right" style="flex-shrink:0">
-    <div class="status-dot loading" id="status-dot"></div>
-    <span class="status-text" id="status-text">Connecting…</span>
-    <div class="header-countdown">
-      <div class="header-progress-track"><div class="header-progress-fill" id="countdown-fill" style="width:100%"></div></div>
-      <span class="header-countdown-text" id="countdown-text">60s</span>
+  <div class="hdr-right">
+    <div class="live-ind"><span class="live-dot"></span>&nbsp;LIVE</div>
+    <div class="cd-wrap">
+      <div class="cd-track"><div class="cd-fill" id="cd-fill"></div></div>
+      <span class="cd-text" id="cd-text">60s</span>
     </div>
-    <button class="btn-tv" id="btn-tv" onclick="toggleTV()" title="Toggle TV / Fullscreen mode">
-      ⛶ TV
-    </button>
-    <button class="btn-refresh" id="btn-refresh" onclick="manualRefresh()">
-      <span class="refresh-icon">↻</span> Refresh
-    </button>
+    <span id="last-updated">—</span>
   </div>
 </header>
-<button class="exit-fs-btn" id="exit-fs-btn" onclick="exitTV()">✕ Exit fullscreen</button>
-<div class="tv-live-dot" id="tv-live-dot">
-  <div class="tv-live-pulse"></div>
-  LIVE
-</div>
 
-<!-- ── Week Glance Bar ───────────────────────────────────────────────────── -->
-<div id="week-glance-bar">
-  <span class="wg-title">This Week</span>
+<!-- ── Row 2: Glance bar (28px) ─────────────────────────────────────────────── -->
+<div id="glance-bar">
+  <span class="gb-title">This Week</span>
   <span id="wg-content" style="display:contents"></span>
 </div>
 
-<!-- ── Main ────────────────────────────────────────────────────────────────── -->
-<main class="main">
+<!-- ── Row 3: Module 1 bar chart (90px) ─────────────────────────────────────── -->
+<div id="m1-row">
+  <div id="m1-label">
+    <span class="badge-m">M1</span>
+    <span class="m1-sub">Daily meeting<br>count · next 10d</span>
+  </div>
+  <div id="m1-chart-wrap"><canvas id="chart-m1"></canvas></div>
+</div>
 
-  <!-- Error banner -->
-  <div class="error-banner" id="error-banner"></div>
+<!-- ── Row 4: Module 2 heatmap (160px) ──────────────────────────────────────── -->
+<div id="m2-row">
+  <div class="row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
+  <div id="m2-heatmap"></div>
+</div>
 
-  <!-- Loading -->
-  <div class="loading-overlay" id="loading-overlay">
-    <div class="spinner"></div>
-    <div>Fetching Airtable data…</div>
+<!-- ── Row 5: Bottom split (1fr) ────────────────────────────────────────────── -->
+<div id="bottom-split">
+
+  <div id="m3-panel">
+    <div class="row-hdr">M3 · Proposal Hit Rate by Days-Out</div>
+    <div class="panel-scroll">
+      <table>
+        <thead>
+          <tr class="m3-group-row">
+            <th rowspan="2" style="width:80px;padding:5px 8px;vertical-align:bottom">Days Out</th>
+            <th colspan="4" class="m3-group-hdr">30 days</th>
+            <th rowspan="2" style="width:46px;padding:5px 6px;vertical-align:bottom;text-align:center">Trend</th>
+            <th colspan="4" class="m3-group-hdr m3-divider">90 days</th>
+          </tr>
+          <tr>
+            <th>Mtgs</th><th>Props</th><th>Hit%</th><th>Close%</th>
+            <th style="border-left:0.5px solid var(--border)">Mtgs</th>
+            <th>Props</th><th>Hit%</th><th>Close%</th>
+          </tr>
+        </thead>
+        <tbody id="m3-combined-table"></tbody>
+      </table>
+      <div id="m3-sanity" style="padding:4px 10px;font-size:10px;color:var(--muted);border-top:0.5px solid var(--border)"></div>
+    </div>
   </div>
 
-  <!-- Dashboard (hidden until data loads) -->
-  <div id="dashboard" style="display:none">
-
-    <!-- ── MODULE 1 ──────────────────────────────────────────────────────── -->
-    <div class="card">
-      <div class="card-header">
-        <span class="badge">Module 1</span>
-        <h2>Daily Meeting Count — Next 10 Days</h2>
-      </div>
-      <div class="card-body">
-        <div class="stats-row micro-stats" id="m1-stats"></div>
-        <div class="chart-wrap"><canvas id="chart-m1"></canvas></div>
-      </div>
+  <div id="m4-panel">
+    <div class="row-hdr">M4 · Meetings Needed to Fill Capacity</div>
+    <div class="panel-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Horizon</th>
+            <th>Fill</th>
+            <th>Open Slots</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="m4-table"></tbody>
+      </table>
     </div>
+  </div>
 
-    <!-- ── MODULE 2 ──────────────────────────────────────────────────────── -->
-    <div class="card">
-      <div class="card-header">
-        <span class="badge">Module 2</span>
-        <h2>Rep Capacity Heat Map — Next 10 Days</h2>
-      </div>
-      <div class="card-body" style="padding:0;overflow-x:auto">
-        <div id="m2-heatmap"></div>
-      </div>
-    </div>
+</div>
 
-    <!-- ── MODULE 3 ──────────────────────────────────────────────────────── -->
-    <div class="card">
-      <div class="card-header">
-        <span class="badge">Module 3</span>
-        <h2>Proposal Hit Rate by Days-Out</h2>
-      </div>
-      <div class="card-body" style="padding:0;overflow-x:auto">
-        <table style="font-size:13px;width:100%">
-          <thead>
-            <tr class="m3-group-row">
-              <th rowspan="2" style="width:130px;padding:10px 12px;vertical-align:bottom">Days Out</th>
-              <th colspan="4" class="m3-group-hdr">30 days</th>
-              <th rowspan="2" style="width:90px;padding:10px 12px;vertical-align:bottom;text-align:center">Trend</th>
-              <th colspan="4" class="m3-group-hdr m3-divider">90 days</th>
-              <th rowspan="2" style="width:110px;padding:10px 12px;vertical-align:bottom;text-align:center;color:var(--muted);font-size:10px">Funnel<br><span style="font-size:9px;opacity:0.6">(90d)</span></th>
-            </tr>
-            <tr>
-              <th style="width:90px">Meetings</th>
-              <th style="width:90px">Proposals</th>
-              <th style="width:90px">Hit Rate</th>
-              <th style="width:90px">Close Rate</th>
-              <th style="width:90px;border-left:1px solid var(--border)">Meetings</th>
-              <th style="width:90px">Proposals</th>
-              <th style="width:90px">Hit Rate</th>
-              <th style="width:90px">Close Rate</th>
-            </tr>
-          </thead>
-          <tbody id="m3-combined-table"></tbody>
-        </table>
-        <div id="m3-sanity" style="padding:8px 14px 10px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)"></div>
-      </div>
-    </div>
+<!-- Hidden sink — keeps render() null-safe for elements removed from visible layout -->
+<div style="display:none" aria-hidden="true">
+  <div id="m1-stats"></div>
+</div>
 
-    <!-- ── MODULE 4 ──────────────────────────────────────────────────────── -->
-    <div class="card">
-      <div class="card-header">
-        <span class="badge">Module 4</span>
-        <h2>Meetings Needed Today to Fill Future Capacity</h2>
-      </div>
-      <div class="card-body">
-        <table>
-          <thead>
-            <tr>
-              <th>Horizon</th>
-              <th>Fill</th>
-              <th>Open Slots</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="m4-table"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div><!-- /#dashboard -->
-</main>
+<!-- Error banner -->
+<div id="error-banner"></div>
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
 let chartM1 = null;
 let countdownInterval = null;
-let REFRESH_INTERVAL = 60;
+const REFRESH_INTERVAL = 60;
 let secondsLeft = REFRESH_INTERVAL;
+
+// ── Cursor hide after 3s inactivity ──────────────────────────────────────────
+(function () {
+  let timer;
+  function show() {
+    document.body.style.cursor = '';
+    clearTimeout(timer);
+    timer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
+  }
+  document.addEventListener('mousemove', show, { passive: true });
+  show();
+})();
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function fmtDate(dateStr) {
@@ -805,9 +506,9 @@ function barColor(pct) {
 
 // Hit rate thresholds: <10 = red, 10–14 = amber, >=15 = green
 function rateClass(rate) {
-  if (rate >= 15) return 'rate-high';   // green:  ≥ 15%
-  if (rate >= 10) return 'rate-mid';    // amber:  10–14%
-  return 'rate-low';                    // red:    < 10%
+  if (rate >= 15) return 'rate-high';
+  if (rate >= 10) return 'rate-mid';
+  return 'rate-low';
 }
 
 function makeBar(pct, color) {
@@ -815,7 +516,7 @@ function makeBar(pct, color) {
   return `
     <div class="bar-wrap">
       <div class="bar-track">
-        <div class="bar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div>
+        <div class="bar-fill ${cls}" style="width:${Math.min(100, pct)}%"></div>
       </div>
       <span class="bar-pct">${pct}%</span>
     </div>`;
@@ -829,79 +530,43 @@ function chipFor(pct) {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function render(data) {
-  // ── This Week glance bar ──────────────────────────────────────────────────
+  // ── Glance bar (Row 2) ────────────────────────────────────────────────────
+  const days     = data.module1.days;
+  const todayStr = data.todayStr;
+  const todayData  = days.find(d => d.date === todayStr) || {};
+  const weekdays10 = days.filter(d => !d.isWeekend);
+  const totalBooked10 = weekdays10.reduce((s, d) => s + d.booked, 0);
+  const totalCap10    = weekdays10.reduce((s, d) => s + d.capacity, 0);
+  const avgFill10     = totalCap10 > 0 ? Math.round((totalBooked10 / totalCap10) * 100) : 0;
+  const avgFillColor  = avgFill10 >= 70 ? 'var(--yellow)' : avgFill10 >= 50 ? 'var(--green)' : 'var(--red)';
+
   if (data.thisWeek) {
     const tw = data.thisWeek;
     const fillClr = tw.teamFillPct >= 70 ? 'var(--yellow)' : tw.teamFillPct >= 50 ? 'var(--green)' : 'var(--red)';
-    // shorten last name to initial for space  e.g. "Robert Edelmann" → "R. Edelmann"
-    function shortName(n) {
-      if (!n) return '—';
-      const parts = n.trim().split(/\s+/);
-      return parts.length > 1 ? parts[0][0] + '. ' + parts.slice(1).join(' ') : n;
-    }
+    const sep = '<span class="wg-sep">·</span>';
     document.getElementById('wg-content').outerHTML =
       `<span id="wg-content" style="display:contents">` +
-      `<span class="wg-item">Emptiest: <strong style="color:var(--red)">${tw.emptiestRep ? tw.emptiestRep.name : '—'} (${tw.emptiestRep ? tw.emptiestRep.fillPct : 0}%)</strong></span>` +
-      `<span class="wg-sep">·</span>` +
-      `<span class="wg-item">Fullest: <strong style="color:var(--green)">${tw.fullestRep ? shortName(tw.fullestRep.name) : '—'} (${tw.fullestRep ? tw.fullestRep.fillPct : 0}%)</strong></span>` +
-      `<span class="wg-sep">·</span>` +
-      `<span class="wg-item">Team fill: <strong style="color:${fillClr}">${tw.teamFillPct}%</strong> <span style="color:var(--muted)">(${tw.totalBooked}/${tw.totalCapacity})</span></span>` +
-      `<span class="wg-sep">·</span>` +
-      `<span class="wg-item">Open this week: <strong style="color:var(--text)">${tw.openSlots}</strong> slots</span>` +
+      `<span class="wg-item">Emptiest: <strong style="color:var(--red)">${tw.emptiestRep ? tw.emptiestRep.name + ' (' + tw.emptiestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
+      `<span class="wg-item">Fullest: <strong style="color:var(--green)">${tw.fullestRep ? tw.fullestRep.name + ' (' + tw.fullestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
+      `<span class="wg-item">Team fill: <strong style="color:${fillClr}">${tw.teamFillPct}%</strong> <span style="color:var(--muted)">(${tw.totalBooked}/${tw.totalCapacity})</span></span>${sep}` +
+      `<span class="wg-item">Open this week: <strong style="color:var(--text)">${tw.openSlots}</strong> slots</span>${sep}` +
+      `<span class="wg-item">Today: <strong style="color:var(--text)">${todayData.booked ?? 0}/${todayData.capacity ?? data.totalDailyCapacity}</strong> slots</span>${sep}` +
+      `<span class="wg-item">10d avg: <strong style="color:${avgFillColor}">${avgFill10}%</strong></span>${sep}` +
+      `<span class="wg-item">Reps: <strong style="color:var(--text)">${data.outboundRepCount}</strong></span>` +
       `<span class="wg-week">${tw.weekLabel}</span>` +
       `</span>`;
   }
 
-  // ── Module 1 ───────────────────────────────────────────────────────────────
-  const days = data.module1.days;
-  const todayStr = data.todayStr;
-
-  // Summary stats
-  const todayData = days.find(d => d.date === todayStr) || {};
-  // Exclude weekends from both sides of the avg fill calculation
-  const weekdays10 = days.filter(d => !d.isWeekend);
-  const totalBooked10 = weekdays10.reduce((s, d) => s + d.booked, 0);
-  const totalCap10 = weekdays10.reduce((s, d) => s + d.capacity, 0);
-  const avgFill = totalCap10 > 0 ? Math.round((totalBooked10 / totalCap10) * 100) : 0;
-
-  // Avg fill color: <50% red, 50–70% green (good), >70% yellow (over-target)
-  const avgFillColor = avgFill >= 70 ? 'var(--yellow)' : avgFill >= 50 ? 'var(--green)' : 'var(--red)';
-  const avgFillLabel = avgFill >= 70 ? 'At or above target max' : avgFill >= 50 ? 'Good — within target' : 'Below target (aim for 50–70%)';
-
-  document.getElementById('m1-stats').innerHTML = `
-    <div class="stat-box">
-      <div class="label">Today Booked</div>
-      <div class="value">${todayData.booked ?? 0}</div>
-      <div class="sub">of ${todayData.capacity ?? data.totalDailyCapacity} slots</div>
-    </div>
-    <div class="stat-box">
-      <div class="label">10-Day Total Booked</div>
-      <div class="value">${totalBooked10}</div>
-      <div class="sub">of ${totalCap10} total slots</div>
-    </div>
-    <div class="stat-box">
-      <div class="label">10-Day Avg Fill</div>
-      <div class="value" style="color:${avgFillColor}">${avgFill}%</div>
-      <div class="sub">${avgFillLabel}</div>
-    </div>
-    <div class="stat-box">
-      <div class="label">Active Reps</div>
-      <div class="value">${data.outboundRepCount}</div>
-      <div class="sub">Outbound Direct</div>
-    </div>`;
-
-  // Bar chart
-  const labels = days.map(d => `${fmtDate(d.date)}\n${d.dayOfWeek.slice(0,3)}`);
+  // ── Module 1 — Bar chart ──────────────────────────────────────────────────
+  const labels    = days.map(d => `${fmtDate(d.date)}\n${d.dayOfWeek.slice(0, 3)}`);
   const bookedVals = days.map(d => d.booked);
-  const capVals = days.map(d => Math.max(0, d.capacity - d.booked));
-  const bgBooked = days.map(d => {
-    if (d.isWeekend) return 'rgba(139,148,158,0.2)';
+  const capVals    = days.map(d => Math.max(0, d.capacity - d.booked));
+  const bgBooked   = days.map(d => {
+    if (d.isWeekend) return 'rgba(139,148,158,0.15)';
     const c = barColor(d.fillPct);
-    if (c === 'green')  return '#3fb950';
-    if (c === 'yellow') return '#d29922';
-    return '#f85149';
+    return c === 'green' ? '#3fb950' : c === 'yellow' ? '#d29922' : '#f85149';
   });
-  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.08)' : 'rgba(255,255,255,0.05)');
+  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.05)' : 'rgba(255,255,255,0.04)');
 
   if (chartM1) chartM1.destroy();
   const ctx = document.getElementById('chart-m1').getContext('2d');
@@ -912,22 +577,17 @@ function render(data) {
       labels,
       datasets: [
         {
-          label: 'Booked', data: bookedVals, backgroundColor: bgBooked, borderRadius: 3, stack: 'stack',
+          label: 'Booked', data: bookedVals, backgroundColor: bgBooked, borderRadius: 2, stack: 'stack',
           datalabels: {
-            display: (ctx) => {
-              const d = days[ctx.dataIndex];
-              return !d.isWeekend && d.booked > 0;
-            },
+            display: (ctx) => { const d = days[ctx.dataIndex]; return !d.isWeekend && d.booked > 0; },
             formatter: (_, ctx) => days[ctx.dataIndex].fillPct + '%',
             color: '#fff',
-            font: { size: 10, weight: 'bold' },
-            anchor: (ctx) => days[ctx.dataIndex].fillPct < 10 ? 'end' : 'center',
-            align:  (ctx) => days[ctx.dataIndex].fillPct < 10 ? 'end'  : 'center',
-            offset: (ctx) => days[ctx.dataIndex].fillPct < 10 ? 4 : 0,
+            font: { size: 7, weight: 'bold' },
+            anchor: 'center', align: 'center',
           }
         },
         {
-          label: 'Open', data: capVals, backgroundColor: bgCap, borderRadius: 3, stack: 'stack',
+          label: 'Open', data: capVals, backgroundColor: bgCap, borderRadius: 2, stack: 'stack',
           datalabels: { display: false }
         }
       ]
@@ -936,25 +596,24 @@ function render(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#8b949e', font: { size: 11 } } },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             afterBody: (items) => {
-              const idx = items[0].dataIndex;
-              const d = days[idx];
+              const d = days[items[0].dataIndex];
               return [`Fill: ${d.fillPct}%`, `Capacity: ${d.capacity}`];
             }
           }
         }
       },
       scales: {
-        x: { stacked: true, ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: 'rgba(48,54,61,0.5)' } },
-        y: { stacked: true, ticks: { color: '#8b949e', stepSize: 1 }, grid: { color: 'rgba(48,54,61,0.5)' } }
+        x: { stacked: true, ticks: { color: '#8b949e', font: { size: 7 }, maxRotation: 0 }, grid: { display: false } },
+        y: { stacked: true, display: false }
       }
     }
   });
 
-  // ── Module 2 — Heat Map ────────────────────────────────────────────────────
+  // ── Module 2 — Heat Map ───────────────────────────────────────────────────
   function hmCellClass(pct, isWeekend) {
     if (isWeekend) return 'weekend-col';
     if (pct === 0)   return 'hm-empty';
@@ -967,33 +626,29 @@ function render(data) {
   (function renderHeatMap() {
     const container = document.getElementById('m2-heatmap');
     const reps = data.module2.reps;
-    const days = data.module1.days; // reuse day metadata (date, dayOfWeek, isWeekend)
+    const days = data.module1.days;
 
     if (!reps.length) {
-      container.innerHTML = '<div style="padding:24px;color:var(--muted);text-align:center">No Outbound Direct reps found</div>';
+      container.innerHTML = '<div style="padding:12px 16px;color:var(--muted);font-size:11px">No Outbound Direct reps found</div>';
       return;
     }
 
-    // Header row
-    const headerCols = days.map((d, i) => {
+    const headerCols = days.map(d => {
       const isToday = d.date === todayStr;
       const label = isToday
-        ? `<div style="color:var(--accent);font-weight:700">Today</div><div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0,3)}</div>`
-        : `<div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0,3)}</div>`;
+        ? `<div style="color:var(--accent);font-weight:700">Today</div><div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0, 3)}</div>`
+        : `<div>${fmtDate(d.date)}</div><div>${d.dayOfWeek.slice(0, 3)}</div>`;
       const style = d.isWeekend ? 'opacity:0.4' : '';
       return `<th style="${style}">${label}</th>`;
     }).join('');
 
-    // Rep rows
     const repRows = reps.map(rep => {
       const cells = rep.days.map((d, i) => {
         const day = days[i];
         const isToday = day.date === todayStr;
         const colorClass = hmCellClass(d.fillPct, d.isWeekend);
         const todayClass = isToday ? ' today-col' : '';
-        if (d.isWeekend) {
-          return `<td class="hm-cell weekend-col${todayClass}">—</td>`;
-        }
+        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayClass}">—</td>`;
         return `<td class="hm-cell ${colorClass}${todayClass}">
           <div class="hm-booking">${d.booked}/${rep.maxPerDay}</div>
           <div class="hm-pct">${d.fillPct}%</div>
@@ -1015,7 +670,7 @@ function render(data) {
           <tr>
             <th class="rep-col">Rep</th>
             ${headerCols}
-            <th style="border-left:1px solid var(--border)">5D AVG<br><span style="color:var(--muted);font-weight:400;font-size:10px">weekdays only</span></th>
+            <th style="border-left:0.5px solid var(--border)">5D AVG<br><span style="color:var(--muted);font-weight:400;font-size:7px">wkdays</span></th>
           </tr>
         </thead>
         <tbody>${repRows}</tbody>
@@ -1024,22 +679,22 @@ function render(data) {
 
   // ── Header booking pill ───────────────────────────────────────────────────
   (function renderBookingPill() {
-    const rec = data.module3.bookingRec;
-    const pill = document.getElementById('header-book-pill');
-    const pillCount = document.getElementById('pill-count');
+    const rec      = data.module3.bookingRec;
+    const pill     = document.getElementById('header-book-pill');
+    const pillCount  = document.getElementById('pill-count');
     const pillDetail = document.getElementById('pill-detail');
     if (!pill || !rec) return;
 
     if (!rec || rec.optimalCutoff === 0) {
       pillCount.textContent = '—';
-      pillDetail.innerHTML = 'No clear booking window — hit rates below 15% across all days out';
+      pillDetail.innerHTML  = 'No clear booking window — hit rates below 15% across all days out';
       pill.style.visibility = 'visible';
       return;
     }
 
     const allFull = rec.meetingsToBook === 0;
     pillCount.textContent = allFull ? '✓' : rec.meetingsToBook;
-    pillDetail.innerHTML = allFull
+    pillDetail.innerHTML  = allFull
       ? `All slots filled through day ${rec.optimalCutoff}`
       : `Next <strong>${rec.optimalCutoff} days</strong> (${rec.windowStr})`
         + ` &nbsp;·&nbsp; Best: <strong>${rec.bestDaysOut} day${rec.bestDaysOut > 1 ? 's' : ''} out</strong>`
@@ -1047,11 +702,11 @@ function render(data) {
     pill.style.visibility = 'visible';
   })();
 
-  // ── Module 3 — combined 30d / 90d table ──────────────────────────────────
+  // ── Module 3 — combined 30d / 90d hit rate table ──────────────────────────
   (function renderCombinedHitTable() {
-    const b30 = data.module3.hitRate30;
-    const b90 = data.module3.hitRate90;
-    const rec = data.module3.bookingRec;
+    const b30  = data.module3.hitRate30;
+    const b90  = data.module3.hitRate90;
+    const rec  = data.module3.bookingRec;
     const tbody = document.getElementById('m3-combined-table');
 
     tbody.innerHTML = b30.map((b, i) => {
@@ -1060,42 +715,39 @@ function render(data) {
       const isDropoff = rec && rec.optimalCutoff > 0 && b.daysOut > rec.optimalCutoff;
       const isBest    = rec && b.daysOut === rec.bestDaysOut && b.total > 0 && !isDropoff;
 
-      const rowStyle = isDropoff
-        ? 'background:rgba(248,81,73,0.04);'
-        : isBest ? 'background:rgba(63,185,80,0.06);' : '';
-      const rowBorder = isCutoff ? 'border-bottom:2px dashed rgba(63,185,80,0.45);' : '';
+      const rowStyle  = isDropoff ? 'background:rgba(248,81,73,.04);' : isBest ? 'background:rgba(63,185,80,.06);' : '';
+      const rowBorder = isCutoff ? 'border-bottom:2px dashed rgba(63,185,80,.45);' : '';
 
       const daysLabel = `${b.daysOut} day${b.daysOut > 1 ? 's' : ''} out`;
       let daysOutCell;
       if (isCutoff) {
-        daysOutCell = `<td style="padding:8px 12px">
+        daysOutCell = `<td style="padding:5px 8px">
           <div>${daysLabel}</div>
-          <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:0.04em;margin-top:2px">◀ OPTIMAL CUTOFF</div>
+          <div style="font-size:9px;color:var(--green);font-weight:700;letter-spacing:.04em;margin-top:1px">◀ OPTIMAL</div>
         </td>`;
       } else if (isDropoff) {
-        daysOutCell = `<td style="padding:8px 12px;opacity:0.7">
+        daysOutCell = `<td style="padding:5px 8px;opacity:.7">
           <div>${daysLabel}</div>
-          <div style="font-size:10px;color:var(--red);margin-top:2px">drop-off zone</div>
+          <div style="font-size:9px;color:var(--red);margin-top:1px">drop-off</div>
         </td>`;
       } else {
-        daysOutCell = `<td>${daysLabel}${isBest ? ' <span style="font-size:10px;color:var(--green);font-weight:600">★ best</span>' : ''}</td>`;
+        daysOutCell = `<td>${daysLabel}${isBest ? ' <span style="font-size:9px;color:var(--green);font-weight:600">★</span>' : ''}</td>`;
       }
 
-      const rate30  = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
-      const rate90  = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
+      const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
+      const rate90 = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
 
-      // Close rate with small-sample warning (< 5 proposals → muted ~ prefix + tooltip)
       function closeRateCell(bucket) {
         if (bucket.proposals === 0) return '—';
-        const smallSample = bucket.proposals < 5;
-        const cls   = smallSample ? '' : rateClass(bucket.closeRate);
-        const color = smallSample ? 'color:var(--muted)' : '';
-        const label = smallSample ? `~${bucket.closeRate}%` : `${bucket.closeRate}%`;
-        const title = smallSample ? ` title="Small sample — only ${bucket.proposals} proposal${bucket.proposals > 1 ? 's' : ''} (need ≥5 for reliable rate)"` : '';
-        const asterisk = smallSample
-          ? ` <span style="color:var(--muted);font-size:10px;cursor:help"${title}>*</span>` : '';
+        const small   = bucket.proposals < 5;
+        const cls     = small ? '' : rateClass(bucket.closeRate);
+        const color   = small ? 'color:var(--muted)' : '';
+        const label   = small ? `~${bucket.closeRate}%` : `${bucket.closeRate}%`;
+        const title   = small ? ` title="Small sample (${bucket.proposals} prop)"` : '';
+        const asterisk = small ? ` <span style="color:var(--muted);font-size:9px"${title}>*</span>` : '';
         return `<span class="${cls}" style="${color}"${title}>${label}</span>${asterisk}`;
       }
+
       const close30 = closeRateCell(b);
       const close90 = closeRateCell(c);
 
@@ -1109,16 +761,6 @@ function render(data) {
         trendCell = `<span style="color:var(--red)">▼ ${diff}%</span>`;
       }
 
-      // Funnel: meetings → proposals → closes (30d)
-      // Funnel uses 90d data (c), raw closes directly — never derive from rounded closeRate
-      const funnelCloses = c.closes ?? 0;
-      if (funnelCloses === 0 && c.closeRate > 0) {
-        console.error(`[M3 Funnel] Day ${c.daysOut}: 90d closeRate=${c.closeRate}% but closes=0 — rounding bug detected`);
-      }
-      const funnelCell = c.total === 0
-        ? '<span style="color:var(--muted);font-size:11px">—</span>'
-        : `<span style="color:var(--muted);font-size:11px;white-space:nowrap">${c.total}<span style="opacity:0.5"> → </span>${c.proposals}<span style="opacity:0.5"> → </span>${funnelCloses}</span>`;
-
       return `<tr style="${rowStyle}${rowBorder}">
         ${daysOutCell}
         <td>${b.total}</td>
@@ -1126,45 +768,41 @@ function render(data) {
         <td>${rate30}</td>
         <td>${close30}</td>
         <td style="text-align:center">${trendCell}</td>
-        <td style="border-left:1px solid var(--border)">${c.total}</td>
+        <td style="border-left:0.5px solid var(--border)">${c.total}</td>
         <td>${c.proposals}</td>
         <td>${rate90}</td>
         <td>${close90}</td>
-        <td style="text-align:center">${funnelCell}</td>
       </tr>`;
     }).join('');
 
-    // Sanity check footer
-    const s = data.module3.sanity30;
+    const s       = data.module3.sanity30;
     const sanityEl = document.getElementById('m3-sanity');
     if (sanityEl && s) {
-      sanityEl.innerHTML = `Last 30 days total: <strong style="color:var(--text)">${s.proposals}</strong> proposals &nbsp;·&nbsp; <strong style="color:var(--text)">${s.closes}</strong> closes &nbsp;·&nbsp; <strong style="color:var(--text)">${s.blendedCloseRate}%</strong> blended close rate`;
+      sanityEl.innerHTML = `Last 30d: <strong style="color:var(--text)">${s.proposals}</strong> proposals &nbsp;·&nbsp; <strong style="color:var(--text)">${s.closes}</strong> closes &nbsp;·&nbsp; <strong style="color:var(--text)">${s.blendedCloseRate}%</strong> close rate`;
     }
   })();
 
-  // ── Module 4 ───────────────────────────────────────────────────────────────
+  // ── Module 4 ─────────────────────────────────────────────────────────────
   const m4tbody = document.getElementById('m4-table');
-  const rows = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
+  const rows    = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
 
   m4tbody.innerHTML = rows.map(r => {
-    const isFull = r.openSlots <= 0;
-    const rowClass = isFull ? 'needed-full' : '';
+    const isFull    = r.openSlots <= 0;
+    const rowClass  = isFull ? 'needed-full' : '';
     const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
-    const openPct = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
-    const barFill = isFull ? '#3fb950' : bookedPct >= 70 ? '#f0a030' : '#58a6ff';
+    const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
+    const barFill   = isFull ? '#3fb950' : bookedPct >= 70 ? '#f0a030' : '#58a6ff';
 
     const fillCell = `<div class="m4-fill-wrap">
-      <div style="font-size:12px;color:var(--muted)">${r.totalBooked} / ${r.totalCapacity} slots &nbsp;<strong style="color:var(--text)">${bookedPct}%</strong></div>
-      <div class="m4-fill-bar-track"><div class="m4-fill-bar" style="width:${Math.min(100,bookedPct)}%;background:${barFill}"></div></div>
+      <div style="font-size:10px;color:var(--muted)">${r.totalBooked}/${r.totalCapacity} &nbsp;<strong style="color:var(--text)">${bookedPct}%</strong></div>
+      <div class="m4-fill-bar-track"><div class="m4-fill-bar" style="width:${Math.min(100, bookedPct)}%;background:${barFill}"></div></div>
     </div>`;
 
-    // Open slots — large bold number
-    const slotsCls = r.openSlots < 0 ? 'critical' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
+    const slotsCls  = r.openSlots < 0 ? 'critical' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
     const slotsCell = isFull
-      ? `<div class="m4-open-slots good">✓</div><div style="font-size:11px;color:var(--muted)">Fully booked</div>`
+      ? `<div class="m4-open-slots good">✓</div><div style="font-size:10px;color:var(--muted)">Full</div>`
       : `<div class="m4-open-slots ${slotsCls}">${r.openSlots < 0 ? '⚠' + Math.abs(r.openSlots) : r.openSlots}</div>`;
 
-    // Action badge
     let actionCell;
     if (r.openSlots <= 0) {
       actionCell = `<span class="m4-badge badge-good">✅ Fully booked</span>`;
@@ -1176,14 +814,13 @@ function render(data) {
       actionCell = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots} now</span>`;
     }
 
-    const weekendBadge = r.hasWeekend
-      ? ` <span style="font-size:10px;font-weight:500;color:var(--muted);background:rgba(139,148,158,0.15);border:1px solid rgba(139,148,158,0.3);border-radius:10px;padding:1px 7px;vertical-align:middle">incl. weekend</span>`
-      : '';
-    const dayRange = `<div style="font-size:11px;color:var(--muted);margin-top:2px">${r.firstDayName}–${r.lastDayName}${weekendBadge}</div>
-    <div style="font-size:10px;color:var(--muted);opacity:0.6;margin-top:1px">excl. today &amp; tomorrow</div>`;
+    const wkBadge = r.hasWeekend
+      ? ` <span style="font-size:9px;color:var(--muted);background:rgba(139,148,158,.12);border:0.5px solid rgba(139,148,158,.3);border-radius:8px;padding:1px 5px">+wknd</span>` : '';
+    const horizon = `<div>Next <strong>${r.horizon}</strong> day${r.horizon > 1 ? 's' : ''}${wkBadge}</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:1px">${r.firstDayName}–${r.lastDayName}</div>`;
 
     return `<tr class="${rowClass}">
-      <td>Next <strong>${r.horizon}</strong> day${r.horizon > 1 ? 's' : ''}${dayRange}</td>
+      <td>${horizon}</td>
       <td>${fillCell}</td>
       <td>${slotsCell}</td>
       <td>${actionCell}</td>
@@ -1193,19 +830,10 @@ function render(data) {
 
 // ── Fetch & display ───────────────────────────────────────────────────────────
 async function fetchData(forceRefresh = false) {
-  const dot = document.getElementById('status-dot');
-  const statusText = document.getElementById('status-text');
-  const btn = document.getElementById('btn-refresh');
   const errBanner = document.getElementById('error-banner');
-
-  dot.className = 'status-dot loading';
-  statusText.textContent = 'Fetching…';
-  btn.disabled = true;
-  btn.classList.add('spinning');
-
   try {
-    const url = '/api/data' + (forceRefresh ? '?refresh=1' : '');
-    const res = await fetch(url);
+    const url  = '/api/data' + (forceRefresh ? '?refresh=1' : '');
+    const res  = await fetch(url);
     const data = await res.json();
 
     errBanner.style.display = 'none';
@@ -1216,51 +844,36 @@ async function fetchData(forceRefresh = false) {
     }
 
     if (!data.todayStr) {
-      // Cache still building — retry in 3 seconds
+      // Cache still building — retry in 3s
       setTimeout(() => fetchData(false), 3000);
       return;
     }
 
-    if (data.todayStr) {
-      document.getElementById('loading-overlay').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      render(data);
+    render(data);
 
-      const ts = data.generatedAt
-        ? new Date(data.generatedAt).toLocaleTimeString()
-        : new Date().toLocaleTimeString();
-      document.getElementById('last-updated').textContent =
-        `Data as of ${ts} · Cache age: ${data.cacheAge ?? 0}s`;
+    const ts = data.generatedAt
+      ? new Date(data.generatedAt).toLocaleTimeString()
+      : new Date().toLocaleTimeString();
+    document.getElementById('last-updated').textContent = ts;
 
-      dot.className = 'status-dot';
-      statusText.textContent = 'Live';
-    }
   } catch (err) {
-    dot.className = 'status-dot error';
-    statusText.textContent = 'Error';
     errBanner.textContent = 'Failed to fetch data: ' + err.message;
     errBanner.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('spinning');
   }
 }
 
-function manualRefresh() {
-  resetCountdown();
-  fetchData(true);
-}
-
-// ── Auto-refresh countdown ────────────────────────────────────────────────────
+// ── Countdown ─────────────────────────────────────────────────────────────────
 function resetCountdown() {
   secondsLeft = REFRESH_INTERVAL;
   updateCountdownUI();
 }
 
 function updateCountdownUI() {
-  document.getElementById('countdown-text').textContent = secondsLeft + 's';
-  const pct = (secondsLeft / REFRESH_INTERVAL) * 100;
-  document.getElementById('countdown-fill').style.width = pct + '%';
+  const pct  = (secondsLeft / REFRESH_INTERVAL) * 100;
+  const fill = document.getElementById('cd-fill');
+  const text = document.getElementById('cd-text');
+  if (fill) fill.style.width = pct + '%';
+  if (text) text.textContent = secondsLeft + 's';
 }
 
 function startCountdown() {
@@ -1275,52 +888,9 @@ function startCountdown() {
   }, 1000);
 }
 
-// ── TV / Fullscreen mode ──────────────────────────────────────────────────────
-let tvMode = localStorage.getItem('tvMode') === '1';
-
-function applyTVMode() {
-  document.body.classList.toggle('tv-mode', tvMode);
-  document.getElementById('exit-fs-btn').style.display = tvMode ? 'flex' : 'none';
-  document.getElementById('tv-live-dot').style.display = tvMode ? 'flex' : 'none';
-  const btnTV = document.getElementById('btn-tv');
-  btnTV.classList.toggle('active', tvMode);
-  btnTV.innerHTML = tvMode ? '⛶ Exit TV' : '⛶ TV';
-  if (tvMode) {
-    document.documentElement.requestFullscreen?.().catch(() => {});
-  } else {
-    if (document.fullscreenElement) document.exitFullscreen?.();
-  }
-  localStorage.setItem('tvMode', tvMode ? '1' : '0');
-}
-
-function toggleTV() {
-  tvMode = !tvMode;
-  applyTVMode();
-}
-
-function exitTV() {
-  tvMode = false;
-  applyTVMode();
-}
-
-// Sync state if user presses Escape to exit fullscreen
-document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement && tvMode) {
-    tvMode = false;
-    document.body.classList.remove('tv-mode');
-    document.getElementById('exit-fs-btn').style.display = 'none';
-    document.getElementById('tv-live-dot').style.display = 'none';
-    const btnTV = document.getElementById('btn-tv');
-    btnTV.classList.remove('active');
-    btnTV.innerHTML = '⛶ TV';
-    localStorage.setItem('tvMode', '0');
-  }
-});
-
 // ── Boot ──────────────────────────────────────────────────────────────────────
 fetchData(false);
 startCountdown();
-if (tvMode) applyTVMode();
 </script>
 </body>
 </html>
