@@ -11,6 +11,7 @@
 
     html, body {
       height: 100%;
+      min-height: 100vh;
       overflow: hidden;
       margin: 0;
       background: #0a0d14;
@@ -18,8 +19,9 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 30px 90px minmax(200px, auto) 72px 1fr;
+      grid-template-rows: 48px 30px 90px 200px 72px 1fr;
       height: 100vh;
+      min-height: 100vh;
       max-height: 100vh;
       overflow: hidden;
       background: #0a0d14;
@@ -419,6 +421,7 @@
       flex-direction: column;
       background: #0d1017;
       min-height: 0;
+      height: 100%;
       overflow: hidden;
       padding: 6px 16px 0;
     }
@@ -840,16 +843,50 @@ function render(data) {
     });
   })();
 
-  // ── Measure actual rendered M2 height and set grid row to match exactly ──
+  // ── Measure actual rendered M2 height, capped so M3 always gets space ────
   function adjustM2Height() {
     const table  = document.querySelector('#m2-heatmap .heatmap-table');
     const hdr    = document.getElementById('m2-row-hdr');
     if (!table || !hdr) return;
-    const measured = table.scrollHeight + hdr.scrollHeight + 16; // 16px = padding + gap buffer
-    const m2Height = Math.max(200, measured); // never shrink below 200px
+    const measured  = table.scrollHeight + hdr.scrollHeight + 16;
+    const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
+    const m2Height  = Math.min(maxM2, Math.max(200, measured));
     document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
+    // After M2 is sized, let M3 rows fill the rest
+    setTimeout(expandM3Rows, 50);
   }
+
+  // ── Expand M3 tbody rows to fill all available height in the 1fr slot ────
+  function expandM3Rows() {
+    const m3    = document.getElementById('m3-row');
+    const hdr   = document.querySelector('.m3-row-hdr');
+    const foot  = document.getElementById('m3-sanity');
+    const thead = document.querySelector('#m3-row thead');
+    if (!m3 || !thead) return;
+
+    const available = m3.clientHeight
+      - (hdr   ? hdr.offsetHeight  : 0)
+      - (foot  ? foot.offsetHeight : 0)
+      - thead.offsetHeight
+      - 10; // small buffer
+
+    const rows = document.querySelectorAll('#m3-combined-table tr');
+    if (!rows.length || available <= 0) return;
+
+    const rowH = Math.floor(available / rows.length);
+    const padV = Math.max(2, Math.floor((rowH - 16) / 2));
+
+    rows.forEach(row => {
+      row.style.height = rowH + 'px';
+      row.querySelectorAll('td').forEach(td => {
+        td.style.paddingTop    = padV + 'px';
+        td.style.paddingBottom = padV + 'px';
+      });
+    });
+  }
+
   setTimeout(adjustM2Height, 100);
+  window.addEventListener('resize', () => { adjustM2Height(); });
 
   // ── Header booking pill ──────────────────────────────────────────────────
   (function renderBookingPill() {
