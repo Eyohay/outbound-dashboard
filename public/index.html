@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px 100px minmax(200px, auto) 62px 1fr;
+      grid-template-rows: 48px 28px 100px minmax(200px, auto) 56px 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -309,12 +309,12 @@
     /* Beyond-cutoff header slot pill */
     .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
 
-    /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
+    /* ── Row 5: M4 cards (56px) ─────────────────────────────────────────────── */
     #m4-strip {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      padding: 6px 16px;
+      gap: 7px;
+      padding: 5px 14px;
       background: #0d1017;
       border-bottom: 0.5px solid rgba(255,255,255,0.06);
       min-height: 0;
@@ -325,28 +325,28 @@
     .m4-card {
       background: rgba(255,255,255,0.04);
       border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      padding: 7px 12px;
-      display: flex;
+      border-radius: 7px;
+      padding: 5px 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
       align-items: center;
-      gap: 12px;
+      gap: 8px;
       min-height: 0;
       overflow: hidden;
     }
 
     .m4-card-left {
-      flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       align-items: flex-start;
-      gap: 3px;
+      gap: 2px;
       min-width: 0;
       overflow: hidden;
     }
 
+    .m4-card-left > * { margin: 0; }
+
     .m4-card-right {
-      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -356,30 +356,30 @@
     .m4-horizon-line {
       display: flex;
       align-items: baseline;
-      gap: 6px;
+      gap: 5px;
     }
 
     .m4-horizon {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: #e2e8f0;
       white-space: nowrap;
     }
 
     .m4-dayrange {
-      font-size: 9px;
+      font-size: 8.5px;
       color: #475569;
       white-space: nowrap;
     }
 
     .m4-fill-line {
-      font-size: 9px;
+      font-size: 8.5px;
       color: #64748b;
       white-space: nowrap;
     }
 
     .m4-fill-bar-track {
-      height: 4px;
+      height: 3px;
       width: 100%;
       background: rgba(255,255,255,0.07);
       border-radius: 2px;
@@ -388,7 +388,7 @@
     .m4-fill-bar { height: 100%; border-radius: 2px; }
 
     .m4-open-num {
-      font-size: 30px;
+      font-size: 26px;
       font-weight: 800;
       line-height: 1;
     }
@@ -396,18 +396,18 @@
     .m4-open-num.warn     { color: #fcd34d; }
     .m4-open-num.good     { color: #86efac; }
 
-    .m4-open-label { font-size: 8px; color: #475569; text-align: center; }
+    .m4-open-label { font-size: 7.5px; color: #475569; text-align: center; }
 
-    /* Slim inline pill buttons — !important prevents flex-stretch from overriding */
+    /* Slim inline pill buttons */
     .m4-badge {
       display: inline-block !important;
       width: auto !important;
       max-width: fit-content !important;
       border-radius: 4px !important;
-      padding: 3px 10px !important;
-      font-size: 10px !important; font-weight: 600;
+      padding: 2px 8px !important;
+      font-size: 9.5px !important; font-weight: 600;
       white-space: nowrap;
-      margin-top: 4px !important;
+      margin: 0 !important;
       align-self: flex-start !important;
     }
     .m4-badge.badge-critical { background: rgba(220,38,38,0.12);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.25); }
@@ -851,7 +851,7 @@ function render(data) {
     const measured  = table.scrollHeight + hdr.scrollHeight + 16;
     const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
     const m2Height  = Math.min(maxM2, Math.max(200, measured));
-    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 62px 1fr`;
+    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 56px 1fr`;
     // After M2 is sized, let M3 rows fill the rest
     setTimeout(expandM3Rows, 50);
   }
