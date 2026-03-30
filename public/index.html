@@ -171,12 +171,85 @@
     }
 
     #m1-chart-wrap {
-      padding: 6px 12px 4px 6px;
+      padding: 4px 10px 4px 4px;
       position: relative;
       min-height: 0;
       overflow: hidden;
+      display: flex;
+      align-items: stretch;
     }
-    #m1-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+    #m1-vbars { flex: 1; min-height: 0; display: flex; align-items: stretch; }
+
+    /* ── Vertical bar chart (M1) ─────────────────────────────────────────── */
+    .vbar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      width: 100%;
+      height: 100%;
+    }
+    .vbar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      height: 100%;
+      position: relative;
+    }
+    .vbar-track {
+      flex: 1;
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .vbar-fill {
+      width: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      transition: height 0.3s ease;
+    }
+    .vbar-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .vbar-date {
+      font-size: 7.5px;
+      color: #475569;
+      text-align: center;
+      line-height: 1.3;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .vbar-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      background: rgba(10,13,20,0.97);
+      border: 0.5px solid rgba(255,255,255,0.12);
+      border-radius: 5px;
+      padding: 3px 8px;
+      font-size: 9px;
+      color: #e2e8f0;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .vbar-col:hover .vbar-tooltip { display: block; }
 
     /* ── Row 4: M2 heatmap (auto — sized by JS after render) ────────────────── */
     #m2-row {
@@ -482,7 +555,7 @@
   <div id="m1-label">
     <span class="badge-m">M1</span>
   </div>
-  <div id="m1-chart-wrap"><canvas id="chart-m1"></canvas></div>
+  <div id="m1-chart-wrap"><div id="m1-vbars"></div></div>
 </div>
 
 <!-- ── Row 4: M2 heatmap (190px) ────────────────────────────────────────────── -->
@@ -607,68 +680,40 @@ function render(data) {
       `</span>`;
   }
 
-  // ── Module 1 — Bar chart ─────────────────────────────────────────────────
-  const labels     = days.map(d => `${fmtDate(d.date)}\n${d.dayOfWeek.slice(0,3)}`);
-  const bookedVals = days.map(d => d.booked);
-  const capVals    = days.map(d => Math.max(0, d.capacity - d.booked));
-  const bgBooked = days.map((d, i) => {
-    const beyond = optimalCutoff > 0 && i >= optimalCutoff;
-    if (d.isWeekend) return beyond ? 'rgba(139,148,158,0.05)' : 'rgba(139,148,158,0.15)';
-    const c = barColor(d.fillPct);
-    const full = c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : '#ef4444';
-    return beyond
-      ? (c === 'green' ? 'rgba(34,197,94,0.25)' : c === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)')
-      : full;
-  });
-  const bgCap = days.map((d, i) => {
-    const beyond = optimalCutoff > 0 && i >= optimalCutoff;
-    return d.isWeekend ? 'rgba(139,148,158,0.03)' : beyond ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)';
-  });
+  // ── Module 1 — Vertical CSS bar chart ───────────────────────────────────
+  if (chartM1) { chartM1.destroy(); chartM1 = null; }
 
-  if (chartM1) chartM1.destroy();
-  const ctx = document.getElementById('chart-m1').getContext('2d');
-  chartM1 = new Chart(ctx, {
-    type: 'bar',
-    plugins: [ChartDataLabels],
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Booked', data: bookedVals, backgroundColor: bgBooked,
-          borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }, borderSkipped: false, stack: 'stack',
-          datalabels: {
-            display: (ctx) => { const d = days[ctx.dataIndex]; return !d.isWeekend && d.booked > 0; },
-            formatter: (_, ctx) => days[ctx.dataIndex].fillPct + '%',
-            color: '#fff', font: { size: 8, weight: 'bold' },
-            anchor: 'center', align: 'center',
-          }
-        },
-        {
-          label: 'Open', data: capVals, backgroundColor: bgCap,
-          borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 }, borderSkipped: false, stack: 'stack',
-          datalabels: { display: false }
-        }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            afterBody: (items) => {
-              const d = days[items[0].dataIndex];
-              return [`Fill: ${d.fillPct}%`, `Capacity: ${d.capacity}`];
-            }
-          }
-        }
-      },
-      scales: {
-        x: { stacked: true, ticks: { color: (ctx) => (optimalCutoff > 0 && ctx.index >= optimalCutoff) ? '#334155' : '#475569', font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
-        y: { stacked: true, display: false }
-      }
-    }
-  });
+  const vbarsHtml = days.map((d, i) => {
+    const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
+    const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
+    const cls      = barColor(d.fillPct);
+    const solid    = cls === 'green' ? '#22c55e' : cls === 'yellow' ? '#f59e0b' : '#ef4444';
+    const fillColor = d.isWeekend
+      ? 'rgba(139,148,158,0.25)'
+      : beyond
+        ? (cls === 'green' ? 'rgba(34,197,94,0.25)' : cls === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)')
+        : solid;
+    const fillPct   = d.isWeekend ? 10 : Math.max(d.fillPct, d.booked > 0 ? 8 : 0);
+    const showLabel = !d.isWeekend && d.booked > 0 && d.fillPct >= 18;
+    const dateColor = beyond ? '#334155' : '#475569';
+    const tooltip   = d.isWeekend
+      ? `${fmtDate(d.date)} — Weekend`
+      : `${fmtDate(d.date)} ${d.dayOfWeek} · ${d.booked}/${d.capacity} booked (${d.fillPct}%)`;
+    const colStyle  = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);padding-left:2px;margin-left:2px;' : '';
+
+    return `<div class="vbar-col" style="${colStyle}">
+      <div class="vbar-tooltip">${tooltip}</div>
+      <div class="vbar-track">
+        <div class="vbar-fill" style="height:${fillPct}%;background:${fillColor}">
+          ${showLabel ? `<span class="vbar-label">${d.fillPct}%</span>` : ''}
+        </div>
+      </div>
+      <div class="vbar-date" style="color:${dateColor}">${fmtDate(d.date)}<br>${d.dayOfWeek.slice(0,3)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('m1-vbars').innerHTML =
+    `<div class="vbar-chart">${vbarsHtml}</div>`;
 
   // ── Module 2 — Heat Map ──────────────────────────────────────────────────
   function hmCellClass(pct) {
@@ -964,11 +1009,22 @@ function render(data) {
     const s       = data.module3.sanity30;
     const sanityEl = document.getElementById('m3-sanity');
     if (sanityEl && s) {
+      // Forecasted closes calculation
+      const totalMtgs30   = data.module3.hitRate30.reduce((sum, b) => sum + b.total, 0);
+      const avgDailyMtgs  = (totalMtgs30 / 30).toFixed(1);
+      const blendedHit    = totalMtgs30 > 0 ? Math.round((s.proposals / totalMtgs30) * 100) : 0;
+      const forecastCloses = Math.round(totalMtgs30 * (blendedHit / 100) * (s.blendedCloseRate / 100));
+
       sanityEl.innerHTML =
         `Last 30d: <strong style="color:#64748b">${s.proposals}</strong> proposals`
         + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.closes}</strong> closes`
         + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.blendedCloseRate}%</strong> blended close rate`
-        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`;
+        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`
+        + `<br><span style="color:#475569">Forecasted closes next 30 days: </span>`
+        + `<strong style="color:#86efac">~${forecastCloses} deals</strong>`
+        + ` <span style="color:#475569">(based on current avg of <strong style="color:#94a3b8">${avgDailyMtgs}</strong> meetings/day`
+        + ` × <strong style="color:#94a3b8">${blendedHit}%</strong> proposal rate`
+        + ` × <strong style="color:#94a3b8">${s.blendedCloseRate}%</strong> close rate)</span>`;
     }
   })();
 }
