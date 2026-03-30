@@ -221,11 +221,18 @@
     .hm-slot-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; }
     .hm-slot-red    { background: rgba(220,38,38,0.12);  color: #fca5a5; }
 
-    .hm-empty { background: rgba(220,38,38,0.45); color: #fca5a5; }
-    .hm-low   { background: rgba(220,38,38,0.25); color: #fca5a5; }
+    /* Zone 1 — within cutoff: colored urgency */
+    .hm-empty { background: rgba(220,38,38,0.40); color: #fca5a5; }
+    .hm-low   { background: rgba(220,38,38,0.22); color: #fca5a5; }
     .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; }
     .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; }
     .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; }
+    /* Zone 2 — beyond cutoff: muted gray, not urgent */
+    .hm-muted { background: rgba(255,255,255,0.04); color: #334155; border-radius: 5px; font-size: 9px; }
+    /* Dashed cutoff boundary line */
+    .hm-cutoff-col { border-left: 1.5px dashed rgba(99,153,34,0.4) !important; }
+    /* Beyond-cutoff header slot pill */
+    .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
 
     /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
     #m4-strip {
@@ -314,14 +321,18 @@
 
     .m4-open-label { font-size: 8px; color: #475569; text-align: center; }
 
+    /* Slim inline pill buttons */
     .m4-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 7px; border-radius: 6px;
-      font-size: 9.5px; font-weight: 700; white-space: nowrap;
+      display: inline-block;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 10px; font-weight: 600;
+      white-space: nowrap;
     }
-    .m4-badge.badge-critical { background: rgba(220,38,38,0.20);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.35); }
-    .m4-badge.badge-warn     { background: rgba(245,158,11,0.20); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.35); }
-    .m4-badge.badge-good     { background: rgba(34,197,94,0.20);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.35); }
+    .m4-badge.badge-critical { background: rgba(220,38,38,0.12);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.25); }
+    .m4-badge.badge-warn     { background: rgba(245,158,11,0.15); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.30); }
+    .m4-badge.badge-good     { background: rgba(34,197,94,0.15);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.30); }
+    .m4-badge.badge-beyond   { background: rgba(34,197,94,0.10);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.20); }
 
     /* ── Row 6: M3 full-width table (1fr) ──────────────────────────────────── */
     #m3-row {
@@ -471,7 +482,7 @@
 
 <!-- ── Row 4: M2 heatmap (190px) ────────────────────────────────────────────── -->
 <div id="m2-row">
-  <div class="row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
+  <div class="row-hdr" id="m2-row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
   <div id="m2-heatmap"></div>
 </div>
 
@@ -560,6 +571,10 @@ function chipFor(pct) {
 // ── Render ────────────────────────────────────────────────────────────────────
 function render(data) {
 
+  // Optimal cutoff (days-out) from M3 booking recommendation
+  const optimalCutoff = (data.module3.bookingRec && data.module3.bookingRec.optimalCutoff > 0)
+    ? data.module3.bookingRec.optimalCutoff : 0;
+
   // ── Glance bar ───────────────────────────────────────────────────────────
   const days      = data.module1.days;
   const todayStr  = data.todayStr;
@@ -591,12 +606,19 @@ function render(data) {
   const labels     = days.map(d => `${fmtDate(d.date)}\n${d.dayOfWeek.slice(0,3)}`);
   const bookedVals = days.map(d => d.booked);
   const capVals    = days.map(d => Math.max(0, d.capacity - d.booked));
-  const bgBooked   = days.map(d => {
-    if (d.isWeekend) return 'rgba(139,148,158,0.15)';
+  const bgBooked = days.map((d, i) => {
+    const beyond = optimalCutoff > 0 && i >= optimalCutoff;
+    if (d.isWeekend) return beyond ? 'rgba(139,148,158,0.05)' : 'rgba(139,148,158,0.15)';
     const c = barColor(d.fillPct);
-    return c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : '#ef4444';
+    const full = c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : '#ef4444';
+    return beyond
+      ? (c === 'green' ? 'rgba(34,197,94,0.25)' : c === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)')
+      : full;
   });
-  const bgCap = days.map(d => d.isWeekend ? 'rgba(139,148,158,0.05)' : 'rgba(255,255,255,0.06)');
+  const bgCap = days.map((d, i) => {
+    const beyond = optimalCutoff > 0 && i >= optimalCutoff;
+    return d.isWeekend ? 'rgba(139,148,158,0.03)' : beyond ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)';
+  });
 
   if (chartM1) chartM1.destroy();
   const ctx = document.getElementById('chart-m1').getContext('2d');
@@ -637,7 +659,7 @@ function render(data) {
         }
       },
       scales: {
-        x: { stacked: true, ticks: { color: '#475569', font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
+        x: { stacked: true, ticks: { color: (ctx) => (optimalCutoff > 0 && ctx.index >= optimalCutoff) ? '#334155' : '#475569', font: { size: 9 }, maxRotation: 0 }, grid: { display: false } },
         y: { stacked: true, display: false }
       }
     }
@@ -662,42 +684,73 @@ function render(data) {
       return;
     }
 
+    // Update section header with cutoff note
+    const rowHdr = document.getElementById('m2-row-hdr');
+    if (rowHdr) {
+      rowHdr.textContent = optimalCutoff > 0
+        ? `M2 · Rep Capacity Heat Map · Next 10 Days  ·  cells past cutoff (day ${optimalCutoff}) shown in gray — empty slots beyond cutoff are not urgent`
+        : 'M2 · Rep Capacity Heat Map · Next 10 Days';
+    }
+
     // Per-day team totals for slot pills
     const dayTotals = days.map((day, i) => {
       if (day.isWeekend) return null;
       const totalCap    = reps.reduce((s, r) => s + r.maxPerDay, 0);
       const totalBooked = reps.reduce((s, r) => s + (r.days[i] ? r.days[i].booked : 0), 0);
-      const open        = totalCap - totalBooked;
+      const open        = Math.max(0, totalCap - totalBooked);
       const openPct     = totalCap > 0 ? (open / totalCap) * 100 : 0;
       return { totalCap, totalBooked, open, openPct };
     });
 
     const headerCols = days.map((d, i) => {
-      const isToday = d.date === todayStr;
+      const isToday   = d.date === todayStr;
+      const beyond    = optimalCutoff > 0 && i >= optimalCutoff;
+      const isCutoff  = optimalCutoff > 0 && i === optimalCutoff; // first beyond col
+
       const todayLabel = isToday ? `<div style="color:#60a5fa;font-weight:700;font-size:8px">TODAY</div>` : '';
 
       let slotPill = '';
       if (!d.isWeekend && dayTotals[i]) {
         const dt = dayTotals[i];
-        const pillCls = dt.openPct > 50 ? 'hm-slot-green' : dt.openPct > 20 ? 'hm-slot-amber' : 'hm-slot-red';
-        slotPill = `<div><span class="hm-slot-pill ${pillCls}">${dt.open} open</span></div>`;
+        if (beyond) {
+          slotPill = `<div><span class="hm-slot-muted">${dt.open} open</span></div>`;
+        } else {
+          const pillCls = dt.openPct > 50 ? 'hm-slot-green' : dt.openPct > 20 ? 'hm-slot-amber' : 'hm-slot-red';
+          const label   = dt.openPct > 50 ? `${dt.open} left` : dt.openPct > 20 ? `${dt.open} left` : `${dt.open} left`;
+          slotPill = `<div><span class="hm-slot-pill ${pillCls}">${label}</span></div>`;
+        }
       } else if (d.isWeekend) {
-        slotPill = `<div style="font-size:8px;color:#334155">—</div>`;
+        slotPill = `<div style="font-size:8px;color:#2d3748">—</div>`;
       }
 
-      const dateLabel = `<div style="font-size:8.5px">${fmtDate(d.date)}</div><div style="font-size:7.5px;color:#475569">${d.dayOfWeek.slice(0,3)}</div>`;
-      const style = d.isWeekend ? 'opacity:0.2' : '';
-      return `<th style="${style}">${todayLabel}${slotPill}${dateLabel}</th>`;
+      const dateLabel = `<div style="font-size:8.5px;${beyond ? 'color:#334155' : ''}">${fmtDate(d.date)}</div>`
+        + `<div style="font-size:7.5px;color:${beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
+
+      const wkStyle  = d.isWeekend ? 'opacity:0.2' : '';
+      const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
+      return `<th style="${[wkStyle, cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
     }).join('');
 
     const repRows = reps.map(rep => {
       const cells = rep.days.map((d, i) => {
         const day      = days[i];
         const isToday  = day.date === todayStr;
+        const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
+        const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
         const todayCls = isToday ? ' today-col' : '';
-        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="color:#334155;font-size:9px">—</td>`;
+
+        const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
+
+        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}color:#2d3748;font-size:9px">—</td>`;
+
+        if (beyond) {
+          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}">
+            <div style="line-height:1.2">${d.booked}/${rep.maxPerDay}</div>
+          </td>`;
+        }
+
         const cls = hmCellClass(d.fillPct);
-        return `<td class="hm-cell ${cls}${todayCls}">
+        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}">
           <div class="hm-booking">${d.booked}/${rep.maxPerDay}</div>
           <div class="hm-pct">${d.fillPct}%</div>
         </td>`;
@@ -760,13 +813,16 @@ function render(data) {
     const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
     const fillBarClr = isFull ? '#22c55e' : '#3b82f6';
 
-    const slotsCls  = isFull ? 'good' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
+    const isBeyond  = optimalCutoff > 0 && r.horizon > optimalCutoff;
+    const slotsCls  = isFull ? 'good' : isBeyond ? '' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
+    const slotsNumColor = isBeyond ? '#475569' : '';
     const slotsNum  = isFull ? '✓' : (r.openSlots < 0 ? '⚠' + Math.abs(r.openSlots) : r.openSlots);
 
     let badgeHtml;
-    if (r.openSlots <= 0)      badgeHtml = `<span class="m4-badge badge-good">✅ Full</span>`;
-    else if (openPct < 20)     badgeHtml = `<span class="m4-badge badge-good">✅ Nearly full</span>`;
-    else if (openPct <= 50)    badgeHtml = `<span class="m4-badge badge-warn">⚠️ Book ${r.openSlots}</span>`;
+    if (isBeyond)              badgeHtml = `<span class="m4-badge badge-beyond">beyond cutoff</span>`;
+    else if (r.openSlots <= 0) badgeHtml = `<span class="m4-badge badge-good">✅ Full</span>`;
+    else if (openPct < 30)     badgeHtml = `<span class="m4-badge badge-warn">⚠️ Book ${r.openSlots}</span>`;
+    else if (openPct <= 60)    badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
     else                       badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
 
     const wkTag = r.hasWeekend
@@ -783,7 +839,7 @@ function render(data) {
         ${badgeHtml}
       </div>
       <div class="m4-card-right">
-        <div class="m4-open-num ${slotsCls}">${slotsNum}</div>
+        <div class="m4-open-num ${slotsCls}" style="${slotsNumColor ? `color:${slotsNumColor}` : ''}">${slotsNum}</div>
         <div class="m4-open-label">open slots</div>
       </div>
     </div>`;
