@@ -498,10 +498,10 @@
       <div class="kpi-sub" id="k7-sub">—</div>
     </div>
     <!-- Card 9: Show Rate Today -->
-    <div class="kpi-card accent-rose">
-      <div class="kpi-label">Show Rate Today</div>
-      <div class="kpi-value" id="k9-big" style="color:#64748b">—</div>
-      <div class="kpi-sub" id="k9-sub" style="white-space:nowrap;color:var(--muted)">—</div>
+    <div class="kpi-card accent-rose" id="card-showrate">
+      <div class="kpi-label">SHOW RATE TODAY</div>
+      <div class="kpi-value" id="k-showrate-pct" style="color:#22c55e;">--%</div>
+      <div class="kpi-sub" id="k-showrate-sub" style="font-size:13px;white-space:nowrap;">loading...</div>
     </div>
   </div>
 
@@ -1052,20 +1052,6 @@ function processRecords(records) {
     todaySchedProposals, avgSchedProposalsPerWeekday,
     reps, weekKeys, weeklyData, dayKeys, dailyData, propDayMap,
     todayStr: today,
-    showRateTotal: (() => {
-      let t = 0;
-      for (const rec of salesRecs) {
-        if (toLocalDateStr(rec.fields[F.SCHEDULED]) === today) t++;
-      }
-      return t;
-    })(),
-    showRateHappened: (() => {
-      let h = 0;
-      for (const rec of salesRecs) {
-        if (toLocalDateStr(rec.fields[F.SCHEDULED]) === today && rec.fields[F.STATUS]) h++;
-      }
-      return h;
-    })(),
   };
 }
 
@@ -1134,17 +1120,6 @@ function renderKPIs(d) {
   set('k7-sub',
     `<span class="teal">OC ${d.ocPropToCloseRate}%</span> · <span class="violet">Belkins ${d.belkinsPropToCloseRate}%</span>`);
 
-  // Card 9: Show Rate Today
-  {
-    const total    = d.showRateTotal    || 0;
-    const happened = d.showRateHappened || 0;
-    const pending  = total - happened;
-    const pct      = total > 0 ? Math.round(happened / total * 100) : null;
-    const color    = pct === null ? '#64748b' : pct >= 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-    const bigEl    = document.getElementById('k9-big');
-    if (bigEl) { bigEl.textContent = pct === null ? '—' : pct + '%'; bigEl.style.color = color; }
-    set('k9-sub', total === 0 ? 'no meetings scheduled today' : `${happened} of ${total} had a status · ${pending} pending`);
-  }
 }
 
 // ─── RENDER FUNNEL ────────────────────────────────────────────────────────────
@@ -1790,6 +1765,35 @@ async function loadAndRender() {
     const d = processRecords(records);
 
     renderKPIs(d);
+
+    // Show Rate Today
+    const todayLocal = new Date();
+    const todayStr = todayLocal.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const todayMtgs = records.filter(r => {
+      const sched = r.fields['fldzfYMT58yVWPrgm'];
+      if (!sched) return false;
+      const schedLocal = new Date(sched).toLocaleDateString('en-CA');
+      return schedLocal === todayStr && r.fields['fldHf2ZJrIAUcdwSS'] === 'Sales';
+    });
+    const showRateTotal = todayMtgs.length;
+    const showRateHappened = todayMtgs.filter(r => r.fields['fld1JsS7z7gy0eLlD']).length;
+    const showRatePending = showRateTotal - showRateHappened;
+    const showRatePct = showRateTotal > 0 ? Math.round(showRateHappened / showRateTotal * 100) : null;
+    const srPctEl = document.getElementById('k-showrate-pct');
+    const srSubEl = document.getElementById('k-showrate-sub');
+    if (srPctEl) {
+      srPctEl.textContent = showRatePct !== null ? showRatePct + '%' : '--%';
+      srPctEl.style.color = showRatePct === null ? '#6b7280'
+        : showRatePct >= 70 ? '#22c55e'
+        : showRatePct >= 50 ? '#f59e0b'
+        : '#ef4444';
+    }
+    if (srSubEl) {
+      srSubEl.textContent = showRateTotal > 0
+        ? showRateHappened + ' of ' + showRateTotal + ' updated · ' + showRatePending + ' pending'
+        : 'No meetings scheduled today';
+    }
+
     renderFunnel(d);
     renderReps(d.reps, d.todaySchedProposals);
     renderDailyChart(d);
