@@ -18,7 +18,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 30px 110px 190px 72px 1fr;
+      grid-template-rows: 48px 30px 90px minmax(200px, auto) 72px 1fr;
       height: 100vh;
       max-height: 100vh;
       overflow: hidden;
@@ -477,7 +477,7 @@
 
     .m3-group-row th { border-bottom: none; }
     .m3-div-30-90    { border-left: 0.5px solid rgba(255,255,255,0.1) !important; }
-    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; }
+    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; text-align: center !important; padding: 4px 12px !important; }
 
     .rate-high { color: #22c55e; font-weight: 700; }
     .rate-mid  { color: #f59e0b; font-weight: 700; }
@@ -577,12 +577,12 @@
           <th rowspan="2" style="width:88px;vertical-align:bottom">Days Out</th>
           <th colspan="5" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
           <th colspan="4" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
-          <th class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px">Funnel 90d</th>
+          <th class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">Funnel 90d</th>
         </tr>
         <tr>
           <th>Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th><th>Trend</th>
           <th class="m3-div-30-90">Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th>
-          <th class="m3-div-funnel" style="white-space:nowrap">Mtgs → Props → Closes · True rate</th>
+          <th class="m3-div-funnel" style="white-space:nowrap;text-align:center">Mtgs → Props → Closes · True rate</th>
         </tr>
       </thead>
       <tbody id="m3-combined-table"></tbody>
@@ -831,8 +831,9 @@ function render(data) {
 
     // ── Dynamic font size + padding on all heatmap cells ──────────────────
     const repCount    = reps.length;
-    const fontSize    = repCount <= 6 ? '10px' : repCount <= 8 ? '9px' : '8px';
-    const cellPadding = repCount <= 6 ? '4px 3px' : repCount <= 8 ? '2px 2px' : '1px 2px';
+    const rowHeight   = Math.max(28, Math.min(36, Math.floor(180 / repCount)));
+    const fontSize    = rowHeight >= 32 ? '10px' : rowHeight >= 28 ? '9px' : '8px';
+    const cellPadding = rowHeight >= 32 ? '4px 3px' : rowHeight >= 28 ? '3px 2px' : '1px 2px';
     document.querySelectorAll('#m2-heatmap .hm-cell, #m2-heatmap td, #m2-heatmap th').forEach(el => {
       el.style.fontSize = fontSize;
       el.style.padding  = cellPadding;
@@ -844,7 +845,8 @@ function render(data) {
     const table  = document.querySelector('#m2-heatmap .heatmap-table');
     const hdr    = document.getElementById('m2-row-hdr');
     if (!table || !hdr) return;
-    const m2Height = table.scrollHeight + hdr.scrollHeight + 16; // 16px = padding + gap buffer
+    const measured = table.scrollHeight + hdr.scrollHeight + 16; // 16px = padding + gap buffer
+    const m2Height = Math.max(200, measured); // never shrink below 200px
     document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
   }
   setTimeout(adjustM2Height, 100);
@@ -1002,29 +1004,18 @@ function render(data) {
         <td style="${m}">${c.proposals}</td>
         <td>${rate90}</td>
         <td>${closeRateCell(c)}</td>
-        <td class="m3-div-funnel" style="white-space:nowrap;font-size:10px">${funnelHtml}</td>
+        <td class="m3-div-funnel" style="white-space:nowrap;font-size:10px;text-align:center;padding:4px 12px">${funnelHtml}</td>
       </tr>`;
     }).join('');
 
     const s       = data.module3.sanity30;
     const sanityEl = document.getElementById('m3-sanity');
     if (sanityEl && s) {
-      // Forecasted closes calculation
-      const totalMtgs30   = data.module3.hitRate30.reduce((sum, b) => sum + b.total, 0);
-      const avgDailyMtgs  = (totalMtgs30 / 30).toFixed(1);
-      const blendedHit    = totalMtgs30 > 0 ? Math.round((s.proposals / totalMtgs30) * 100) : 0;
-      const forecastCloses = Math.round(totalMtgs30 * (blendedHit / 100) * (s.blendedCloseRate / 100));
-
       sanityEl.innerHTML =
         `Last 30d: <strong style="color:#64748b">${s.proposals}</strong> proposals`
         + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.closes}</strong> closes`
         + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.blendedCloseRate}%</strong> blended close rate`
-        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`
-        + `<br><span style="color:#475569">Forecasted closes next 30 days: </span>`
-        + `<strong style="color:#86efac">~${forecastCloses} deals</strong>`
-        + ` <span style="color:#475569">(based on current avg of <strong style="color:#94a3b8">${avgDailyMtgs}</strong> meetings/day`
-        + ` × <strong style="color:#94a3b8">${blendedHit}%</strong> proposal rate`
-        + ` × <strong style="color:#94a3b8">${s.blendedCloseRate}%</strong> close rate)</span>`;
+        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`;
     }
   })();
 }
