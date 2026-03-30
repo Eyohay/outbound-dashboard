@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 30px 90px 200px 72px 1fr;
+      grid-template-rows: 48px 28px 100px minmax(200px, auto) 62px 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -203,7 +203,7 @@
       flex: 1;
       width: 100%;
       background: rgba(255,255,255,0.06);
-      border-radius: 6px;
+      border-radius: 6px !important;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
@@ -212,7 +212,7 @@
     }
     .vbar-fill {
       width: 100%;
-      border-radius: 6px;
+      border-radius: 6px !important;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -278,7 +278,7 @@
     #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
     #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 96px; padding-left: 6px; vertical-align: middle; }
     #m2-heatmap tr                    { height: auto; }
-    #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 4px; vertical-align: middle; overflow: hidden; line-height: 1; }
+    #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
     #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
     #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
     #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 96px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
@@ -296,14 +296,14 @@
     .hm-slot-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; }
     .hm-slot-red    { background: rgba(220,38,38,0.12);  color: #fca5a5; }
 
-    /* Zone 1 — within cutoff: colored urgency */
-    .hm-empty { background: rgba(220,38,38,0.40); color: #fca5a5; }
-    .hm-low   { background: rgba(220,38,38,0.22); color: #fca5a5; }
-    .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; }
-    .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; }
-    .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; }
+    /* Zone 1 — within cutoff: colored urgency (spec-exact rgba) */
+    .hm-empty { background: rgba(220,38,38,0.45); color: #fca5a5; border-radius: 5px; }
+    .hm-low   { background: rgba(220,38,38,0.25); color: #fca5a5; border-radius: 5px; }
+    .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; border-radius: 5px; }
+    .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; border-radius: 5px; }
+    .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; border-radius: 5px; }
     /* Zone 2 — beyond cutoff: muted gray, not urgent */
-    .hm-muted { background: rgba(255,255,255,0.04); color: #334155; border-radius: 5px; font-size: 9px; }
+    .hm-muted { background: rgba(255,255,255,0.04); color: #2d3748; border-radius: 5px; font-size: 9px; }
     /* Dashed cutoff boundary line */
     .hm-cutoff-col { border-left: 1.5px dashed rgba(99,153,34,0.4) !important; }
     /* Beyond-cutoff header slot pill */
@@ -403,7 +403,7 @@
       display: inline-block !important;
       width: auto !important;
       max-width: fit-content !important;
-      border-radius: 5px !important;
+      border-radius: 4px !important;
       padding: 3px 10px !important;
       font-size: 10px !important; font-weight: 600;
       white-space: nowrap;
@@ -778,8 +778,8 @@ function render(data) {
         slotPill = `<div style="font-size:8px;color:#2d3748">—</div>`;
       }
 
-      const dateLabel = `<div style="font-size:8.5px;${beyond ? 'color:#334155' : ''}">${fmtDate(d.date)}</div>`
-        + `<div style="font-size:7.5px;color:${beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
+      const dateLabel = `<div style="font-size:8.5px;color:${isToday ? '#60a5fa' : beyond ? '#334155' : ''}">${fmtDate(d.date)}</div>`
+        + `<div style="font-size:7.5px;color:${isToday ? '#60a5fa' : beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
 
       const wkStyle  = d.isWeekend ? 'opacity:0.2' : '';
       const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
@@ -812,7 +812,7 @@ function render(data) {
       }).join('');
 
       const p = rep.totalFillPct;
-      const totalColor = p >= 80 ? '#86efac' : p >= 50 ? '#fcd34d' : '#fca5a5';
+      const totalColor = p >= 80 ? '#22c55e' : p >= 50 ? '#84cc16' : p >= 30 ? '#f59e0b' : '#ef4444';
       return `<tr>
         <td class="rep-name">${rep.name}</td>
         ${cells}
@@ -851,7 +851,7 @@ function render(data) {
     const measured  = table.scrollHeight + hdr.scrollHeight + 16;
     const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
     const m2Height  = Math.min(maxM2, Math.max(200, measured));
-    document.body.style.gridTemplateRows = `48px 30px 90px ${m2Height}px 72px 1fr`;
+    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 62px 1fr`;
     // After M2 is sized, let M3 rows fill the rest
     setTimeout(expandM3Rows, 50);
   }
@@ -972,20 +972,18 @@ function render(data) {
                       : isBest    ? 'background:rgba(99,153,34,0.07);' : '';
       const rowBorder = isCutoff  ? 'border-bottom:2px dashed rgba(34,197,94,.4);' : '';
 
-      const daysLabel = `${b.daysOut} day${b.daysOut > 1 ? 's' : ''} out`;
+      const daysLabel = `${b.daysOut}d out`;
       let daysOutCell;
       if (isCutoff) {
-        daysOutCell = `<td style="padding:0 8px">
-          <div>${daysLabel}</div>
-          <div style="font-size:8px;color:#86efac;font-weight:700;letter-spacing:.04em">◀ OPTIMAL</div>
+        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px">
+          <span>${daysLabel}</span> <span style="color:#86efac;font-weight:700">◀ cutoff</span>
         </td>`;
       } else if (isDropoff) {
-        daysOutCell = `<td style="padding:0 8px;opacity:.6">
-          <div>${daysLabel}</div>
-          <div style="font-size:8px;color:#1e293b">drop-off</div>
+        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px;opacity:.6">
+          <span>${daysLabel}</span> <span style="color:#475569;font-size:8.5px">· drop-off</span>
         </td>`;
       } else {
-        daysOutCell = `<td>${daysLabel}${isBest ? ' <span style="font-size:9px;color:#22c55e">★</span>' : ''}</td>`;
+        daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${isBest ? ' <span style="font-size:9px;color:#22c55e">★</span>' : ''}</td>`;
       }
 
       const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
