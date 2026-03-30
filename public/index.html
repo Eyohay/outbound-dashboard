@@ -507,14 +507,15 @@
       <thead>
         <tr class="m3-group-row">
           <th rowspan="2" style="width:90px;vertical-align:bottom">Days Out</th>
-          <th colspan="4" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
-          <th rowspan="2" style="width:52px;vertical-align:bottom;text-align:center">Trend</th>
-          <th colspan="4" class="m3-group-hdr m3-divider" style="color:#334155">Last 90 days</th>
+          <th colspan="4" class="m3-group-hdr" style="color:#60a5fa">— Last 30 days ———</th>
+          <th colspan="4" class="m3-group-hdr m3-divider" style="color:#475569">— Last 90 days ———</th>
+          <th class="m3-group-hdr m3-divider" style="color:#7c3aed;font-size:8px">— Funnel (90d) —</th>
         </tr>
         <tr>
-          <th>Mtgs</th><th>Props</th><th>Hit %</th><th>Close %</th>
+          <th>Mtgs</th><th>Props</th><th>Hit %</th><th>Trend</th>
           <th style="border-left:0.5px solid rgba(255,255,255,0.1)">Mtgs</th>
           <th>Props</th><th>Hit %</th><th>Close %</th>
+          <th style="border-left:0.5px solid rgba(255,255,255,0.1);white-space:nowrap">Mtgs → Props → Closes</th>
         </tr>
       </thead>
       <tbody id="m3-combined-table"></tbody>
@@ -847,26 +848,37 @@ function render(data) {
       }
 
       const diff = b.hitRate - c.hitRate;
-      let trendCell;
+      let trendHtml;
       if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
-        trendCell = '<span style="color:#2d3748">—</span>';
+        trendHtml = '<span style="color:#2d3748">—</span>';
       } else if (diff > 0) {
-        trendCell = `<span style="color:#22c55e">▲ +${diff}%</span>`;
+        trendHtml = `<span style="color:#22c55e">▲ +${diff}%</span>`;
       } else {
-        trendCell = `<span style="color:#ef4444">▼ ${diff}%</span>`;
+        trendHtml = `<span style="color:#ef4444">▼ ${diff}%</span>`;
       }
 
+      // Funnel column: 90d meetings → proposals → closes
+      const closesColor = c.closeRate >= 15 ? '#22c55e' : c.closeRate >= 10 ? '#f59e0b' : '#ef4444';
+      const funnelHtml  = c.total === 0
+        ? '—'
+        : `<span style="color:#475569">${c.total}</span>`
+        + `<span style="color:#334155"> → </span>`
+        + `<span style="color:#475569">${c.proposals}</span>`
+        + `<span style="color:#334155"> → </span>`
+        + `<span style="color:${c.closes > 0 ? closesColor : '#334155'}">${c.closes}</span>`;
+
+      const muted = 'color:#2d3748';
       return `<tr class="${rowClass}" style="${rowStyle}${rowBorder}">
         ${daysOutCell}
         <td>${b.total}</td>
         <td>${b.proposals}</td>
         <td>${rate30}</td>
-        <td>${closeRateCell(b)}</td>
-        <td style="text-align:center">${trendCell}</td>
-        <td style="border-left:0.5px solid rgba(255,255,255,0.1)">${c.total}</td>
-        <td>${c.proposals}</td>
+        <td style="text-align:center">${trendHtml}</td>
+        <td style="border-left:0.5px solid rgba(255,255,255,0.1);${muted}">${c.total}</td>
+        <td style="${muted}">${c.proposals}</td>
         <td>${rate90}</td>
         <td>${closeRateCell(c)}</td>
+        <td style="border-left:0.5px solid rgba(255,255,255,0.1);white-space:nowrap;font-size:10px">${funnelHtml}</td>
       </tr>`;
     }).join('');
 
