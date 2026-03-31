@@ -1,1176 +1,462 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Outbound Team Capacity Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      height: 100%;
-      min-height: 100vh;
-      overflow: hidden;
-      margin: 0;
-      background: #0a0d14;
-    }
-
-    body {
-      display: grid;
-      grid-template-rows: 48px 28px 100px minmax(200px, auto) 72px 1fr;
-      height: 100vh;
-      min-height: 100vh;
-      max-height: 100vh;
-      overflow: hidden;
-      background: #0a0d14;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 12px;
-    }
-
-    /* ── Row 1: Header (48px) ──────────────────────────────────────────────── */
-    #header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 18px;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .hdr-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #e2e8f0;
-      white-space: nowrap;
-      flex-shrink: 0;
-      letter-spacing: .01em;
-    }
-
-    #header-book-pill {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(99,153,34,0.15);
-      border: 0.5px solid rgba(99,153,34,0.4);
-      border-radius: 6px;
-      padding: 4px 14px;
-      flex: 1;
-      min-width: 0;
-      max-width: 580px;
-      white-space: nowrap;
-      overflow: hidden;
-      visibility: hidden;
-    }
-    #header-book-pill .bp-label  { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: .06em; flex-shrink: 0; }
-    #header-book-pill .bp-count  { font-size: 26px; font-weight: 800; color: #86efac; flex-shrink: 0; line-height: 1; }
-    #header-book-pill .bp-unit   { font-size: 11px; font-weight: 600; color: #86efac; flex-shrink: 0; }
-    #header-book-pill .bp-sep    { width: 1px; height: 20px; background: rgba(99,153,34,0.4); flex-shrink: 0; margin: 0 4px; }
-    #header-book-pill .bp-detail { font-size: 10px; color: #64748b; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-    #header-book-pill .bp-detail strong { color: #e2e8f0; }
-
-    .hdr-right {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .live-ind {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #22c55e;
-    }
-
-    .live-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
-      animation: live-pulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes live-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: .4; transform: scale(1.65); box-shadow: 0 0 14px #22c55e; }
-    }
-
-    .cd-wrap  { display: flex; align-items: center; gap: 6px; }
-    .cd-track { width: 60px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-    .cd-fill  { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 1s linear; width: 100%; }
-    .cd-text  { font-size: 10px; color: #64748b; min-width: 26px; }
-    #last-updated { font-size: 10px; color: #64748b; }
-
-    /* ── Row 2: Glance bar (30px) ──────────────────────────────────────────── */
-    #glance-bar {
-      display: flex;
-      align-items: center;
-      padding: 0 18px;
-      background: #0b0e15;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      font-size: 11px;
-      color: #64748b;
-      overflow: hidden;
-      white-space: nowrap;
-      min-height: 0;
-      gap: 0;
-    }
-
-    .gb-title {
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .08em; color: #334155;
-      margin-right: 12px; flex-shrink: 0;
-    }
-
-    .wg-sep  { display: inline-block; width: 0.5px; height: 14px; background: rgba(255,255,255,0.06); margin: 0 10px; vertical-align: middle; flex-shrink: 0; }
-    .wg-item { flex-shrink: 0; }
-    .wg-week { margin-left: auto; font-size: 10px; color: #334155; flex-shrink: 0; padding-left: 14px; }
-
-    /* ── Row 3: M1 bar chart (110px) ───────────────────────────────────────── */
-    #m1-row {
-      display: grid;
-      grid-template-columns: 56px 1fr;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    #m1-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      border-right: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      gap: 3px;
-    }
-
-    .badge-m {
-      display: inline-flex;
-      align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.05);
-      border: 0.5px solid rgba(255,255,255,0.1);
-      border-radius: 5px;
-      padding: 2px 6px;
-      font-size: 9px; font-weight: 700; color: #64748b;
-      letter-spacing: .05em;
-    }
-
-    .m1-sub {
-      font-size: 7px; font-weight: 500; text-transform: uppercase;
-      letter-spacing: .05em; color: #334155; line-height: 1.3;
-      text-align: center;
-    }
-
-    #m1-chart-wrap {
-      padding: 4px 10px 4px 4px;
-      position: relative;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      align-items: stretch;
-    }
-    #m1-vbars { flex: 1; min-height: 0; display: flex; align-items: stretch; }
-
-    /* ── Vertical bar chart (M1) ─────────────────────────────────────────── */
-    .vbar-chart {
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      width: 100%;
-      height: 100%;
-    }
-    .vbar-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      height: 100%;
-      position: relative;
-    }
-    .vbar-track {
-      flex: 1;
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border-radius: 6px !important;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      overflow: hidden;
-      min-height: 0;
-    }
-    .vbar-fill {
-      width: 100%;
-      border-radius: 6px !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 0;
-      transition: height 0.3s ease;
-    }
-    .vbar-label {
-      font-size: 8px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-      pointer-events: none;
-    }
-    .vbar-date {
-      font-size: 7.5px;
-      color: #475569;
-      text-align: center;
-      line-height: 1.3;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-    .vbar-tooltip {
-      display: none;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-bottom: 4px;
-      white-space: nowrap;
-      background: rgba(10,13,20,0.97);
-      border: 0.5px solid rgba(255,255,255,0.12);
-      border-radius: 5px;
-      padding: 3px 8px;
-      font-size: 9px;
-      color: #e2e8f0;
-      z-index: 100;
-      pointer-events: none;
-    }
-    .vbar-col:hover .vbar-tooltip { display: block; }
-
-    /* ── Row 4: M2 heatmap (auto — sized by JS after render) ────────────────── */
-    #m2-row {
-      display: flex;
-      flex-direction: column;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: visible;
-      padding: 6px 16px;
-      gap: 4px;
-    }
-
-    .row-hdr {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: #334155;
-      flex-shrink: 0; white-space: nowrap; margin-bottom: 2px;
-    }
-
-    #m2-heatmap { flex: 1; overflow: visible; min-height: 0; }
-
-    /* Heatmap table */
-    #m2-heatmap .heatmap-table        { font-size: 9px; border-collapse: separate; border-spacing: 1px; width: 100%; table-layout: fixed; }
-    #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
-    #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 96px; padding-left: 6px; vertical-align: middle; }
-    #m2-heatmap tr                    { height: auto; }
-    #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
-    #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
-    #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
-    #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 96px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
-    #m2-heatmap .hm-total-col         { font-size: 9.5px; padding: 0 6px; text-align: center; border-left: 0.5px solid rgba(255,255,255,0.06); }
-    #m2-heatmap .weekend-col          { opacity: 0.2; }
-    #m2-heatmap .today-col            { outline: 1.5px solid #3b82f6; outline-offset: -1px; border-radius: 5px; }
-
-    .hm-slot-pill {
-      display: inline-block;
-      font-size: 8px; font-weight: 700;
-      padding: 1px 5px; border-radius: 10px;
-      margin-bottom: 2px; line-height: 1.4;
-    }
-    .hm-slot-green  { background: rgba(34,197,94,0.12);  color: #86efac; }
-    .hm-slot-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; }
-    .hm-slot-red    { background: rgba(220,38,38,0.12);  color: #fca5a5; }
-
-    /* Zone 1 — within cutoff: colored urgency (spec-exact rgba) */
-    .hm-empty { background: rgba(220,38,38,0.45); color: #fca5a5; border-radius: 5px; }
-    .hm-low   { background: rgba(220,38,38,0.25); color: #fca5a5; border-radius: 5px; }
-    .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; border-radius: 5px; }
-    .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; border-radius: 5px; }
-    .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; border-radius: 5px; }
-    /* Zone 2 — beyond cutoff: muted gray, not urgent */
-    .hm-muted { background: rgba(255,255,255,0.04); color: #2d3748; border-radius: 5px; font-size: 9px; }
-    /* Dashed cutoff boundary line */
-    .hm-cutoff-col { border-left: 1.5px dashed rgba(99,153,34,0.4) !important; }
-    /* Beyond-cutoff header slot pill */
-    .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
-
-    /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
-    #m4-strip {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 7px;
-      padding: 6px 14px;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: visible;
-      align-items: stretch;
-    }
-
-    .m4-card {
-      background: rgba(255,255,255,0.04);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 7px;
-      padding: 7px 12px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 8px;
-      min-height: 68px;
-      overflow: visible;
-    }
-
-    .m4-card-left {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 2px;
-      min-width: 0;
-      overflow: visible;
-    }
-
-    .m4-card-left > * { margin: 0; }
-
-    .m4-card-right {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .m4-horizon-line {
-      display: flex;
-      align-items: baseline;
-      gap: 5px;
-    }
-
-    .m4-horizon {
-      font-size: 11px;
-      font-weight: 700;
-      color: #e2e8f0;
-      white-space: nowrap;
-    }
-
-    .m4-dayrange {
-      font-size: 8.5px;
-      color: #475569;
-      white-space: nowrap;
-    }
-
-    .m4-fill-line {
-      font-size: 8.5px;
-      color: #64748b;
-      white-space: nowrap;
-    }
-
-    .m4-fill-bar-track {
-      height: 3px;
-      width: 100%;
-      background: rgba(255,255,255,0.07);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .m4-fill-bar { height: 100%; border-radius: 2px; }
-
-    .m4-open-num {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .m4-open-num.critical { color: #fca5a5; }
-    .m4-open-num.warn     { color: #fcd34d; }
-    .m4-open-num.good     { color: #86efac; }
-
-    .m4-open-label { font-size: 7.5px; color: #475569; text-align: center; }
-
-    /* Slim inline pill buttons */
-    .m4-badge {
-      display: inline-block !important;
-      width: auto !important;
-      max-width: fit-content !important;
-      border-radius: 4px !important;
-      padding: 2px 8px !important;
-      font-size: 9.5px !important; font-weight: 600;
-      white-space: nowrap;
-      margin: 0 !important;
-      align-self: flex-start !important;
-    }
-    .m4-badge.badge-critical { background: rgba(220,38,38,0.12);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.25); }
-    .m4-badge.badge-warn     { background: rgba(245,158,11,0.15); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.30); }
-    .m4-badge.badge-good     { background: rgba(34,197,94,0.15);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.30); }
-    .m4-badge.badge-beyond   { background: rgba(34,197,94,0.10);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.20); }
-
-    /* ── Row 6: M3 full-width table (1fr) ──────────────────────────────────── */
-    #m3-row {
-      display: flex;
-      flex-direction: column;
-      background: #0d1017;
-      min-height: 0;
-      height: 100%;
-      overflow: hidden;
-      padding: 6px 16px 0;
-    }
-
-    .m3-row-hdr {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: #334155;
-      flex-shrink: 0; white-space: nowrap;
-      padding-bottom: 4px;
-    }
-
-    #m3-scroll {
-      flex: 1;
-      overflow: hidden;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #m3-row table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-
-    #m3-row th {
-      font-size: 8.5px;
-      padding: 0 8px;
-      height: 18px;
-      text-align: left;
-      color: #475569;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      background: #0d1017;
-      white-space: nowrap;
-    }
-
-    #m3-row td {
-      padding: 3px 5px;
-      font-size: 10px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.04);
-      vertical-align: middle;
-    }
-
-    #m3-row tr:last-child td { border-bottom: none; }
-
-    .m3-group-hdr {
-      text-align: center;
-      font-size: 8.5px; font-weight: 600;
-      letter-spacing: .07em; text-transform: uppercase;
-      height: 17px; padding: 0 8px;
-      border-bottom: none !important;
-    }
-
-    .m3-group-row th { border-bottom: none; }
-    .m3-div-30-90    { border-left: 0.5px solid rgba(255,255,255,0.1) !important; }
-    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; text-align: center !important; padding: 4px 12px !important; }
-
-    .rate-high { color: #22c55e; font-weight: 700; }
-    .rate-mid  { color: #f59e0b; font-weight: 700; }
-    .rate-low  { color: #ef4444; font-weight: 700; }
-
-    #m3-sanity {
-      padding: 3px 0;
-      font-size: 9px;
-      color: #334155;
-      border-top: 0.5px solid rgba(255,255,255,0.04);
-      flex-shrink: 0;
-    }
-
-    /* ── Show Rate card ─────────────────────────────────────────────────────── */
-    .kpi-card {
-      background: rgba(255,255,255,0.04);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 7px;
-      padding: 7px 12px;
-      display: flex; flex-direction: column; justify-content: space-between;
-      position: relative; overflow: hidden; min-height: 68px;
-    }
-    .kpi-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      border-radius: 7px 7px 0 0;
-    }
-    .kpi-card.accent-rose::before { background: #e11d48; }
-    .kpi-label {
-      font-size: 9px; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: #475569; line-height: 1;
-    }
-    .kpi-value { font-size: 26px; font-weight: 800; line-height: 1; }
-    .kpi-sub   { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* ── Shared helpers ─────────────────────────────────────────────────────── */
-    .bar-wrap  { display: flex; align-items: center; gap: 6px; }
-    .bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; min-width: 40px; }
-    .bar-fill  { height: 100%; border-radius: 6px; }
-    .bar-fill.green  { background: #22c55e; }
-    .bar-fill.yellow { background: #f59e0b; }
-    .bar-fill.red    { background: #ef4444; }
-    .bar-fill.accent { background: #3b82f6; }
-    .bar-pct { font-size: 10px; color: #64748b; min-width: 28px; text-align: right; }
-
-    .chip        { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-    .chip-green  { background: rgba(34,197,94,.15);  color: #86efac; }
-    .chip-yellow { background: rgba(245,158,11,.15); color: #fcd34d; }
-    .chip-red    { background: rgba(220,38,38,.15);  color: #fca5a5; }
-
-    #error-banner {
-      display: none;
-      position: fixed;
-      top: 55px; left: 50%; transform: translateX(-50%);
-      background: rgba(220,38,38,.1);
-      border: 1px solid rgba(220,38,38,.3);
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: #ef4444;
-      font-size: 12px;
-      z-index: 9999;
-      max-width: 500px;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outbound Consulting — Ops Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f4; color: #1c1917; font-size: 14px; }
+  header { background: #1c1917; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+  header span { font-size: 12px; color: #a8a29e; }
+  .refresh-btn { background: #292524; border: 1px solid #44403c; color: #e7e5e4; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .refresh-btn:hover { background: #44403c; }
+  .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .kpi-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: #fff; border-radius: 8px; padding: 16px 18px; border: 1px solid #e7e5e4; }
+  .kpi-label { font-size: 11px; color: #78716c; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .kpi-val { font-size: 26px; font-weight: 600; }
+  .kpi-sub { font-size: 11px; color: #a8a29e; margin-top: 4px; }
+  .kpi-val.red { color: #dc2626; }
+  .kpi-val.green { color: #16a34a; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid #e7e5e4; margin-bottom: 16px; }
+  .tab { padding: 8px 18px; font-size: 13px; cursor: pointer; color: #78716c; border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 4px 4px 0 0; }
+  .tab.active { color: #1c1917; border-bottom-color: #1c1917; font-weight: 500; }
+  .tab:hover:not(.active) { background: #f5f5f4; color: #1c1917; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: #fff; border-radius: 8px; border: 1px solid #e7e5e4; padding: 16px 18px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; font-weight: 500; color: #78716c; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { font-size: 11px; font-weight: 500; color: #78716c; text-align: left; padding: 6px 10px; border-bottom: 1px solid #e7e5e4; white-space: nowrap; }
+  th.r, td.r { text-align: right; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f5f5f4; color: #1c1917; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf9; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-kill { background: #fee2e2; color: #dc2626; }
+  .badge-ok { background: #dcfce7; color: #16a34a; }
+  .badge-warn { background: #fef9c3; color: #ca8a04; }
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-bg { flex: 1; height: 4px; background: #e7e5e4; border-radius: 2px; min-width: 50px; }
+  .bar-fill { height: 4px; border-radius: 2px; }
+  .chart-wrap { position: relative; height: 240px; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .filter-row label { font-size: 12px; color: #78716c; }
+  .filter-row select { font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid #e7e5e4; background: #fff; color: #1c1917; }
+  .loading { color: #78716c; font-size: 13px; padding: 40px; text-align: center; }
+  .mono { font-family: 'Courier New', monospace; font-size: 11px; }
+</style>
 </head>
 <body>
-
-<!-- ── Row 1: Header (48px) ──────────────────────────────────────────────────── -->
-<header id="header">
-  <h1 class="hdr-title">Outbound Team Capacity Dashboard</h1>
-  <div id="header-book-pill">
-    <span class="bp-label">Book today:</span>
-    <span class="bp-count" id="pill-count">—</span>
-    <span class="bp-unit">meetings</span>
-    <div class="bp-sep"></div>
-    <span class="bp-detail" id="pill-detail"></span>
-  </div>
-  <div class="hdr-right">
-    <div class="live-ind"><span class="live-dot"></span>&nbsp;LIVE</div>
-    <div class="cd-wrap">
-      <div class="cd-track"><div class="cd-fill" id="cd-fill"></div></div>
-      <span class="cd-text" id="cd-text">60s</span>
-    </div>
-    <span id="last-updated">—</span>
+<header>
+  <h1>Outbound Consulting — Ops Dashboard</h1>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span id="last-updated">Loading...</span>
+    <button class="refresh-btn" onclick="forceRefresh()">↻ Refresh</button>
   </div>
 </header>
-
-<!-- ── Row 2: Glance bar (30px) ─────────────────────────────────────────────── -->
-<div id="glance-bar">
-  <span class="gb-title">This Week</span>
-  <span id="wg-content" style="display:contents"></span>
-</div>
-
-<!-- ── Row 3: M1 bar chart (110px) ──────────────────────────────────────────── -->
-<div id="m1-row">
-  <div id="m1-label">
-    <span class="badge-m">M1</span>
-  </div>
-  <div id="m1-chart-wrap"><div id="m1-vbars"></div></div>
-</div>
-
-<!-- ── Row 4: M2 heatmap (190px) ────────────────────────────────────────────── -->
-<div id="m2-row">
-  <div class="row-hdr" id="m2-row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
-  <div id="m2-heatmap"></div>
-</div>
-
-<!-- ── Row 5: M4 cards (72px) ───────────────────────────────────────────────── -->
-<div id="m4-strip"></div>
-
-<!-- ── Row 6: M3 full-width table (1fr) ─────────────────────────────────────── -->
-<div id="m3-row">
-  <div class="m3-row-hdr">M3 · Proposal Hit Rate by Days-Out</div>
-  <div id="m3-scroll">
-    <table>
-      <thead>
-        <tr class="m3-group-row">
-          <th rowspan="2" style="width:88px;vertical-align:bottom">Days Out</th>
-          <th colspan="5" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
-          <th colspan="4" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
-          <th class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">Funnel 90d</th>
-        </tr>
-        <tr>
-          <th>Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th><th>Trend</th>
-          <th class="m3-div-30-90">Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th>
-          <th class="m3-div-funnel" style="white-space:nowrap;text-align:center">Mtgs → Props → Closes · True rate</th>
-        </tr>
-      </thead>
-      <tbody id="m3-combined-table"></tbody>
-    </table>
-    <div id="m3-sanity"></div>
-  </div>
-</div>
-
-<!-- Hidden sink — keeps render() null-safe -->
-<div style="display:none" aria-hidden="true"><div id="m1-stats"></div></div>
-<div id="error-banner"></div>
-
-<script>
-// ── State ─────────────────────────────────────────────────────────────────────
-let chartM1 = null;
-let countdownInterval = null;
-const REFRESH_INTERVAL = 60;
-let secondsLeft = REFRESH_INTERVAL;
-
-// ── Cursor hide after 3s inactivity ──────────────────────────────────────────
-(function () {
-  let timer;
-  function show() {
-    document.body.style.cursor = '';
-    clearTimeout(timer);
-    timer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
-  }
-  document.addEventListener('mousemove', show, { passive: true });
-  show();
-})();
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-function fmtDate(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function barColor(pct) {
-  if (pct >= 80) return 'green';
-  if (pct >= 50) return 'yellow';
-  return 'red';
-}
-
-function rateClass(rate) {
-  if (rate >= 15) return 'rate-high';
-  if (rate >= 10) return 'rate-mid';
-  return 'rate-low';
-}
-
-function makeBar(pct, color) {
-  const cls = color || barColor(pct);
-  return `<div class="bar-wrap">
-    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div>
-    <span class="bar-pct">${pct}%</span>
-  </div>`;
-}
-
-function chipFor(pct) {
-  if (pct >= 90) return `<span class="chip chip-red">${pct}%</span>`;
-  if (pct >= 65) return `<span class="chip chip-yellow">${pct}%</span>`;
-  return `<span class="chip chip-green">${pct}%</span>`;
-}
-
-// ── Render ────────────────────────────────────────────────────────────────────
-function render(data) {
-
-  // Optimal cutoff (days-out) from M3 booking recommendation
-  const optimalCutoff = (data.module3.bookingRec && data.module3.bookingRec.optimalCutoff > 0)
-    ? data.module3.bookingRec.optimalCutoff : 0;
-
-  // ── Glance bar ───────────────────────────────────────────────────────────
-  const days      = data.module1.days;
-  const todayStr  = data.todayStr;
-  const todayData = days.find(d => d.date === todayStr) || {};
-  const weekdays10    = days.filter(d => !d.isWeekend);
-  const totalBooked10 = weekdays10.reduce((s, d) => s + d.booked, 0);
-  const totalCap10    = weekdays10.reduce((s, d) => s + d.capacity, 0);
-  const avgFill10     = totalCap10 > 0 ? Math.round((totalBooked10 / totalCap10) * 100) : 0;
-  const avgFillColor  = avgFill10 >= 70 ? '#f59e0b' : avgFill10 >= 50 ? '#22c55e' : '#ef4444';
-
-  if (data.thisWeek) {
-    const tw = data.thisWeek;
-    const fillClr = tw.teamFillPct >= 70 ? '#f59e0b' : tw.teamFillPct >= 50 ? '#22c55e' : '#ef4444';
-    const sep = '<span class="wg-sep"></span>';
-    document.getElementById('wg-content').outerHTML =
-      `<span id="wg-content" style="display:contents">` +
-      `<span class="wg-item">Emptiest: <strong style="color:#ef4444">${tw.emptiestRep ? tw.emptiestRep.name + ' (' + tw.emptiestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
-      `<span class="wg-item">Fullest: <strong style="color:#22c55e">${tw.fullestRep ? tw.fullestRep.name + ' (' + tw.fullestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
-      `<span class="wg-item">Team fill: <strong style="color:${fillClr}">${tw.teamFillPct}%</strong> <span style="color:#475569">(${tw.totalBooked}/${tw.totalCapacity})</span></span>${sep}` +
-      `<span class="wg-item">Open this week: <strong style="color:#e2e8f0">${tw.openSlots}</strong> slots</span>${sep}` +
-      `<span class="wg-item">Today: <strong style="color:#e2e8f0">${todayData.booked ?? 0}/${todayData.capacity ?? data.totalDailyCapacity}</strong></span>${sep}` +
-      `<span class="wg-item">10d avg: <strong style="color:${avgFillColor}">${avgFill10}%</strong></span>${sep}` +
-      `<span class="wg-item">Reps: <strong style="color:#e2e8f0">${data.outboundRepCount}</strong></span>` +
-      `<span class="wg-week">${tw.weekLabel}</span>` +
-      `</span>`;
-  }
-
-  // ── Module 1 — Vertical CSS bar chart ───────────────────────────────────
-  if (chartM1) { chartM1.destroy(); chartM1 = null; }
-
-  const vbarsHtml = days.map((d, i) => {
-    const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
-    const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
-    const cls      = barColor(d.fillPct);
-    const solid    = cls === 'green' ? '#22c55e' : cls === 'yellow' ? '#f59e0b' : '#ef4444';
-    const fillColor = d.isWeekend
-      ? 'rgba(139,148,158,0.25)'
-      : beyond
-        ? (cls === 'green' ? 'rgba(34,197,94,0.25)' : cls === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)')
-        : solid;
-    const fillPct   = d.isWeekend ? 10 : Math.max(d.fillPct, d.booked > 0 ? 8 : 0);
-    const showLabel = !d.isWeekend && d.booked > 0 && d.fillPct >= 18;
-    const dateColor = beyond ? '#334155' : '#475569';
-    const tooltip   = d.isWeekend
-      ? `${fmtDate(d.date)} — Weekend`
-      : `${fmtDate(d.date)} ${d.dayOfWeek} · ${d.booked}/${d.capacity} booked (${d.fillPct}%)`;
-    const colStyle  = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);padding-left:2px;margin-left:2px;' : '';
-
-    return `<div class="vbar-col" style="${colStyle}">
-      <div class="vbar-tooltip">${tooltip}</div>
-      <div class="vbar-track">
-        <div class="vbar-fill" style="height:${fillPct}%;background:${fillColor}">
-          ${showLabel ? `<span class="vbar-label">${d.fillPct}%</span>` : ''}
-        </div>
+<div class="page">
+  <div id="loading" class="loading">Loading dashboard data — fetching from Airtable and Google Sheets...</div>
+  <div id="main-content" style="display:none">
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Meetings / 30d</div><div class="kpi-val" id="kpi-meetings">—</div><div class="kpi-sub" id="kpi-meetings-trend">—</div></div>
+      <div class="kpi"><div class="kpi-label">Proposals sent / 30d</div><div class="kpi-val" id="kpi-proposals">—</div><div class="kpi-sub" id="kpi-proposals-trend">—</div></div>
+      <div class="kpi"><div class="kpi-label">Deals closed / 30d</div><div class="kpi-val green" id="kpi-closed">—</div><div class="kpi-sub" id="kpi-close-rate">—</div><div class="kpi-sub" id="kpi-closed-trend" style="margin-top:2px">—</div></div>
+      <div class="kpi"><div class="kpi-label">Total sends</div><div class="kpi-val" id="kpi-sends">—</div><div class="kpi-sub" id="kpi-reply-rate">—</div></div>
+      <div class="kpi"><div class="kpi-label">Domains to kill</div><div class="kpi-val red" id="kpi-kill">—</div><div class="kpi-sub">&lt;70% brand avg</div></div>
+      <div class="kpi" style="border-left:3px solid #e11d48"><div class="kpi-label">Deal Bots Filled</div><div class="kpi-val" id="kpi-dealbot" style="color:#6b7280">—</div><div class="kpi-sub" id="kpi-dealbot-sub">loading...</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('brands')">Brand scorecard</div>
+      <div class="tab" onclick="showTab('brandcharts')">Brand charts</div>
+      <div class="tab" onclick="showTab('bdrs')">BDR performance</div>
+      <div class="tab" onclick="showTab('reps')">Sales reps</div>
+      <div class="tab" onclick="showTab('domains')">Domain kill list</div>
+      <div class="tab" onclick="showTab('funnel')">Funnel</div>
+    </div>
+    <div id="panel-brands" class="panel active">
+      <div class="filter-row">
+        <label>Brand:</label>
+        <select id="brand-filter" onchange="renderBrands()"><option value="">All brands</option></select>
       </div>
-      <div class="vbar-date" style="color:${dateColor}">${fmtDate(d.date)}<br>${d.dayOfWeek.slice(0,3)}</div>
-    </div>`;
+      <div class="card">
+        <table><thead><tr>
+          <th>Brand</th><th class="r">Sends</th><th class="r">Inboxes</th><th class="r">Meetings (30d)</th><th class="r">Trend</th><th class="r">Reply rate</th><th class="r">Bounce rate</th><th class="r">Contacts/mtg</th><th class="r">Cost/mtg</th><th>Status</th>
+        </tr></thead><tbody id="brand-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-brandcharts" class="panel">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card"><div class="card-title">Meetings last 30d by brand</div><div class="chart-wrap" style="height:300px"><canvas id="brandMtgChart"></canvas></div></div>
+        <div class="card"><div class="card-title">Contacts per meeting by brand <span style="font-weight:400;color:#a8a29e">(lower = more efficient)</span></div><div class="chart-wrap" style="height:300px"><canvas id="brandCpmChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cost per meeting by brand ($) <span style="font-weight:400;color:#a8a29e">(from Google Sheets)</span></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="brandCostChart"></canvas></div>
+      </div>
+    </div>
+    <div id="panel-bdrs" class="panel">
+      <div id="bdr-sections"><div class="loading">Loading BDR data...</div></div>
+    </div>
+    <div id="panel-reps" class="panel">
+      <div class="card">
+        <div class="card-title">Sales rep funnel</div>
+        <table><thead><tr>
+          <th>Sales rep</th><th class="r">Meetings</th><th class="r">Proposals</th><th class="r">Closed</th><th class="r">Proposal rate</th><th class="r">Close rate</th>
+        </tr></thead><tbody id="rep-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-domains" class="panel">
+      <div class="filter-row">
+        <label>Brand:</label>
+        <select id="kill-brand-filter" onchange="renderKillList()"><option value="">All brands</option></select>
+        <label style="margin-left:8px">Infra:</label>
+        <select id="kill-infra-filter" onchange="renderKillList()"><option value="">All</option></select>
+      </div>
+      <div class="card">
+        <div class="card-title" id="kill-title">Kill list</div>
+        <table><thead><tr>
+          <th>Domain</th><th>Brand</th><th>Infra</th><th class="r">Inboxes</th><th class="r">Sends</th><th class="r">Replies</th><th class="r">Reply rate</th><th class="r">Brand avg</th><th class="r">% of avg</th><th class="r">Bounce rate</th><th>Action</th>
+        </tr></thead><tbody id="kill-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-funnel" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Full funnel</div>
+          <div class="chart-wrap"><canvas id="funnelChart"></canvas></div>
+          <div id="funnel-rates" style="display:flex;gap:0;margin-top:14px;border-top:1px solid #e7e5e4;padding-top:12px"></div>
+        </div>
+        <div class="card"><div class="card-title">Meetings &amp; proposals by brand</div><div class="chart-wrap" style="height:300px"><canvas id="meetingsChart"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let DATA = null;
+let _funnelChart, _meetingsChart, _brandMtgChart, _brandCpmChart, _brandCostChart;
+async function loadData() {
+  try {
+    const r = await fetch('/api/metrics');
+    if (!r.ok) throw new Error(await r.text());
+    DATA = await r.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('last-updated').textContent = 'Updated: ' + (DATA.last_updated || '—');
+    renderAll();
+  } catch(e) {
+    DATA = {};
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('last-updated').textContent = 'Metrics unavailable';
+    renderAll();
+  }
+}
+async function forceRefresh() {
+  document.getElementById('last-updated').textContent = 'Refreshing...';
+  await fetch('/api/refresh', {method:'POST'});
+  setTimeout(loadData, 4000);
+}
+function showTab(name) {
+  ['brands','brandcharts','bdrs','reps','domains','funnel'].forEach((n,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', n === name);
+    document.getElementById('panel-' + n).classList.toggle('active', n === name);
+  });
+  if (name === 'funnel') renderFunnelCharts();
+  if (name === 'brandcharts') renderBrandCharts();
+}
+function fmt(n, d=0) { return n == null || n === '' ? '—' : Number(n).toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function pct(n) { return n == null ? '—' : (Number(n)*100).toFixed(2) + '%'; }
+function renderAll() {
+  renderKPIs(); populateFilters(); renderBrands(); renderBDRPanel(); renderReps(); renderKillList();
+}
+function trendBadge(curr, prev) {
+  const c = Number(curr)||0, p = Number(prev)||0;
+  if (p === 0) return '<span style="font-size:11px;color:#a8a29e">No prior period data</span>';
+  const diff = c - p;
+  const pct  = Math.round(Math.abs(diff) / p * 100);
+  const color = diff >= 0 ? '#16a34a' : '#dc2626';
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const sign  = diff >= 0 ? '+' : '';
+  return `<span style="font-size:11px;color:${color};font-weight:500">${arrow} ${sign}${diff} vs prior 30d (${sign}${pct}%)</span>`;
+}
+function renderKPIs() {
+  document.getElementById('kpi-meetings').textContent = fmt(DATA.total_meetings);
+  document.getElementById('kpi-meetings-trend').innerHTML = trendBadge(DATA.total_meetings, DATA.meetings_prev);
+  document.getElementById('kpi-proposals').textContent = fmt(DATA.total_proposals);
+  document.getElementById('kpi-proposals-trend').innerHTML = trendBadge(DATA.total_proposals, DATA.proposals_prev);
+  document.getElementById('kpi-closed').textContent = fmt(DATA.total_closed);
+  document.getElementById('kpi-close-rate').textContent = DATA.proposal_to_close_rate + '% close rate';
+  document.getElementById('kpi-closed-trend').innerHTML = trendBadge(DATA.total_closed, DATA.closed_prev);
+  document.getElementById('kpi-kill').textContent = fmt(DATA.kill_count);
+  const bs = DATA.brand_stats || [];
+  const ts = bs.reduce((s,b) => s + (Number(b.total_sent)||0), 0);
+  const tr = bs.reduce((s,b) => s + (Number(b.total_replied)||0), 0);
+  document.getElementById('kpi-sends').textContent = fmt(ts);
+  document.getElementById('kpi-reply-rate').textContent = ts > 0 ? (tr/ts*100).toFixed(2) + '% avg reply rate' : '—';
+}
+function populateFilters() {
+  const brands = [...new Set((DATA.brand_stats||[]).map(b => b['Brand Name']).filter(Boolean))].sort();
+  ['brand-filter','kill-brand-filter'].forEach(id => {
+    const s = document.getElementById(id); const v = s.value;
+    while (s.options.length > 1) s.remove(1);
+    brands.forEach(b => s.add(new Option(b,b))); s.value = v;
+  });
+  const infras = [...new Set((DATA.kill_list||[]).map(d => d['Infrastructure']).filter(Boolean))].sort();
+  const s2 = document.getElementById('kill-infra-filter'); const v2 = s2.value;
+  while (s2.options.length > 1) s2.remove(1);
+  infras.forEach(i => s2.add(new Option(i,i))); s2.value = v2;
+}
+function renderBrands() {
+  const filter = document.getElementById('brand-filter').value;
+  let brands = DATA.brand_stats || [];
+  if (filter) brands = brands.filter(b => b['Brand Name'] === filter);
+  brands = [...brands].sort((a,b) => (Number(b.total_sent)||0) - (Number(a.total_sent)||0));
+  document.getElementById('brand-tbody').innerHTML = brands.map(b => {
+    const mtg = Number(b.meetings) || 0;
+    const prev = Number(b.meetings_prev_brand) || 0;
+    const cpm = mtg > 0 ? Math.round(Number(b.total_sent)/mtg) : null;
+    const br = Number(b.bounce_rate)||0;
+    const brc = br > 0.1 ? '#dc2626' : br > 0.07 ? '#ca8a04' : '#16a34a';
+    const status = mtg === 0 ? '<span class="badge badge-warn">No meetings</span>' : mtg >= 50 ? '<span class="badge badge-ok">Top</span>' : '<span class="badge" style="background:#f5f5f4;color:#78716c">Active</span>';
+    const trend = prev === 0 ? '<span style="color:#a8a29e">—</span>'
+                : mtg > prev ? `<span style="color:#16a34a;font-weight:500">▲ +${mtg-prev}</span>`
+                : mtg < prev ? `<span style="color:#dc2626;font-weight:500">▼ ${mtg-prev}</span>`
+                : '<span style="color:#a8a29e">→ 0</span>';
+    const cost = b.cost_per_meeting ? '$' + Number(b.cost_per_meeting).toLocaleString() : '—';
+    return `<tr><td style="font-weight:500">${b['Brand Name']||'—'}</td><td class="r">${fmt(b.total_sent)}</td><td class="r">${fmt(b.inbox_count)}</td><td class="r" style="font-weight:600">${mtg}</td><td class="r">${trend}</td><td class="r">${pct(b.reply_rate)}</td><td class="r" style="color:${brc}">${pct(b.bounce_rate)}</td><td class="r">${cpm ? fmt(cpm) : '—'}</td><td class="r">${cost}</td><td>${status}</td></tr>`;
+  }).join('');
+}
+function trendBadgeFlt(curr, prev, decimals=1) {
+  const c = Number(curr), p = Number(prev);
+  if (!p || isNaN(p) || isNaN(c)) return '<span style="font-size:11px;color:#a8a29e">No prior data</span>';
+  const diff = c - p;
+  const pctVal = Math.round(Math.abs(diff) / Math.abs(p) * 100);
+  const color = diff >= 0 ? '#16a34a' : '#dc2626';
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const sign  = diff >= 0 ? '+' : '';
+  return `<span style="font-size:11px;color:${color};font-weight:500">${arrow} ${sign}${diff.toFixed(decimals)} vs prior 30d (${sign}${pctVal}%)</span>`;
+}
+function renderBDRPanel() {
+  const BDR_COLORS = {Moon:'#2563eb', Cleo:'#059669', Stevie:'#d97706'};
+  const bdrs = [...(DATA.bdr_performance || [])].sort((a,b) => (Number(b.meetings_30d)||0) - (Number(a.meetings_30d)||0));
+  const brands = [...(DATA.brand_rpm_stats || [])].sort((a,b) => (Number(b.meetings)||0) - (Number(a.meetings)||0));
+
+  if (!bdrs.length) {
+    document.getElementById('bdr-sections').innerHTML = '<div class="loading">No BDR data available.</div>';
+    return;
+  }
+
+  // ── BDR summary cards (3 across) ──────────────────────────────────────────
+  const bdrCards = `<div class="grid-3" style="margin-bottom:20px">${
+    bdrs.map(bdr => {
+      const name    = bdr['BDR'] || '—';
+      const color   = BDR_COLORS[name] || '#6b7280';
+      const mtg30   = Number(bdr.meetings_30d) || 0;
+      const mtgPrev = Number(bdr.meetings_prev) || 0;
+      const rpm     = (bdr.replies_per_meeting != null && bdr.replies_per_meeting !== '') ? Number(bdr.replies_per_meeting) : null;
+      const rpmColor = rpm == null ? '#1c1917' : rpm >= 10 ? '#16a34a' : rpm >= 5 ? '#ca8a04' : '#dc2626';
+      return `
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:8px;padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid ${color}">
+            <div style="width:11px;height:11px;border-radius:50%;background:${color}"></div>
+            <span style="font-size:17px;font-weight:700">${name}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+              <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meetings (30d)</div>
+              <div style="font-size:36px;font-weight:700;line-height:1;color:${color}">${mtg30}</div>
+              <div style="margin-top:8px">${trendBadge(mtg30, mtgPrev)}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Replies / meeting</div>
+              <div style="font-size:36px;font-weight:700;line-height:1;color:${rpmColor}">${rpm != null ? rpm.toFixed(1) : '—'}</div>
+              <div style="margin-top:8px;font-size:11px;color:#a8a29e">Campaign replies ÷ mtgs booked</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('')
+  }</div>`;
+
+  // ── Brand replies-per-meeting table (global) ───────────────────────────────
+  const brandRows = brands.map(b => {
+    const mtg  = Number(b.meetings) || 0;
+    const prev = Number(b.meetings_prev_brand) || 0;
+    const rpm  = (b.replies_per_meeting != null && b.replies_per_meeting !== '') ? Number(b.replies_per_meeting) : null;
+    const rpmColor = rpm == null ? '#1c1917' : rpm >= 10 ? '#16a34a' : rpm >= 5 ? '#ca8a04' : '#dc2626';
+    const trend = prev === 0
+      ? '<span style="color:#a8a29e">—</span>'
+      : mtg > prev ? `<span style="color:#16a34a;font-weight:500">▲ +${mtg-prev}</span>`
+      : mtg < prev ? `<span style="color:#dc2626;font-weight:500">▼ ${mtg-prev}</span>`
+      : '<span style="color:#a8a29e">→ 0</span>';
+    return `<tr>
+      <td style="font-weight:500">${b['Brand Name'] || '—'}</td>
+      <td class="r" style="font-weight:600">${mtg}</td>
+      <td class="r">${trend}</td>
+      <td class="r" style="font-weight:600;color:${rpmColor}">${rpm != null ? rpm.toFixed(1) : '—'}</td>
+    </tr>`;
   }).join('');
 
-  document.getElementById('m1-vbars').innerHTML =
-    `<div class="vbar-chart">${vbarsHtml}</div>`;
-
-  // ── Module 2 — Heat Map ──────────────────────────────────────────────────
-  function hmCellClass(pct) {
-    if (pct === 0)  return 'hm-empty';
-    if (pct < 50)   return 'hm-low';
-    if (pct < 80)   return 'hm-mid';
-    if (pct < 100)  return 'hm-good';
-    return 'hm-full';
-  }
-
-  (function renderHeatMap() {
-    const container = document.getElementById('m2-heatmap');
-    const reps      = data.module2.reps;
-    const days      = data.module1.days;
-
-    console.log(`M2: Rendering ${reps.length} Outbound Direct reps: ${reps.map(r => r.name).join(', ')}`);
-
-    if (!reps.length) {
-      container.innerHTML = '<div style="padding:8px;color:#64748b;font-size:11px">No Outbound Direct reps found</div>';
-      return;
-    }
-
-    // Update section header with cutoff note
-    const rowHdr = document.getElementById('m2-row-hdr');
-    if (rowHdr) {
-      rowHdr.textContent = optimalCutoff > 0
-        ? `M2 · Rep Capacity Heat Map · Next 10 Days  ·  cells past cutoff (day ${optimalCutoff}) shown in gray — empty slots beyond cutoff are not urgent`
-        : 'M2 · Rep Capacity Heat Map · Next 10 Days';
-    }
-
-    // Per-day team totals for slot pills
-    const dayTotals = days.map((day, i) => {
-      if (day.isWeekend) return null;
-      const totalCap    = reps.reduce((s, r) => s + r.maxPerDay, 0);
-      const totalBooked = reps.reduce((s, r) => s + (r.days[i] ? r.days[i].booked : 0), 0);
-      const open        = Math.max(0, totalCap - totalBooked);
-      const openPct     = totalCap > 0 ? (open / totalCap) * 100 : 0;
-      return { totalCap, totalBooked, open, openPct };
-    });
-
-    const headerCols = days.map((d, i) => {
-      const isToday   = d.date === todayStr;
-      const beyond    = optimalCutoff > 0 && i >= optimalCutoff;
-      const isCutoff  = optimalCutoff > 0 && i === optimalCutoff; // first beyond col
-
-      const todayLabel = isToday ? `<div style="color:#60a5fa;font-weight:700;font-size:8px">TODAY</div>` : '';
-
-      let slotPill = '';
-      if (!d.isWeekend && dayTotals[i]) {
-        const dt = dayTotals[i];
-        if (beyond) {
-          slotPill = `<div><span class="hm-slot-muted">${dt.open} open</span></div>`;
-        } else {
-          const pillCls = dt.openPct > 50 ? 'hm-slot-green' : dt.openPct > 20 ? 'hm-slot-amber' : 'hm-slot-red';
-          const label   = dt.openPct > 50 ? `${dt.open} left` : dt.openPct > 20 ? `${dt.open} left` : `${dt.open} left`;
-          slotPill = `<div><span class="hm-slot-pill ${pillCls}">${label}</span></div>`;
-        }
-      } else if (d.isWeekend) {
-        slotPill = `<div style="font-size:8px;color:#2d3748">—</div>`;
-      }
-
-      const dateLabel = `<div style="font-size:8.5px;color:${isToday ? '#60a5fa' : beyond ? '#334155' : ''}">${fmtDate(d.date)}</div>`
-        + `<div style="font-size:7.5px;color:${isToday ? '#60a5fa' : beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
-
-      const wkStyle  = d.isWeekend ? 'opacity:0.2' : '';
-      const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
-      return `<th style="${[wkStyle, cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
-    }).join('');
-
-    // Next 5 weekday indices starting from tomorrow (index 1)
-    const next5Idxs = [];
-    for (let i = 1; i < days.length && next5Idxs.length < 5; i++) {
-      if (!days[i].isWeekend) next5Idxs.push(i);
-    }
-
-    const repRows = reps.map(rep => {
-      const cells = rep.days.map((d, i) => {
-        const day      = days[i];
-        const isToday  = day.date === todayStr;
-        const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
-        const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
-        const todayCls = isToday ? ' today-col' : '';
-
-        const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
-
-        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}color:#2d3748;font-size:9px">—</td>`;
-
-        if (beyond) {
-          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}">
-            <div style="line-height:1.2">${d.booked}/${rep.maxPerDay}</div>
-          </td>`;
-        }
-
-        const cls = hmCellClass(d.fillPct);
-        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}">
-          <div class="hm-booking">${d.booked}/${rep.maxPerDay}</div>
-          <div class="hm-pct">${d.fillPct}%</div>
-        </td>`;
-      }).join('');
-
-      const n5Booked = next5Idxs.reduce((s, i) => s + (rep.days[i] ? rep.days[i].booked : 0), 0);
-      const n5Cap    = rep.maxPerDay * next5Idxs.length;
-      const p        = n5Cap > 0 ? Math.round((n5Booked / n5Cap) * 100) : 0;
-      const totalColor = p >= 80 ? '#22c55e' : p >= 50 ? '#84cc16' : p >= 30 ? '#f59e0b' : '#ef4444';
-      return `<tr>
-        <td class="rep-name">${rep.name}</td>
-        ${cells}
-        <td class="hm-total-col" style="color:${totalColor}"><strong>${p}%</strong></td>
-      </tr>`;
-    }).join('');
-
-    container.innerHTML = `
-      <table class="heatmap-table">
-        <thead>
-          <tr>
-            <th class="rep-col">Rep</th>
-            ${headerCols}
-            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">next 5 days</span></th>
-          </tr>
-        </thead>
-        <tbody>${repRows}</tbody>
-      </table>`;
-
-    // ── Dynamic font size + padding on all heatmap cells ──────────────────
-    const repCount    = reps.length;
-    const rowHeight   = Math.max(28, Math.min(36, Math.floor(180 / repCount)));
-    const fontSize    = rowHeight >= 32 ? '10px' : rowHeight >= 28 ? '9px' : '8px';
-    const cellPadding = rowHeight >= 32 ? '4px 3px' : rowHeight >= 28 ? '3px 2px' : '1px 2px';
-    document.querySelectorAll('#m2-heatmap .hm-cell, #m2-heatmap td, #m2-heatmap th').forEach(el => {
-      el.style.fontSize = fontSize;
-      el.style.padding  = cellPadding;
-    });
-  })();
-
-  // ── Measure actual rendered M2 height, capped so M3 always gets space ────
-  function adjustM2Height() {
-    const table  = document.querySelector('#m2-heatmap .heatmap-table');
-    const hdr    = document.getElementById('m2-row-hdr');
-    if (!table || !hdr) return;
-    const measured  = table.scrollHeight + hdr.scrollHeight + 16;
-    const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
-    const m2Height  = Math.min(maxM2, Math.max(200, measured));
-    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 72px 1fr`;
-    // After M2 is sized, let M3 rows fill the rest
-    setTimeout(expandM3Rows, 50);
-  }
-
-  // ── Expand M3 tbody rows to fill all available height in the 1fr slot ────
-  function expandM3Rows() {
-    const m3    = document.getElementById('m3-row');
-    const hdr   = document.querySelector('.m3-row-hdr');
-    const foot  = document.getElementById('m3-sanity');
-    const thead = document.querySelector('#m3-row thead');
-    if (!m3 || !thead) return;
-
-    const available = m3.clientHeight
-      - (hdr   ? hdr.offsetHeight  : 0)
-      - (foot  ? foot.offsetHeight : 0)
-      - thead.offsetHeight
-      - 10; // small buffer
-
-    const rows = document.querySelectorAll('#m3-combined-table tr');
-    if (!rows.length || available <= 0) return;
-
-    const rowH = Math.floor(available / rows.length);
-    const padV = Math.max(2, Math.floor((rowH - 16) / 2));
-
-    rows.forEach(row => {
-      row.style.height = rowH + 'px';
-      row.querySelectorAll('td').forEach(td => {
-        td.style.paddingTop    = padV + 'px';
-        td.style.paddingBottom = padV + 'px';
-      });
-    });
-  }
-
-  setTimeout(adjustM2Height, 100);
-  window.addEventListener('resize', () => { adjustM2Height(); });
-
-  // ── Header booking pill ──────────────────────────────────────────────────
-  (function renderBookingPill() {
-    const rec       = data.module3.bookingRec;
-    const pill      = document.getElementById('header-book-pill');
-    const pillCount = document.getElementById('pill-count');
-    const pillDetail= document.getElementById('pill-detail');
-    if (!pill || !rec) return;
-
-    if (!rec || rec.optimalCutoff === 0) {
-      pillCount.textContent = '—';
-      pillDetail.innerHTML  = 'No clear booking window — hit rates below 15% across all days out';
-      pill.style.visibility = 'visible';
-      return;
-    }
-
-    const allFull = rec.meetingsToBook === 0;
-    pillCount.textContent = allFull ? '✓' : rec.meetingsToBook;
-    pillDetail.innerHTML  = allFull
-      ? `All slots filled through day ${rec.optimalCutoff}`
-      : `Next <strong>${rec.optimalCutoff} days</strong> (${rec.windowStr})`
-        + ` &nbsp;·&nbsp; Best: <strong>${rec.bestDaysOut} day${rec.bestDaysOut > 1 ? 's' : ''} out</strong>`
-        + ` — ${rec.bestHitRate}% proposal · ${rec.bestCloseRate}% close`;
-    pill.style.visibility = 'visible';
-  })();
-
-  // ── Module 4 — 4 horizontal cards ───────────────────────────────────────
-  const m4strip = document.getElementById('m4-strip');
-  const m4rows  = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
-
-  m4strip.innerHTML = [m4rows.map(r => {
-    const isFull    = r.openSlots <= 0;
-    const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
-    const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
-    const fillBarClr = isFull ? '#22c55e' : '#3b82f6';
-
-    const isBeyond  = optimalCutoff > 0 && r.horizon > optimalCutoff;
-    const slotsCls  = isFull ? 'good' : isBeyond ? '' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
-    const slotsNumColor = isBeyond ? '#475569' : '';
-    const slotsNum  = isFull ? '✓' : (r.openSlots < 0 ? '⚠' + Math.abs(r.openSlots) : r.openSlots);
-
-    let badgeHtml;
-    if (isBeyond)              badgeHtml = `<span class="m4-badge badge-beyond">beyond cutoff</span>`;
-    else if (r.openSlots <= 0) badgeHtml = `<span class="m4-badge badge-good">✅ Full</span>`;
-    else if (openPct < 30)     badgeHtml = `<span class="m4-badge badge-warn">⚠️ Book ${r.openSlots}</span>`;
-    else if (openPct <= 60)    badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
-    else                       badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
-
-    const wkTag = r.hasWeekend
-      ? ` <span style="font-size:7.5px;color:#475569;background:rgba(139,148,158,.1);border:0.5px solid rgba(139,148,158,.2);border-radius:8px;padding:1px 4px">+wknd</span>` : '';
-
-    return `<div class="m4-card">
-      <div class="m4-card-left">
-        <div class="m4-horizon-line">
-          <span class="m4-horizon">Next ${r.horizon}d${wkTag}</span>
-          <span class="m4-dayrange">${r.firstDayName}–${r.lastDayName}</span>
-        </div>
-        <div class="m4-fill-line">${r.totalBooked}/${r.totalCapacity} filled &nbsp;<strong style="color:#e2e8f0">${bookedPct}%</strong></div>
-        <div class="m4-fill-bar-track"><div class="m4-fill-bar" style="width:${Math.min(100,bookedPct)}%;background:${fillBarClr}"></div></div>
-        ${badgeHtml}
-      </div>
-      <div class="m4-card-right">
-        <div class="m4-open-num ${slotsCls}" style="${slotsNumColor ? `color:${slotsNumColor}` : ''}">${slotsNum}</div>
-        <div class="m4-open-label">open slots</div>
-      </div>
+  const brandTable = `
+    <div class="card">
+      <div class="card-title">Replies per booked meeting — by brand</div>
+      <table><thead><tr>
+        <th>Brand</th>
+        <th class="r">Meetings (30d)</th>
+        <th class="r">Trend vs prior 30d</th>
+        <th class="r">Replies / meeting</th>
+      </tr></thead><tbody>${brandRows || '<tr><td colspan="4" style="color:#a8a29e;text-align:center;padding:16px">No brand data</td></tr>'}</tbody></table>
     </div>`;
-  }).join(''), `<div class="kpi-card accent-rose" id="card-showrate">
-    <div class="kpi-label">DEAL BOTS FILLED</div>
-    <div class="kpi-value" id="k-showrate-pct" style="color:#22c55e;">--%</div>
-    <div class="kpi-sub" id="k-showrate-sub" style="white-space:nowrap;">loading...</div>
-  </div>`].join('');
 
-  // Show Rate Today
-  const srTotal    = data.showRateTotal    || 0;
-  const srHappened = data.showRateHappened || 0;
-  const srPending  = srTotal - srHappened;
-  const srPct      = srTotal > 0 ? Math.round(srHappened / srTotal * 100) : null;
-  const srPctEl    = document.getElementById('k-showrate-pct');
-  const srSubEl    = document.getElementById('k-showrate-sub');
-  if (srPctEl) {
-    srPctEl.textContent = srPct !== null ? srPct + '%' : '--%';
-    srPctEl.style.color = srPct === null ? '#6b7280'
-      : srPct >= 70 ? '#22c55e'
-      : srPct >= 50 ? '#f59e0b' : '#ef4444';
-  }
-  if (srSubEl) {
-    srSubEl.textContent = srTotal > 0
-      ? srHappened + ' of ' + srTotal + ' updated · ' + srPending + ' pending'
-      : 'No meetings today';
-  }
-
-  // ── Module 3 — 30d + 90d + Funnel table ─────────────────────────────────
-  (function renderCombinedHitTable() {
-    const b30   = data.module3.hitRate30;
-    const b90   = data.module3.hitRate90;
-    const rec   = data.module3.bookingRec;
-    const tbody = document.getElementById('m3-combined-table');
-
-    tbody.innerHTML = b30.map((b, i) => {
-      const c = b90[i];
-      const isCutoff  = rec && b.daysOut === rec.optimalCutoff && rec.optimalCutoff > 0;
-      const isDropoff = rec && rec.optimalCutoff > 0 && b.daysOut > rec.optimalCutoff;
-      const isBest    = rec && b.daysOut === rec.bestDaysOut && b.total > 0 && !isDropoff;
-
-      const rowStyle  = isDropoff ? 'background:rgba(220,38,38,0.04);'
-                      : isBest    ? 'background:rgba(99,153,34,0.07);' : '';
-      const rowBorder = isCutoff  ? 'border-bottom:2px dashed rgba(34,197,94,.4);' : '';
-
-      const daysLabel = `${b.daysOut}d out`;
-      let daysOutCell;
-      if (isCutoff) {
-        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px">
-          <span>${daysLabel}</span> <span style="color:#86efac;font-weight:700">◀ cutoff</span>
-        </td>`;
-      } else if (isDropoff) {
-        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px;opacity:.6">
-          <span>${daysLabel}</span> <span style="color:#475569;font-size:8.5px">· drop-off</span>
-        </td>`;
-      } else {
-        daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${isBest ? ' <span style="font-size:9px;color:#22c55e">★</span>' : ''}</td>`;
-      }
-
-      const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
-      const rate90 = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
-
-      function closeRateCell(bucket) {
-        if (bucket.proposals === 0) return '<span style="color:#334155">—</span>';
-        const small    = bucket.proposals < 5;
-        const cls      = small ? '' : rateClass(bucket.closeRate);
-        const color    = small ? 'color:#475569' : '';
-        const label    = small ? `~${bucket.closeRate}%` : `${bucket.closeRate}%`;
-        const title    = small ? ` title="Small sample (${bucket.proposals} prop)"` : '';
-        const asterisk = small ? ` <span style="color:#475569;font-size:9px">*</span>` : '';
-        return `<span class="${cls}" style="${color}"${title}>${label}</span>${asterisk}`;
-      }
-
-      const diff = b.hitRate - c.hitRate;
-      let trendHtml;
-      if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
-        trendHtml = '<span style="color:#2d3748">—</span>';
-      } else if (diff > 0) {
-        trendHtml = `<span style="color:#22c55e">▲ +${diff}%</span>`;
-      } else {
-        trendHtml = `<span style="color:#ef4444">▼ ${diff}%</span>`;
-      }
-
-      // Funnel: 90d meetings → proposals → closes · True rate (hit% × close%)
-      const closesColor   = c.closeRate >= 15 ? '#22c55e' : c.closeRate >= 10 ? '#f59e0b' : '#ef4444';
-      const trueRate      = c.total > 0 && c.proposals > 0
-        ? ((c.hitRate / 100) * (c.closeRate / 100) * 100).toFixed(1)
-        : null;
-      const trueRateHtml  = trueRate !== null
-        ? ` <span style="color:#8b5cf6;font-weight:600">${trueRate}%</span>`
-        : '';
-
-      const funnelHtml = c.total === 0 ? '<span style="color:#334155">—</span>'
-        : `<span style="color:#475569">${c.total}</span>`
-        + `<span style="color:#2d3748"> → </span>`
-        + `<span style="color:#475569">${c.proposals}</span>`
-        + `<span style="color:#2d3748"> → </span>`
-        + `<span style="color:${c.closes > 0 ? closesColor : '#334155'}">${c.closes}</span>`
-        + (trueRateHtml ? ` ·${trueRateHtml}` : '');
-
-      const m = 'color:#2d3748';
-      return `<tr style="${rowStyle}${rowBorder}">
-        ${daysOutCell}
-        <td>${b.total}</td>
-        <td>${b.proposals}</td>
-        <td>${rate30}</td>
-        <td>${closeRateCell(b)}</td>
-        <td style="text-align:center">${trendHtml}</td>
-        <td class="m3-div-30-90" style="${m}">${c.total}</td>
-        <td style="${m}">${c.proposals}</td>
-        <td>${rate90}</td>
-        <td>${closeRateCell(c)}</td>
-        <td class="m3-div-funnel" style="white-space:nowrap;font-size:10px;text-align:center;padding:4px 12px">${funnelHtml}</td>
-      </tr>`;
-    }).join('');
-
-    const s       = data.module3.sanity30;
-    const sanityEl = document.getElementById('m3-sanity');
-    if (sanityEl && s) {
-      sanityEl.innerHTML =
-        `Last 30d: <strong style="color:#64748b">${s.proposals}</strong> proposals`
-        + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.closes}</strong> closes`
-        + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.blendedCloseRate}%</strong> blended close rate`
-        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`;
-    }
-  })();
+  document.getElementById('bdr-sections').innerHTML = bdrCards + brandTable;
 }
+function renderReps() {
+  document.getElementById('rep-tbody').innerHTML = [...(DATA.rep_stats||[])].sort((a,b)=>(Number(b.meetings)||0)-(Number(a.meetings)||0)).map(r => {
+    const m=Number(r.meetings)||0, p=Number(r.proposals)||0, c=Number(r.closed)||0;
+    return `<tr><td style="font-weight:500">${r['Sales Rep']||'—'}</td><td class="r">${fmt(m)}</td><td class="r">${fmt(p)}</td><td class="r" style="color:#16a34a;font-weight:600">${fmt(c)}</td><td class="r">${m>0?Math.round(p/m*100)+'%':'—'}</td><td class="r">${p>0?Math.round(c/p*100)+'%':'—'}</td></tr>`;
+  }).join('');
+}
+function renderKillList() {
+  const bf = document.getElementById('kill-brand-filter').value;
+  const inf = document.getElementById('kill-infra-filter').value;
+  let list = DATA.kill_list || [];
+  if (bf) list = list.filter(d => d['Brand Name'] === bf);
+  if (inf) list = list.filter(d => d['Infrastructure'] === inf);
+  list = list.sort((a,b) => (Number(a.pct_of_brand_avg)||0)-(Number(b.pct_of_brand_avg)||0));
+  document.getElementById('kill-title').textContent = `Kill list (${list.length} domains)`;
+  document.getElementById('kill-tbody').innerHTML = list.map(d => {
+    const p = Math.round((Number(d.pct_of_brand_avg)||0)*100);
+    const bc = p<40?'#dc2626':p<60?'#ea580c':'#ca8a04';
+    const br = Number(d.bounce_rate)||0;
+    return `<tr><td class="mono">${d.domain||'—'}</td><td>${d['Brand Name']||'—'}</td><td style="font-size:11px;color:#78716c">${d['Infrastructure']||'—'}</td><td class="r">${fmt(d.inbox_count)}</td><td class="r">${fmt(d.sends)}</td><td class="r">${fmt(d.replies)}</td><td class="r">${pct(d.reply_rate)}</td><td class="r">${pct(d.brand_avg_reply_rate)}</td><td class="r"><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(p,100)}%;background:${bc}"></div></div><span style="font-size:11px;color:${bc};font-weight:500;min-width:30px;text-align:right">${p}%</span></div></td><td class="r" style="color:${br>0.1?'#dc2626':br>0.07?'#ca8a04':'#1c1917'}">${pct(br)}</td><td><span class="badge badge-kill">Kill</span></td></tr>`;
+  }).join('');
+}
+function renderFunnelCharts() {
+  if (_funnelChart) _funnelChart.destroy();
+  if (_meetingsChart) _meetingsChart.destroy();
 
-// ── Fetch & display ───────────────────────────────────────────────────────────
-async function fetchData(forceRefresh = false) {
-  const errBanner = document.getElementById('error-banner');
+  const m = DATA.total_meetings || 0;
+  const p = DATA.total_proposals || 0;
+  const c = DATA.total_closed || 0;
+
+  _funnelChart = new Chart(document.getElementById('funnelChart').getContext('2d'), {
+    type:'bar',
+    data:{labels:['Meetings','Proposals','Closed'], datasets:[{data:[m,p,c], backgroundColor:['#3b82f6','#f59e0b','#10b981'], borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+  });
+
+  // Conversion rate pills below chart
+  const mp = m > 0 ? Math.round(p/m*100) : 0;
+  const pc = p > 0 ? Math.round(c/p*100) : 0;
+  const mc = m > 0 ? (c/m*100).toFixed(1) : 0;
+  const rateItems = [
+    {label:'Mtg → Proposal', val: mp+'%', color:'#f59e0b'},
+    {label:'Proposal → Close', val: pc+'%', color:'#10b981'},
+    {label:'Mtg → Close (direct)', val: mc+'%', color:'#6366f1'},
+  ];
+  document.getElementById('funnel-rates').innerHTML = rateItems.map((r,i) => `
+    <div style="flex:1;text-align:center;padding:8px 4px;${i < rateItems.length-1 ? 'border-right:1px solid #e7e5e4' : ''}">
+      <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${r.label}</div>
+      <div style="font-size:22px;font-weight:700;color:${r.color}">${r.val}</div>
+    </div>`).join('');
+
+  // Meetings + proposals grouped by brand
+  const propMap = {};
+  (DATA.proposals_by_brand || []).forEach(b => { propMap[b['Brand Name']] = Number(b.proposals)||0; });
+  const md = [...(DATA.brand_stats||[])].filter(b=>b['Brand Name']&&(Number(b.meetings)||0)>0).sort((a,b)=>(Number(b.meetings)||0)-(Number(a.meetings)||0)).slice(0,14);
+  _meetingsChart = new Chart(document.getElementById('meetingsChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: md.map(b=>b['Brand Name']||''),
+      datasets:[
+        {label:'Meetings', data:md.map(b=>Number(b.meetings)||0), backgroundColor:'#3b82f6', borderRadius:3},
+        {label:'Proposals', data:md.map(b=>propMap[b['Brand Name']]||0), backgroundColor:'#f59e0b', borderRadius:3}
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:12, font:{size:11}}}},
+      scales:{x:{beginAtZero:true, ticks:{precision:0}}}
+    }
+  });
+}
+function renderBrandCharts() {
+  if (_brandMtgChart) _brandMtgChart.destroy();
+  if (_brandCpmChart) _brandCpmChart.destroy();
+  if (_brandCostChart) _brandCostChart.destroy();
+  const bs = [...(DATA.brand_stats||[])].filter(b => b['Brand Name']);
+  // 1. Meetings by brand (sorted desc)
+  const mtgData = [...bs].sort((a,b) => (Number(b.meetings)||0) - (Number(a.meetings)||0));
+  _brandMtgChart = new Chart(document.getElementById('brandMtgChart').getContext('2d'), {
+    type:'bar', data:{labels:mtgData.map(b=>b['Brand Name']), datasets:[{data:mtgData.map(b=>Number(b.meetings)||0), backgroundColor:'#3b82f6', borderRadius:3}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}
+  });
+  // 2. Contacts per meeting (sorted asc — lower = more efficient)
+  const cpmData = [...bs].filter(b=>(Number(b.meetings)||0)>0).sort((a,b)=>{
+    const ca=(Number(a.total_sent)||0)/(Number(a.meetings)||1), cb=(Number(b.total_sent)||0)/(Number(b.meetings)||1);
+    return ca-cb;
+  });
+  _brandCpmChart = new Chart(document.getElementById('brandCpmChart').getContext('2d'), {
+    type:'bar', data:{labels:cpmData.map(b=>b['Brand Name']), datasets:[{data:cpmData.map(b=>Math.round((Number(b.total_sent)||0)/(Number(b.meetings)||1))), backgroundColor:'#6366f1', borderRadius:3}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.parsed.x.toLocaleString()+' contacts/mtg'}}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}
+  });
+  // 3. Cost per meeting (sorted asc — cheapest first)
+  const costData = [...bs].filter(b=>b.cost_per_meeting&&Number(b.cost_per_meeting)>0).sort((a,b)=>(Number(a.cost_per_meeting)||0)-(Number(b.cost_per_meeting)||0));
+  if (costData.length > 0) {
+    _brandCostChart = new Chart(document.getElementById('brandCostChart').getContext('2d'), {
+      type:'bar', data:{labels:costData.map(b=>b['Brand Name']), datasets:[{data:costData.map(b=>Number(b.cost_per_meeting)||0), backgroundColor:'#10b981', borderRadius:3}]},
+      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toLocaleString()}}}, scales:{x:{beginAtZero:true}}}
+    });
+  } else {
+    document.getElementById('brandCostChart').parentElement.innerHTML = '<p style="color:#78716c;font-size:13px;padding:20px">No cost data available — check "cost per meeting" Google Sheet tab.</p>';
+  }
+}
+async function loadDealBots() {
+  const AT_KEY = '';
+  const BASE = 'appSlS4aXPKvMhSTl';
+  const TABLE = 'tblIM2ox6XbOY2tqd';
+  const valEl = document.getElementById('kpi-dealbot');
+  const subEl = document.getElementById('kpi-dealbot-sub');
   try {
-    const url  = '/api/data' + (forceRefresh ? '?refresh=1' : '');
-    const res  = await fetch(url);
-    const data = await res.json();
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    let records = [], offset = '';
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?returnFieldsByFieldId=true&pageSize=100${offset ? '&offset=' + offset : ''}`;
+      const r = await fetch(url, {headers:{Authorization:'Bearer ' + AT_KEY}});
+      if (!r.ok) throw new Error('Airtable ' + r.status);
+      const j = await r.json();
+      records = records.concat(j.records || []);
+      offset = j.offset || '';
+    } while (offset);
 
-    errBanner.style.display = 'none';
-
-    if (data.error) {
-      errBanner.textContent = 'Warning: ' + data.error;
-      errBanner.style.display = 'block';
+    const todayMtgs = records.filter(r => {
+      const sched = r.fields['fldzfYMT58yVWPrgm'];
+      if (!sched) return false;
+      return new Date(sched).toLocaleDateString('en-CA') === todayStr
+        && r.fields['fldHf2ZJrIAUcdwSS'] === 'Sales';
+    });
+    const total = todayMtgs.length;
+    const happened = todayMtgs.filter(r => r.fields['fld1JsS7z7gy0eLlD']).length;
+    const pending = total - happened;
+    const srPct = total > 0 ? Math.round(happened / total * 100) : null;
+    if (valEl) {
+      valEl.textContent = srPct !== null ? srPct + '%' : '—';
+      valEl.style.color = srPct === null ? '#6b7280' : srPct >= 70 ? '#16a34a' : srPct >= 50 ? '#ca8a04' : '#dc2626';
     }
-
-    if (!data.todayStr) {
-      setTimeout(() => fetchData(false), 3000);
-      return;
-    }
-
-    render(data);
-
-    const ts = data.generatedAt
-      ? new Date(data.generatedAt).toLocaleTimeString()
-      : new Date().toLocaleTimeString();
-    document.getElementById('last-updated').textContent = ts;
-
-  } catch (err) {
-    errBanner.textContent = 'Failed to fetch data: ' + err.message;
-    errBanner.style.display = 'block';
+    if (subEl) subEl.textContent = total > 0 ? happened + ' of ' + total + ' updated · ' + pending + ' pending' : 'No meetings today';
+  } catch(e) {
+    if (valEl) { valEl.textContent = '—'; valEl.style.color = '#6b7280'; }
+    if (subEl) subEl.textContent = 'error: ' + e.message;
   }
 }
-
-// ── Countdown ─────────────────────────────────────────────────────────────────
-function resetCountdown() {
-  secondsLeft = REFRESH_INTERVAL;
-  updateCountdownUI();
-}
-
-function updateCountdownUI() {
-  const pct  = (secondsLeft / REFRESH_INTERVAL) * 100;
-  const fill = document.getElementById('cd-fill');
-  const text = document.getElementById('cd-text');
-  if (fill) fill.style.width = pct + '%';
-  if (text) text.textContent = secondsLeft + 's';
-}
-
-function startCountdown() {
-  if (countdownInterval) clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
-    secondsLeft--;
-    updateCountdownUI();
-    if (secondsLeft <= 0) {
-      resetCountdown();
-      fetchData(false);
-    }
-  }, 1000);
-}
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
-fetchData(false);
-startCountdown();
+loadData();
+loadDealBots();
+setInterval(loadDealBots, 60000);
 </script>
 </body>
 </html>

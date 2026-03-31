@@ -1,4 +1,6 @@
 {
   "outputDirectory": "public",
-  "buildCommand": null
+  "buildCommand": null,
+  "framework": null,
+  "ignoreCommand": "exit 0"
 }
