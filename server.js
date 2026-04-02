@@ -370,8 +370,11 @@ async function buildDashboardData() {
     const todayRepBookings = (bookingsByDateRep[todayStr] || {})[repName] || 0;
     if (todayRepBookings > 0) {
       repStatus[repName] = 'active';
+    } else if (absent.size >= 3) {
+      // 3+ absent days out of check window: ABSENT (catches non-consecutive absences)
+      repStatus[repName] = 'absent';
     } else if (absent.has(mostRecent) && secondMost && absent.has(secondMost)) {
-      // 2+ consecutive absent days ending on most recent: ABSENT
+      // 2 consecutive absent days ending on most recent: ABSENT
       repStatus[repName] = 'absent';
     } else if (absent.size === 1) {
       // Exactly one isolated absent day: NO-CALL DAY
@@ -464,6 +467,19 @@ async function buildDashboardData() {
   console.log(`  daysBookedOut=${daysBookedOut}`);
   console.log('=== End runway ===');
 
+  // Peak runway metrics — for header runway pill
+  const peakDaysOut = bestHitRateRow ? bestHitRateRow.daysOut : 0;
+  const peakTrueRate = (bestHitRateRow && bestHitRateRow.proposals > 0)
+    ? parseFloat(((bestHitRateRow.hitRate / 100) * (bestHitRateRow.closeRate / 100) * 100).toFixed(1)) : 0;
+  const clampedDbo = Math.max(1, Math.min(10, daysBookedOut || 1));
+  const currentRow90 = hitRate90.find(b => b.daysOut === clampedDbo) || hitRate90[0];
+  const currentTrueRate = (currentRow90 && currentRow90.proposals > 0)
+    ? parseFloat(((currentRow90.hitRate / 100) * (currentRow90.closeRate / 100) * 100).toFixed(1)) : 0;
+  const meetingsToReachPeak = (daysBookedOut >= peakDaysOut || !peakDaysOut) ? 0
+    : perDaySlots
+        .filter(d => d.calDays > daysBookedOut && d.calDays <= peakDaysOut)
+        .reduce((s, d) => s + d.adjOpen, 0);
+
   // Book Today count: meetings to book today to stay in green zone (≤6 days runway)
   const next6BizDays = next10BizDays.slice(0, 6);
   const bookedInNext6 = next6BizDays.reduce(
@@ -490,6 +506,10 @@ async function buildDashboardData() {
     absenceAdjustedSlots,
     rawOpenSlots,
     daysBookedOut,
+    peakDaysOut,
+    peakTrueRate,
+    currentTrueRate,
+    meetingsToReachPeak,
     activeReps:  perRepStatus.filter(r => r.status === 'active').length,
     totalReps:   Object.keys(outboundReps).length,
     absentReps:  absentRepNames,
