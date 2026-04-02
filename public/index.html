@@ -836,9 +836,9 @@ function render(data) {
         const isNoCallDay = noCallDay && dayNames2[d.getDay()] === rs.noCallWeekday;
 
         if (!isAbsent && !isNoCallDay) {
-          totalCap += rep.maxPerDay;
+          totalCap    += rep.maxPerDay;
+          totalBooked += rep.days[i] ? rep.days[i].booked : 0;
         }
-        totalBooked += rep.days[i] ? rep.days[i].booked : 0;
       }
       const open    = Math.max(0, totalCap - totalBooked);
       const openPct = totalCap > 0 ? (open / totalCap) * 100 : 0;
