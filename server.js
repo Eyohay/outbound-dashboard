@@ -343,35 +343,59 @@ async function buildDashboardData() {
 
   const last5BizDays = getLastNBusinessDays(5, today);
 
-  // Include today in absence check if the team has bookings today already
-  const teamBookingsToday = bookingsByDate[todayStr] || 0;
-  const absenceCheckDays  = teamBookingsToday > 0
-    ? [todayStr, ...last5BizDays]
-    : [...last5BizDays];
+  // Always include today in the check window.
+  // For today: if team has 0 bookings yet but was active in last 3 biz days,
+  // treat today as an active workday so early-morning absences are caught.
+  const last3ForActiveCheck = getLastNBusinessDays(3, today);
+  const teamWasActiveRecently = last3ForActiveCheck.some(d => (bookingsByDate[d] || 0) > 0);
+  const todayIsWeekday = today.getDay() !== 0 && today.getDay() !== 6;
+  const todayTeamActiveProxy = (bookingsByDate[todayStr] || 0) > 0
+    || (todayIsWeekday && teamWasActiveRecently);
+
+  // absenceCheckDays = today + last 5 biz days (6 total)
+  const absenceCheckDays = [todayStr, ...last5BizDays];
 
   // Per-rep absence flags
   const repAbsentDays   = {}; // repName -> Set<dateStr>
   const repStatus       = {}; // repName -> 'active' | 'absent' | 'nocall'
   const repNoCallWkday  = {}; // repName -> dayName e.g. 'Monday'
 
+  // Debug: log per-rep per-day breakdown
+  console.log('=== Absence check window ===');
+  console.log(`  today=${todayStr}  todayTeamActiveProxy=${todayTeamActiveProxy}  window=[${absenceCheckDays.join(',')}]`);
+  for (const repName of outboundRepNames) {
+    const perDay = absenceCheckDays.map(d => {
+      const teamTot = d === todayStr
+        ? (todayTeamActiveProxy ? Math.max(bookingsByDate[d] || 0, 1) : 0)
+        : (bookingsByDate[d] || 0);
+      const repTot = (bookingsByDateRep[d] || {})[repName] || 0;
+      return `${d}:rep=${repTot},team=${teamTot}`;
+    });
+    console.log(`  ${repName}: ${perDay.join(' | ')}`);
+  }
+  console.log('============================');
+
   for (const repName of outboundRepNames) {
     const absent = new Set();
     for (const date of absenceCheckDays) {
-      const teamTotal = bookingsByDate[date] || 0;
+      // For today: use proxy if real booking count is 0 but team is active
+      const teamTotal = date === todayStr
+        ? (todayTeamActiveProxy ? Math.max(bookingsByDate[date] || 0, 1) : 0)
+        : (bookingsByDate[date] || 0);
       const repTotal  = (bookingsByDateRep[date] || {})[repName] || 0;
       if (teamTotal > 0 && repTotal === 0) absent.add(date);
     }
     repAbsentDays[repName] = absent;
 
-    const mostRecent = absenceCheckDays[0];
-    const secondMost = absenceCheckDays[1];
+    const mostRecent = absenceCheckDays[0]; // today
+    const secondMost = absenceCheckDays[1]; // last biz day
 
     // If rep booked anything today, restore immediately regardless of prior flags
     const todayRepBookings = (bookingsByDateRep[todayStr] || {})[repName] || 0;
     if (todayRepBookings > 0) {
       repStatus[repName] = 'active';
     } else if (absent.size >= 3) {
-      // 3+ absent days out of check window: ABSENT (catches non-consecutive absences)
+      // 3+ absent days out of check window: ABSENT (catches non-consecutive absences like Thu+Tue)
       repStatus[repName] = 'absent';
     } else if (absent.has(mostRecent) && secondMost && absent.has(secondMost)) {
       // 2 consecutive absent days ending on most recent: ABSENT

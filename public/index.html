@@ -54,32 +54,59 @@
     #runway-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
-      border-radius: 6px;
-      padding: 4px 14px;
+      gap: 0;
+      border-radius: 7px;
+      padding: 4px 10px 4px 4px;
       flex: 1;
       min-width: 0;
-      max-width: 700px;
-      white-space: nowrap;
+      max-width: 720px;
       overflow: hidden;
       visibility: hidden;
-      transition: background 0.5s, border-color 0.5s;
       border: 0.5px solid transparent;
     }
-    #runway-pill.rp-below { background: rgba(34,197,94,0.12);  border-color: rgba(34,197,94,0.3); }
-    #runway-pill.rp-at    { background: rgba(20,184,166,0.12); border-color: rgba(20,184,166,0.35); }
-    #runway-pill.rp-past  { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); }
-    .rp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    #runway-pill.rp-below .rp-dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-    #runway-pill.rp-at    .rp-dot { background: #2dd4bf; box-shadow: 0 0 6px #2dd4bf; }
-    #runway-pill.rp-past  .rp-dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-    .rp-main { font-size: 13px; font-weight: 800; flex-shrink: 0; line-height: 1; }
-    #runway-pill.rp-below .rp-main { color: #86efac; }
-    #runway-pill.rp-at    .rp-main { color: #5eead4; }
-    #runway-pill.rp-past  .rp-main { color: #fcd34d; }
-    .rp-sep    { width: 1px; height: 20px; background: rgba(255,255,255,0.1); flex-shrink: 0; margin: 0 2px; }
-    .rp-detail { font-size: 10px; color: #64748b; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
-    .rp-detail strong { color: #e2e8f0; }
+    #runway-pill.rp-below { background: rgba(34,197,94,0.08);  border-color: rgba(34,197,94,0.25); }
+    #runway-pill.rp-at    { background: rgba(20,184,166,0.08); border-color: rgba(20,184,166,0.3); }
+    #runway-pill.rp-past  { background: rgba(220,38,38,0.08);  border-color: rgba(220,38,38,0.28); }
+
+    /* Left: rounded-square badge with big number */
+    .rp-badge {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 5px; padding: 2px 9px; min-width: 38px; flex-shrink: 0; gap: 0; line-height: 1;
+      margin-right: 10px;
+    }
+    #runway-pill.rp-below .rp-badge { background: rgba(34,197,94,0.2); }
+    #runway-pill.rp-at    .rp-badge { background: rgba(20,184,166,0.2); }
+    #runway-pill.rp-past  .rp-badge { background: rgba(220,38,38,0.22); }
+    .rp-badge-num {
+      font-size: 22px; font-weight: 800; line-height: 1;
+    }
+    #runway-pill.rp-below .rp-badge-num { color: #86efac; }
+    #runway-pill.rp-at    .rp-badge-num { color: #5eead4; }
+    #runway-pill.rp-past  .rp-badge-num { color: #fca5a5; }
+    .rp-badge-lbl {
+      font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; line-height: 1; margin-top: 1px;
+    }
+    #runway-pill.rp-below .rp-badge-lbl { color: rgba(134,239,172,0.65); }
+    #runway-pill.rp-at    .rp-badge-lbl { color: rgba(94,234,212,0.65); }
+    #runway-pill.rp-past  .rp-badge-lbl { color: rgba(252,165,165,0.65); }
+
+    /* Divider */
+    .rp-sep { width: 1px; height: 30px; background: rgba(255,255,255,0.08); flex-shrink: 0; margin: 0 10px; }
+
+    /* Two-line text body */
+    .rp-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow: hidden; }
+    .rp-line1 { font-size: 11px; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-line2 { font-size: 9px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rp-line2 strong { color: #94a3b8; }
+
+    /* Right status badge */
+    .rp-status {
+      flex-shrink: 0; padding: 2px 8px; border-radius: 5px;
+      font-size: 9px; font-weight: 700; white-space: nowrap; margin-left: 10px;
+    }
+    .rp-st-ok   { background: rgba(34,197,94,0.15);  color: #86efac; }
+    .rp-st-book { background: rgba(59,130,246,0.15);  color: #93c5fd; }
+    .rp-st-warn { background: rgba(245,158,11,0.15);  color: #fcd34d; }
 
     .hdr-right {
       display: flex;
@@ -554,10 +581,16 @@
 <header id="header">
   <h1 class="hdr-title">Outbound Team Capacity Dashboard</h1>
   <div id="runway-pill">
-    <span class="rp-dot"></span>
-    <span class="rp-main" id="rp-main">—</span>
+    <div class="rp-badge">
+      <span class="rp-badge-num" id="rp-badge-num">—</span>
+      <span class="rp-badge-lbl">days out</span>
+    </div>
     <div class="rp-sep"></div>
-    <span class="rp-detail" id="rp-detail"></span>
+    <div class="rp-body">
+      <div class="rp-line1" id="rp-line1">—</div>
+      <div class="rp-line2" id="rp-line2"></div>
+    </div>
+    <span class="rp-status" id="rp-status"></span>
   </div>
   <div class="hdr-right">
     <div class="live-ind"><span class="live-dot"></span>&nbsp;LIVE</div>
@@ -623,12 +656,12 @@
         <tr class="m3-group-row">
           <th rowspan="2" style="width:88px;vertical-align:bottom">Days Out</th>
           <th colspan="5" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
-          <th colspan="4" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
+          <th colspan="2" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
           <th colspan="3" class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">90d funnel</th>
         </tr>
         <tr>
           <th>Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th><th>Trend</th>
-          <th class="m3-div-30-90">Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th>
+          <th class="m3-div-30-90">Hit rate</th><th>Close rate</th>
           <th class="m3-div-funnel" style="text-align:center">Mtgs</th>
           <th style="text-align:center">Props · Closes</th>
           <th style="text-align:center;white-space:nowrap">True rate</th>
@@ -1038,39 +1071,48 @@ function render(data) {
     const currTR      = rw.currentTrueRate     || 0;
     const toReach     = rw.meetingsToReachPeak || 0;
 
-    const mainEl   = document.getElementById('rp-main');
-    const detailEl = document.getElementById('rp-detail');
+    const badgeNumEl = document.getElementById('rp-badge-num');
+    const line1El    = document.getElementById('rp-line1');
+    const line2El    = document.getElementById('rp-line2');
+    const statusEl   = document.getElementById('rp-status');
 
     pill.classList.remove('rp-below', 'rp-at', 'rp-past');
+    if (statusEl) statusEl.className = 'rp-status';
+
+    if (badgeNumEl) badgeNumEl.textContent = dbo === 99 ? '∞' : (dbo || '—');
 
     if (!peakDaysOut || dbo === 0) {
       pill.classList.add('rp-below');
-      mainEl.textContent = '—';
-      detailEl.innerHTML = 'Calculating pipeline runway…';
+      if (line1El) line1El.textContent = 'Calculating pipeline runway…';
+      if (line2El) line2El.textContent = '';
+      if (statusEl) { statusEl.classList.add('rp-st-book'); statusEl.textContent = '—'; }
+
     } else if (dbo < peakDaysOut) {
-      // Below peak — need to book more
       pill.classList.add('rp-below');
-      mainEl.textContent = `Book ${toReach} more`;
-      detailEl.innerHTML = `Reach <strong>${peakDaysOut}d out</strong> peak window`
-        + (peakTR > 0 ? ` &nbsp;·&nbsp; <strong>${peakTR}%</strong> true close rate at peak` : '')
-        + (currTR > 0 ? ` &nbsp;·&nbsp; currently ${currTR}% at ${dbo}d` : '');
+      if (line1El) line1El.textContent = `Below peak · ${peakDaysOut}d out is the optimal booking window`;
+      if (line2El) line2El.innerHTML = peakTR > 0
+        ? `Peak true close rate: <strong>${peakTR}%</strong>${currTR > 0 ? ` · currently ${currTR}% at ${dbo}d` : ''}`
+        : `Book ${toReach} more meetings to reach peak`;
+      if (statusEl) { statusEl.classList.add('rp-st-book'); statusEl.textContent = `+${toReach} mtgs`; }
+
     } else if (dbo === peakDaysOut) {
-      // At peak — optimal zone
       pill.classList.add('rp-at');
-      mainEl.textContent = `At peak · ${dbo}d out`;
-      detailEl.innerHTML = peakTR > 0
-        ? `<strong>${peakTR}%</strong> true close rate — optimal booking window`
-        : 'Optimal booking window';
+      if (line1El) line1El.textContent = `At peak window · optimal booking zone`;
+      if (line2El) line2El.innerHTML = peakTR > 0
+        ? `<strong>${peakTR}%</strong> true close rate — keep booking at this depth`
+        : 'Keep booking at this depth';
+      if (statusEl) { statusEl.classList.add('rp-st-ok'); statusEl.textContent = '✓ On target'; }
+
     } else {
-      // Past peak — booked beyond sweet spot
-      pill.classList.add('rp-past');
       const over = dbo - peakDaysOut;
-      mainEl.textContent = `${over}d past peak`;
-      detailEl.innerHTML = `Booked out to <strong>${dbo}d</strong> — beyond <strong>${peakDaysOut}d</strong> sweet spot`
-        + (peakTR > 0 && currTR > 0 && currTR < peakTR
-          ? ` &nbsp;·&nbsp; conversion drops ${peakTR}% → ${currTR}%`
-          : '');
+      pill.classList.add('rp-past');
+      if (line1El) line1El.textContent = `${over}d past peak · booked to ${dbo}d out`;
+      if (line2El) line2El.innerHTML = (peakTR > 0 && currTR > 0 && currTR < peakTR)
+        ? `Conversion drops: <strong>${peakTR}%</strong> → <strong>${currTR}%</strong> true rate beyond ${peakDaysOut}d`
+        : `Beyond <strong>${peakDaysOut}d</strong> sweet spot`;
+      if (statusEl) { statusEl.classList.add('rp-st-warn'); statusEl.textContent = '⚠ Past peak'; }
     }
+
     pill.style.visibility = 'visible';
   })();
 
@@ -1116,24 +1158,15 @@ function render(data) {
 
     b30.forEach((b, i) => {
       const c = b90[i];
-      const isCutoff  = rec && b.daysOut === rec.optimalCutoff && rec.optimalCutoff > 0;
       const isPeak    = i === peakIdx && cautionInsertAfterIdx >= 0;
       const isBelowCaution = cautionInsertAfterIdx >= 0 && i > cautionInsertAfterIdx;
 
       const rowOpacity = isBelowCaution ? 'opacity:0.65;' : '';
       const rowBg      = isPeak ? 'background:rgba(34,197,94,0.07);' : '';
-      const rowBorder  = isCutoff ? 'border-bottom:2px dashed rgba(34,197,94,.4);' : '';
 
-      const daysLabel = `${b.daysOut}d out`;
-      let daysOutCell;
-      if (isCutoff) {
-        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px">
-          <span>${daysLabel}</span> <span style="color:#86efac;font-weight:700">◀ cutoff</span>
-        </td>`;
-      } else {
-        const peakLabel = isPeak ? ' <span style="font-size:8px;color:#22c55e;font-weight:700">↑ peak</span>' : '';
-        daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${peakLabel}</td>`;
-      }
+      const daysLabel  = `${b.daysOut}d out`;
+      const peakLabel  = isPeak ? ' <span style="font-size:8px;color:#22c55e;font-weight:700">↑ peak</span>' : '';
+      const daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${peakLabel}</td>`;
 
       const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
       const rate90 = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
@@ -1183,17 +1216,14 @@ function render(data) {
         trueRateBadge = `<span class="m3-true-red">${trueRateNum.toFixed(1)}%</span>`;
       }
 
-      const m = 'color:#2d3748';
-      rowsHtml += `<tr style="${rowOpacity}${rowBg}${rowBorder}">
+      rowsHtml += `<tr style="${rowOpacity}${rowBg}">
         ${daysOutCell}
         <td>${b.total}</td>
         <td>${b.proposals}</td>
         <td>${rate30}</td>
         <td>${closeRateCell(b)}</td>
         <td style="text-align:center">${trendHtml}</td>
-        <td class="m3-div-30-90" style="${m}">${c.total}</td>
-        <td style="${m}">${c.proposals}</td>
-        <td>${rate90}</td>
+        <td class="m3-div-30-90">${rate90}</td>
         <td>${closeRateCell(c)}</td>
         <td class="m3-div-funnel" style="text-align:center">${mtgsBadge}</td>
         <td style="text-align:center">${propClosesBadge}</td>
@@ -1204,7 +1234,7 @@ function render(data) {
       if (cautionInsertAfterIdx >= 0 && i === cautionInsertAfterIdx && !cautionInjected) {
         cautionInjected = true;
         rowsHtml += `<tr style="border-top:1.5px dashed #f59e0b;border-bottom:1.5px dashed #f59e0b;background:rgba(245,158,11,0.07)">
-          <td colspan="13" style="padding:3px 12px;font-size:9px;color:#f59e0b">
+          <td colspan="11" style="padding:3px 12px;font-size:9px;color:#f59e0b">
             ⚠ Conversion falls off beyond this point — 90d hit rate drops from ${cautionDropFrom}% → ${cautionDropTo}%
             <span style="float:right;color:#475569;font-size:8px">auto-detected · updates every 60s</span>
           </td>
