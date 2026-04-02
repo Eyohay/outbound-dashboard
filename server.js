@@ -389,9 +389,9 @@ async function buildDashboardData() {
   const totalBookingsLast3 = last3BizDays.reduce((s, d) => s + (bookingsByDate[d] || 0), 0);
   const teamAvgPerDay = Math.round((totalBookingsLast3 / 3) * 10) / 10;
 
-  // Next 10 business days (starting tomorrow)
+  // Next 10 bookable business days — start from day+2 (today and tomorrow are never bookable)
   const next10BizDays = [];
-  for (let i = 1; next10BizDays.length < 10; i++) {
+  for (let i = 2; next10BizDays.length < 10; i++) {
     const d = new Date(today); d.setDate(today.getDate() + i);
     if (d.getDay() !== 0 && d.getDay() !== 6) next10BizDays.push(toDateStr(d));
   }
@@ -408,57 +408,61 @@ async function buildDashboardData() {
     return true;
   }
 
-  let rawOpenSlots = 0;
-  let absenceAdjustedSlots = 0;
-  for (const dateStr of next10BizDays) {
+  // Per-day slot breakdown (logged for debugging)
+  const perDaySlots = []; // { dateStr, calDays, rawOpen, adjOpen, repDetail }
+  for (let i = 2; perDaySlots.length < 10; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    const dateStr = toDateStr(d);
+    let rawOpen = 0, adjOpen = 0;
+    const repDetail = [];
     for (const repName of outboundRepNames) {
       const rep       = outboundReps[repName];
       const repBooked = meetings.filter(m => m.rep === repName && m.scheduledStr === dateStr).length;
-      const rawOpen   = Math.max(0, rep.maxPerDay - repBooked);
-      rawOpenSlots += rawOpen;
-      if (repAvailableOnDate(repName, dateStr)) absenceAdjustedSlots += rawOpen;
+      const open      = Math.max(0, rep.maxPerDay - repBooked);
+      const avail     = repAvailableOnDate(repName, dateStr);
+      rawOpen += open;
+      if (avail) adjOpen += open;
+      repDetail.push(`${repName}:${repBooked}/${rep.maxPerDay}(${repStatus[repName]||'active'})`);
     }
+    perDaySlots.push({ dateStr, calDays: i, rawOpen, adjOpen, repDetail });
   }
 
-  // daysBookedOut: simulate forward day-by-day from first bookable biz day (skip today + tomorrow).
-  // Each day's absence-adjusted open slots are filled at teamAvgPerDay; remainder spills forward.
-  // Returns the calendar-days-from-today horizon of the last day that gets filled.
+  console.log('=== Runway slot breakdown ===');
+  console.log(`  teamAvgPerDay=${teamAvgPerDay}  last3BizDays=${last3BizDays.join(',')}`);
+  console.log(`  absences: ${Object.entries(repStatus).filter(([,s])=>s!=='active').map(([n,s])=>`${n}=${s}`).join(', ')||'none'}`);
+  perDaySlots.forEach(d => {
+    console.log(`  ${d.dateStr} (calDays=${d.calDays}): rawOpen=${d.rawOpen} adjOpen=${d.adjOpen} | ${d.repDetail.join(' ')}`);
+  });
+
+  let rawOpenSlots = 0;
+  let absenceAdjustedSlots = 0;
+  for (const { rawOpen, adjOpen } of perDaySlots) {
+    rawOpenSlots        += rawOpen;
+    absenceAdjustedSlots += adjOpen;
+  }
+  console.log(`  totals: rawOpenSlots=${rawOpenSlots} absenceAdjustedSlots=${absenceAdjustedSlots}`);
+
+  // daysBookedOut: simulate today's booking budget (teamAvgPerDay) filling slots
+  // from the first bookable day forward. Stop when the daily budget is exhausted.
+  // Result = calendar-day distance from today to the furthest date the team fills today.
   let daysBookedOut = 0;
   if (teamAvgPerDay <= 0) {
     daysBookedOut = absenceAdjustedSlots > 0 ? 99 : 0;
   } else {
-    // Build per-day absence-adjusted open slot counts starting from day+2 (first bookable day)
-    const simDays = []; // { dateStr, open, calendarDaysFromToday }
-    for (let i = 2; simDays.length < 20; i++) {          // look up to 20 biz days out
-      const d = new Date(today); d.setDate(today.getDate() + i);
-      if (d.getDay() === 0 || d.getDay() === 6) continue; // skip weekends
-      const dateStr = toDateStr(d);
-      let dayOpen = 0;
-      for (const repName of outboundRepNames) {
-        if (!repAvailableOnDate(repName, dateStr)) continue;
-        const rep       = outboundReps[repName];
-        const repBooked = meetings.filter(m => m.rep === repName && m.scheduledStr === dateStr).length;
-        dayOpen += Math.max(0, rep.maxPerDay - repBooked);
-      }
-      simDays.push({ dateStr, open: dayOpen, calDays: i });
+    let budget = teamAvgPerDay; // today's booking capacity
+    for (const day of perDaySlots) {
+      if (day.adjOpen <= 0) continue; // skip fully-booked days
+      const fill = Math.min(day.adjOpen, budget);
+      budget -= fill;
+      daysBookedOut = day.calDays; // horizon = furthest date reached
+      if (budget <= 0) break;     // budget spent — stop here
     }
-
-    let remaining = teamAvgPerDay; // bookings left to allocate on the current day
-    let totalFilled = 0;
-    const totalTarget = absenceAdjustedSlots;
-
-    for (const day of simDays) {
-      if (totalFilled >= totalTarget) break;
-      const fillable = Math.min(day.open, totalTarget - totalFilled);
-      totalFilled += fillable;
-      daysBookedOut = day.calDays; // horizon advances to this calendar day
-      if (totalFilled >= totalTarget) break;
-    }
-    // If we never filled everything within the simulation window, use the last day's horizon
-    if (totalFilled < totalTarget && simDays.length > 0) {
-      daysBookedOut = simDays[simDays.length - 1].calDays;
-    }
+    // If budget still has capacity after all 10 days, horizon = last non-empty day's calDays
+    // (daysBookedOut already set to the furthest non-zero day from the loop above)
   }
+  console.log(`  daysBookedOut=${daysBookedOut}`);
+  console.log('=== End runway ===');
 
   // Book Today count: meetings to book today to stay in green zone (≤6 days runway)
   const next6BizDays = next10BizDays.slice(0, 6);
