@@ -420,12 +420,44 @@ async function buildDashboardData() {
     }
   }
 
-  // daysBookedOut: business days until all absence-adjusted open slots are filled at current avg
+  // daysBookedOut: simulate forward day-by-day from first bookable biz day (skip today + tomorrow).
+  // Each day's absence-adjusted open slots are filled at teamAvgPerDay; remainder spills forward.
+  // Returns the calendar-days-from-today horizon of the last day that gets filled.
   let daysBookedOut = 0;
-  if (teamAvgPerDay > 0 && absenceAdjustedSlots > 0) {
-    daysBookedOut = Math.ceil(absenceAdjustedSlots / teamAvgPerDay);
-  } else if (teamAvgPerDay === 0 && absenceAdjustedSlots > 0) {
-    daysBookedOut = 99;
+  if (teamAvgPerDay <= 0) {
+    daysBookedOut = absenceAdjustedSlots > 0 ? 99 : 0;
+  } else {
+    // Build per-day absence-adjusted open slot counts starting from day+2 (first bookable day)
+    const simDays = []; // { dateStr, open, calendarDaysFromToday }
+    for (let i = 2; simDays.length < 20; i++) {          // look up to 20 biz days out
+      const d = new Date(today); d.setDate(today.getDate() + i);
+      if (d.getDay() === 0 || d.getDay() === 6) continue; // skip weekends
+      const dateStr = toDateStr(d);
+      let dayOpen = 0;
+      for (const repName of outboundRepNames) {
+        if (!repAvailableOnDate(repName, dateStr)) continue;
+        const rep       = outboundReps[repName];
+        const repBooked = meetings.filter(m => m.rep === repName && m.scheduledStr === dateStr).length;
+        dayOpen += Math.max(0, rep.maxPerDay - repBooked);
+      }
+      simDays.push({ dateStr, open: dayOpen, calDays: i });
+    }
+
+    let remaining = teamAvgPerDay; // bookings left to allocate on the current day
+    let totalFilled = 0;
+    const totalTarget = absenceAdjustedSlots;
+
+    for (const day of simDays) {
+      if (totalFilled >= totalTarget) break;
+      const fillable = Math.min(day.open, totalTarget - totalFilled);
+      totalFilled += fillable;
+      daysBookedOut = day.calDays; // horizon advances to this calendar day
+      if (totalFilled >= totalTarget) break;
+    }
+    // If we never filled everything within the simulation window, use the last day's horizon
+    if (totalFilled < totalTarget && simDays.length > 0) {
+      daysBookedOut = simDays[simDays.length - 1].calDays;
+    }
   }
 
   // Book Today count: meetings to book today to stay in green zone (≤6 days runway)
