@@ -558,6 +558,8 @@
     .status-nocall .status-dot { background: #60a5fa; }
     .status-absent { background: rgba(100,116,139,0.1); color: #64748b; border-color: rgba(100,116,139,0.2); }
     .status-absent .status-dot { background: #64748b; }
+    .status-limited { background: #2a1f0a; color: #facc15; border-color: #6b4c0a; }
+    .status-limited .status-dot { background: #facc15; }
 
     #error-banner {
       display: none;
@@ -830,8 +832,20 @@ function render(data) {
     document.getElementById('rw-t-raw').textContent  = rw.rawOpenSlots;
     document.getElementById('rw-t-adj').textContent  = rw.absenceAdjustedSlots;
     document.getElementById('rw-t-reps').textContent = rw.activeReps + '/' + rw.totalReps;
-    const absentCount = (rw.absentReps || []).length;
-    document.getElementById('rw-t-reps-sub').textContent = absentCount > 0 ? `${absentCount} absent` : 'all active';
+    const absentCount  = (rw.absentReps  || []).length;
+    const limitedCount = (rw.limitedReps || []).length;
+    const activeCount  = rw.activeReps   || 0;
+    let repSubText;
+    if (absentCount > 0 || limitedCount > 0) {
+      const parts = [];
+      if (activeCount  > 0) parts.push(`${activeCount} active`);
+      if (limitedCount > 0) parts.push(`${limitedCount} limited`);
+      if (absentCount  > 0) parts.push(`${absentCount} out`);
+      repSubText = parts.join(' · ');
+    } else {
+      repSubText = 'all active';
+    }
+    document.getElementById('rw-t-reps-sub').textContent = repSubText;
   })();
 
   // ── Module 2 — Heat Map ──────────────────────────────────────────────────
@@ -860,20 +874,21 @@ function render(data) {
         : 'M2 · Rep Capacity Heat Map · Next 10 Days';
     }
 
-    // Per-day team totals for slot pills (absence-adjusted)
+    // Per-day team totals for slot pills (absence+limited-adjusted)
+    const dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const dayTotals = dayList.map((day, i) => {
       if (day.isWeekend) return null;
       let totalCap    = 0;
       let totalBooked = 0;
       for (const rep of reps) {
         const rs = repStatusMap[rep.name];
-        const isAbsent = rs && rs.status === 'absent';
-        const noCallDay = rs && rs.status === 'nocall' && rs.noCallWeekday;
+        const isAbsent     = rs && rs.status === 'absent';
+        const isLimitedDay = rs && rs.status === 'limited' && rs.limitedDays && rs.limitedDays.includes(day.date);
+        const noCallDay    = rs && rs.status === 'nocall' && rs.noCallWeekday;
         const d = new Date(day.date + 'T12:00:00');
-        const dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        const isNoCallDay = noCallDay && dayNames2[d.getDay()] === rs.noCallWeekday;
+        const isNoCallDay  = noCallDay && dayNames2[d.getDay()] === rs.noCallWeekday;
 
-        if (!isAbsent && !isNoCallDay) {
+        if (!isAbsent && !isNoCallDay && !isLimitedDay) {
           totalCap    += rep.maxPerDay;
           totalBooked += rep.days[i] ? rep.days[i].booked : 0;
         }
@@ -920,25 +935,34 @@ function render(data) {
     const dayNamesArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
     const repRows = reps.map(rep => {
-      const rs       = repStatusMap[rep.name];
-      const isAbsent = rs && rs.status === 'absent';
-      const isNocall = rs && rs.status === 'nocall';
-      const rowOpacity = isAbsent ? 'opacity:0.6;' : '';
+      const rs            = repStatusMap[rep.name];
+      const isAbsent      = rs && rs.status === 'absent';
+      const isNocall      = rs && rs.status === 'nocall';
+      const isLimited     = rs && rs.status === 'limited';
+      const limitedDaySet = new Set(rs && rs.limitedDays ? rs.limitedDays : []);
+      const rowOpacity    = isAbsent ? 'opacity:0.6;' : '';
 
       const cells = rep.days.map((d, i) => {
         const day      = dayList[i];
         const isToday  = day.date === todayStr;
         const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
         const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
-        const todayCls = isToday ? ' today-col' : '';
+        const todayCls  = isToday ? ' today-col' : '';
         const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
 
         if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}color:#2d3748;font-size:9px">—</td>`;
 
-        // Absent rep: future days show as gray cells
+        // Absent rep: all future days gray
         if (isAbsent && day.date > todayStr) {
           return `<td class="hm-cell hm-absent-cell${todayCls}" style="${cutBorder}">
             <div style="line-height:1.2;color:#2d3748">0/${rep.maxPerDay}</div>
+          </td>`;
+        }
+
+        // Limited rep on a limited day: show as zeroed amber-tinted cell
+        if (isLimited && limitedDaySet.has(day.date) && day.date > todayStr) {
+          return `<td class="hm-cell${todayCls}" style="${cutBorder}background:rgba(250,204,21,0.06);border-radius:5px;">
+            <div style="line-height:1.2;color:#92400e;font-size:8px">0/${rep.maxPerDay}</div>
           </td>`;
         }
 
@@ -974,6 +998,9 @@ function render(data) {
       let statusTag;
       if (isAbsent) {
         statusTag = `<span class="status-badge status-absent"><span class="status-dot"></span>Out · 0/d</span>`;
+      } else if (isLimited) {
+        const avg = rs ? rs.avgPerDay : '—';
+        statusTag = `<span class="status-badge status-limited"><span class="status-dot"></span>Limited · ${avg}/d</span>`;
       } else if (isNocall && rs.noCallWeekday) {
         statusTag = `<span class="status-badge status-nocall"><span class="status-dot"></span>No-call ${rs.noCallWeekday.slice(0,3)}</span>`;
       } else {

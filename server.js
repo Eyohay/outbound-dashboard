@@ -406,8 +406,46 @@ async function buildDashboardData() {
     if (d.getDay() !== 0 && d.getDay() !== 6) next10BizDays.push(toDateStr(d));
   }
 
+  // ── Limited status detection ──────────────────────────────────────────────
+  // For each of the next 10 bookable biz days that already have some bookings,
+  // compute team fill rate. If fill >= 25% and this rep has 0 booked → limited day.
+  // 2+ limited days → status becomes 'limited' (absent still takes priority).
+  const repLimitedDays = {}; // repName -> Set<dateStr>
+  for (const repName of outboundRepNames) repLimitedDays[repName] = new Set();
+
+  // Pre-build per-day meeting lookup for next 10 biz days
+  for (const dateStr of next10BizDays) {
+    const dayMeetings = meetings.filter(m => m.scheduledStr === dateStr);
+    if (dayMeetings.length === 0) continue; // no bookings at all → skip
+
+    let teamBooked = 0;
+    const repDayBooked = {};
+    for (const repName of outboundRepNames) {
+      const n = dayMeetings.filter(m => m.rep === repName).length;
+      repDayBooked[repName] = n;
+      teamBooked += n;
+    }
+    const teamCap  = Object.values(outboundReps).reduce((s, r) => s + r.maxPerDay, 0);
+    const fillRate = teamCap > 0 ? teamBooked / teamCap : 0;
+
+    if (fillRate >= 0.25) {
+      for (const repName of outboundRepNames) {
+        if (repStatus[repName] === 'absent') continue; // Out overrides Limited
+        if (repDayBooked[repName] === 0) repLimitedDays[repName].add(dateStr);
+      }
+    }
+  }
+
+  // Upgrade status to 'limited' for reps with 2+ limited days
+  for (const repName of outboundRepNames) {
+    if (repStatus[repName] !== 'absent' && repLimitedDays[repName].size >= 2) {
+      repStatus[repName] = 'limited';
+    }
+  }
+
   function repAvailableOnDate(repName, dateStr) {
     if (repStatus[repName] === 'absent') return false;
+    if (repStatus[repName] === 'limited' && repLimitedDays[repName].has(dateStr)) return false;
     if (repStatus[repName] === 'nocall') {
       const noCallDay = repNoCallWkday[repName];
       if (noCallDay) {
@@ -495,16 +533,19 @@ async function buildDashboardData() {
   );
   const bookTodayCount = Math.max(0, Math.round(6 * teamAvgPerDay) - bookedInNext6);
 
-  const absentRepNames = [];
+  const absentRepNames  = [];
+  const limitedRepNames = [];
   const perRepStatus = Object.values(outboundReps).map(rep => {
     const status  = repStatus[rep.name] || 'active';
     const last3Bk = last3BizDays.reduce((s, d) => s + ((bookingsByDateRep[d] || {})[rep.name] || 0), 0);
-    if (status === 'absent') absentRepNames.push(rep.name);
+    if (status === 'absent')  absentRepNames.push(rep.name);
+    if (status === 'limited') limitedRepNames.push(rep.name);
     return {
       name: rep.name,
       status,
       avgPerDay: Math.round((last3Bk / 3) * 10) / 10,
       noCallWeekday: repNoCallWkday[rep.name] || null,
+      limitedDays: [...(repLimitedDays[rep.name] || [])],
     };
   });
 
@@ -517,9 +558,10 @@ async function buildDashboardData() {
     peakTrueRate,
     currentTrueRate,
     meetingsToReachPeak,
-    activeReps:  perRepStatus.filter(r => r.status === 'active').length,
-    totalReps:   Object.keys(outboundReps).length,
-    absentReps:  absentRepNames,
+    activeReps:   perRepStatus.filter(r => r.status === 'active').length,
+    limitedReps:  limitedRepNames,
+    totalReps:    Object.keys(outboundReps).length,
+    absentReps:   absentRepNames,
     perRepStatus,
     bookTodayCount,
     bookedInNext6,
