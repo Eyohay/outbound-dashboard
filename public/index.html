@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px 100px minmax(200px, auto) 72px 1fr;
+      grid-template-rows: 48px 28px 100px auto minmax(200px, auto) 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -109,7 +109,7 @@
     .cd-text  { font-size: 10px; color: #64748b; min-width: 26px; }
     #last-updated { font-size: 10px; color: #64748b; }
 
-    /* ── Row 2: Glance bar (30px) ──────────────────────────────────────────── */
+    /* ── Row 2: Glance bar (28px) ──────────────────────────────────────────── */
     #glance-bar {
       display: flex;
       align-items: center;
@@ -134,7 +134,7 @@
     .wg-item { flex-shrink: 0; }
     .wg-week { margin-left: auto; font-size: 10px; color: #334155; flex-shrink: 0; padding-left: 14px; }
 
-    /* ── Row 3: M1 bar chart (110px) ───────────────────────────────────────── */
+    /* ── Row 3: M1 bar chart (100px) ───────────────────────────────────────── */
     #m1-row {
       display: grid;
       grid-template-columns: 56px 1fr;
@@ -253,7 +253,89 @@
     }
     .vbar-col:hover .vbar-tooltip { display: block; }
 
-    /* ── Row 4: M2 heatmap (auto — sized by JS after render) ────────────────── */
+    /* ── Row 4: Pipeline Runway card (auto) ─────────────────────────────────── */
+    #runway-card {
+      background: #0d1017;
+      border-bottom: 0.5px solid rgba(255,255,255,0.06);
+      padding: 7px 16px;
+      display: grid;
+      grid-template-columns: 1fr 56px;
+      gap: 12px;
+      align-items: start;
+      min-height: 0;
+      overflow: visible;
+    }
+
+    #runway-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+    .rw-title-row {
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .rw-title {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: #334155;
+    }
+    .rw-sub {
+      font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Zone bar */
+    .rw-zone-wrap {
+      position: relative;
+      height: 14px;
+      border-radius: 6px;
+      overflow: visible;
+      display: flex;
+    }
+    .rw-zone-seg {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7.5px;
+      font-weight: 600;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .rw-zone-green { background: rgba(34,197,94,0.25); color: #86efac; border-radius: 6px 0 0 6px; }
+    .rw-zone-amber { background: rgba(245,158,11,0.25); color: #fcd34d; }
+    .rw-zone-red   { background: rgba(220,38,38,0.25);  color: #fca5a5; border-radius: 0 6px 6px 0; }
+    .rw-needle {
+      position: absolute;
+      top: -2px; bottom: -2px;
+      width: 2.5px;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 0 5px rgba(255,255,255,0.7);
+      transition: left 0.5s ease;
+      z-index: 10;
+    }
+
+    /* 4 sub-stat tiles */
+    .rw-tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .rw-tile {
+      background: rgba(255,255,255,0.03);
+      border: 0.5px solid rgba(255,255,255,0.07);
+      border-radius: 5px;
+      padding: 4px 7px;
+    }
+    .rw-tile-label { font-size: 7.5px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
+    .rw-tile-val   { font-size: 16px; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+    .rw-tile-sub   { font-size: 7.5px; color: #475569; }
+
+    /* Big days-out number */
+    #runway-right {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    }
+    .rw-big-label { font-size: 7.5px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
+    #rw-big-num   { font-size: 42px; font-weight: 800; line-height: 1; color: #22c55e; }
+    .rw-big-unit  { font-size: 9px; color: #475569; }
+
+    /* ── Row 5: M2 heatmap (auto — sized by JS after render) ────────────────── */
     #m2-row {
       display: flex;
       flex-direction: column;
@@ -283,6 +365,7 @@
     #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
     #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 96px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
     #m2-heatmap .hm-total-col         { font-size: 9.5px; padding: 0 6px; text-align: center; border-left: 0.5px solid rgba(255,255,255,0.06); }
+    #m2-heatmap .hm-status-col        { font-size: 8.5px; padding: 0 6px; text-align: left; border-left: 0.5px solid rgba(255,255,255,0.06); white-space: nowrap; }
     #m2-heatmap .weekend-col          { opacity: 0.2; }
     #m2-heatmap .today-col            { outline: 1.5px solid #3b82f6; outline-offset: -1px; border-radius: 5px; }
 
@@ -296,125 +379,20 @@
     .hm-slot-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; }
     .hm-slot-red    { background: rgba(220,38,38,0.12);  color: #fca5a5; }
 
-    /* Zone 1 — within cutoff: colored urgency (spec-exact rgba) */
+    /* Zone 1 — within cutoff: colored urgency */
     .hm-empty { background: rgba(220,38,38,0.45); color: #fca5a5; border-radius: 5px; }
     .hm-low   { background: rgba(220,38,38,0.25); color: #fca5a5; border-radius: 5px; }
     .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; border-radius: 5px; }
     .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; border-radius: 5px; }
     .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; border-radius: 5px; }
-    /* Zone 2 — beyond cutoff: muted gray, not urgent */
+    /* Zone 2 — beyond cutoff: muted gray */
     .hm-muted { background: rgba(255,255,255,0.04); color: #2d3748; border-radius: 5px; font-size: 9px; }
     /* Dashed cutoff boundary line */
     .hm-cutoff-col { border-left: 1.5px dashed rgba(99,153,34,0.4) !important; }
+    /* Absent rep cells */
+    .hm-absent-cell { background: rgba(255,255,255,0.03); color: #334155; border-radius: 5px; font-size: 9px; }
     /* Beyond-cutoff header slot pill */
     .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
-
-    /* ── Row 5: M4 cards (72px) ─────────────────────────────────────────────── */
-    #m4-strip {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 7px;
-      padding: 6px 14px;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: visible;
-      align-items: stretch;
-    }
-
-    .m4-card {
-      background: rgba(255,255,255,0.04);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 7px;
-      padding: 7px 12px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 8px;
-      min-height: 68px;
-      overflow: visible;
-    }
-
-    .m4-card-left {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 2px;
-      min-width: 0;
-      overflow: visible;
-    }
-
-    .m4-card-left > * { margin: 0; }
-
-    .m4-card-right {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .m4-horizon-line {
-      display: flex;
-      align-items: baseline;
-      gap: 5px;
-    }
-
-    .m4-horizon {
-      font-size: 11px;
-      font-weight: 700;
-      color: #e2e8f0;
-      white-space: nowrap;
-    }
-
-    .m4-dayrange {
-      font-size: 8.5px;
-      color: #475569;
-      white-space: nowrap;
-    }
-
-    .m4-fill-line {
-      font-size: 8.5px;
-      color: #64748b;
-      white-space: nowrap;
-    }
-
-    .m4-fill-bar-track {
-      height: 3px;
-      width: 100%;
-      background: rgba(255,255,255,0.07);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .m4-fill-bar { height: 100%; border-radius: 2px; }
-
-    .m4-open-num {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .m4-open-num.critical { color: #fca5a5; }
-    .m4-open-num.warn     { color: #fcd34d; }
-    .m4-open-num.good     { color: #86efac; }
-
-    .m4-open-label { font-size: 7.5px; color: #475569; text-align: center; }
-
-    /* Slim inline pill buttons */
-    .m4-badge {
-      display: inline-block !important;
-      width: auto !important;
-      max-width: fit-content !important;
-      border-radius: 4px !important;
-      padding: 2px 8px !important;
-      font-size: 9.5px !important; font-weight: 600;
-      white-space: nowrap;
-      margin: 0 !important;
-      align-self: flex-start !important;
-    }
-    .m4-badge.badge-critical { background: rgba(220,38,38,0.12);  color: #fca5a5; border: 0.5px solid rgba(220,38,38,0.25); }
-    .m4-badge.badge-warn     { background: rgba(245,158,11,0.15); color: #fcd34d; border: 0.5px solid rgba(245,158,11,0.30); }
-    .m4-badge.badge-good     { background: rgba(34,197,94,0.15);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.30); }
-    .m4-badge.badge-beyond   { background: rgba(34,197,94,0.10);  color: #86efac; border: 0.5px solid rgba(34,197,94,0.20); }
 
     /* ── Row 6: M3 full-width table (1fr) ──────────────────────────────────── */
     #m3-row {
@@ -481,11 +459,19 @@
 
     .m3-group-row th { border-bottom: none; }
     .m3-div-30-90    { border-left: 0.5px solid rgba(255,255,255,0.1) !important; }
-    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; text-align: center !important; padding: 4px 12px !important; }
+    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; text-align: center !important; padding: 4px 8px !important; }
 
     .rate-high { color: #22c55e; font-weight: 700; }
     .rate-mid  { color: #f59e0b; font-weight: 700; }
     .rate-low  { color: #ef4444; font-weight: 700; }
+
+    /* M3 funnel pill badges */
+    .m3-pill-blue  { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .m3-pill-teal  { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(20,184,166,0.2); color: #5eead4; }
+    .m3-pill-green { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(34,197,94,0.2); color: #86efac; }
+    .m3-true-green { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(34,197,94,0.2); color: #86efac; }
+    .m3-true-amber { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(245,158,11,0.2); color: #fcd34d; }
+    .m3-true-red   { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(220,38,38,0.2); color: #fca5a5; }
 
     #m3-sanity {
       padding: 3px 0;
@@ -570,13 +556,13 @@
   </div>
 </header>
 
-<!-- ── Row 2: Glance bar (30px) ─────────────────────────────────────────────── -->
+<!-- ── Row 2: Glance bar (28px) ─────────────────────────────────────────────── -->
 <div id="glance-bar">
   <span class="gb-title">This Week</span>
   <span id="wg-content" style="display:contents"></span>
 </div>
 
-<!-- ── Row 3: M1 bar chart (110px) ──────────────────────────────────────────── -->
+<!-- ── Row 3: M1 bar chart (100px) ──────────────────────────────────────────── -->
 <div id="m1-row">
   <div id="m1-label">
     <span class="badge-m">M1</span>
@@ -584,14 +570,41 @@
   <div id="m1-chart-wrap"><div id="m1-vbars"></div></div>
 </div>
 
-<!-- ── Row 4: M2 heatmap (190px) ────────────────────────────────────────────── -->
+<!-- ── Row 4: Pipeline Runway card (auto) ───────────────────────────────────── -->
+<div id="runway-card">
+  <div id="runway-left">
+    <div class="rw-title-row">
+      <span class="rw-title">Pipeline runway</span>
+    </div>
+    <div id="rw-sub1" class="rw-sub">Loading…</div>
+    <div id="rw-sub2" class="rw-sub"></div>
+    <!-- Zone bar -->
+    <div class="rw-zone-wrap" id="rw-zone-bar">
+      <div class="rw-zone-seg rw-zone-green" style="width:50%">3–6 days · healthy</div>
+      <div class="rw-zone-seg rw-zone-amber" style="width:25%">6–9 · watch</div>
+      <div class="rw-zone-seg rw-zone-red"   style="width:25%">9+ · overbooked</div>
+      <div class="rw-needle" id="rw-needle" style="left:0%"></div>
+    </div>
+    <!-- 4 stat tiles -->
+    <div class="rw-tiles" id="rw-tiles">
+      <div class="rw-tile"><div class="rw-tile-label">Avg booked/day</div><div class="rw-tile-val" id="rw-t-avg">—</div></div>
+      <div class="rw-tile"><div class="rw-tile-label">Raw open slots</div><div class="rw-tile-val" id="rw-t-raw">—</div></div>
+      <div class="rw-tile"><div class="rw-tile-label">Absence-adj. slots</div><div class="rw-tile-val" id="rw-t-adj">—</div></div>
+      <div class="rw-tile"><div class="rw-tile-label">Active reps</div><div class="rw-tile-val" id="rw-t-reps">—</div><div class="rw-tile-sub" id="rw-t-reps-sub"></div></div>
+    </div>
+  </div>
+  <div id="runway-right">
+    <span class="rw-big-label">Days out</span>
+    <span id="rw-big-num">—</span>
+    <span class="rw-big-unit">biz days</span>
+  </div>
+</div>
+
+<!-- ── Row 5: M2 heatmap ─────────────────────────────────────────────────────── -->
 <div id="m2-row">
   <div class="row-hdr" id="m2-row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
   <div id="m2-heatmap"></div>
 </div>
-
-<!-- ── Row 5: M4 cards (72px) ───────────────────────────────────────────────── -->
-<div id="m4-strip"></div>
 
 <!-- ── Row 6: M3 full-width table (1fr) ─────────────────────────────────────── -->
 <div id="m3-row">
@@ -603,12 +616,14 @@
           <th rowspan="2" style="width:88px;vertical-align:bottom">Days Out</th>
           <th colspan="5" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
           <th colspan="4" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
-          <th class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">Funnel 90d</th>
+          <th colspan="3" class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">90d funnel</th>
         </tr>
         <tr>
           <th>Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th><th>Trend</th>
           <th class="m3-div-30-90">Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th>
-          <th class="m3-div-funnel" style="white-space:nowrap;text-align:center">Mtgs → Props → Closes · True rate</th>
+          <th class="m3-div-funnel" style="text-align:center">Mtgs</th>
+          <th style="text-align:center">Props · Closes</th>
+          <th style="text-align:center;white-space:nowrap">True rate</th>
         </tr>
       </thead>
       <tbody id="m3-combined-table"></tbody>
@@ -679,6 +694,11 @@ function render(data) {
   const optimalCutoff = (data.module3.bookingRec && data.module3.bookingRec.optimalCutoff > 0)
     ? data.module3.bookingRec.optimalCutoff : 0;
 
+  // Runway data
+  const rw = data.runway || {};
+  const repStatusMap = {};
+  (rw.perRepStatus || []).forEach(r => { repStatusMap[r.name] = r; });
+
   // ── Glance bar ───────────────────────────────────────────────────────────
   const days      = data.module1.days;
   const todayStr  = data.todayStr;
@@ -741,6 +761,41 @@ function render(data) {
   document.getElementById('m1-vbars').innerHTML =
     `<div class="vbar-chart">${vbarsHtml}</div>`;
 
+  // ── Pipeline Runway card ─────────────────────────────────────────────────
+  (function renderRunway() {
+    if (!rw || typeof rw.daysBookedOut === 'undefined') return;
+
+    const dbo = rw.daysBookedOut;
+    const numEl = document.getElementById('rw-big-num');
+    const color = dbo <= 6 ? '#22c55e' : dbo <= 9 ? '#fcd34d' : '#fca5a5';
+    if (numEl) { numEl.textContent = dbo === 99 ? '∞' : dbo; numEl.style.color = color; }
+
+    // Subtitle lines
+    const sub1 = document.getElementById('rw-sub1');
+    const sub2 = document.getElementById('rw-sub2');
+    if (sub1) sub1.textContent = `Team booked ${rw.teamAvgPerDay}/day avg over last 3 business days`;
+    if (sub2) {
+      const absentNote = rw.absentReps && rw.absentReps.length
+        ? ` · absent: ${rw.absentReps.join(', ')}`
+        : '';
+      sub2.textContent = `Simulating against ${rw.absenceAdjustedSlots} absence-adjusted open slots${absentNote}`;
+    }
+
+    // Needle position: scale 0-12 days → 0-100%
+    const MAX_SCALE = 12;
+    const needlePct = Math.min(100, (Math.min(dbo, MAX_SCALE) / MAX_SCALE) * 100);
+    const needle = document.getElementById('rw-needle');
+    if (needle) needle.style.left = needlePct + '%';
+
+    // Tiles
+    document.getElementById('rw-t-avg').textContent  = rw.teamAvgPerDay;
+    document.getElementById('rw-t-raw').textContent  = rw.rawOpenSlots;
+    document.getElementById('rw-t-adj').textContent  = rw.absenceAdjustedSlots;
+    document.getElementById('rw-t-reps').textContent = rw.activeReps + '/' + rw.totalReps;
+    const absentCount = (rw.absentReps || []).length;
+    document.getElementById('rw-t-reps-sub').textContent = absentCount > 0 ? `${absentCount} absent` : 'all active';
+  })();
+
   // ── Module 2 — Heat Map ──────────────────────────────────────────────────
   function hmCellClass(pct) {
     if (pct === 0)  return 'hm-empty';
@@ -753,16 +808,13 @@ function render(data) {
   (function renderHeatMap() {
     const container = document.getElementById('m2-heatmap');
     const reps      = data.module2.reps;
-    const days      = data.module1.days;
-
-    console.log(`M2: Rendering ${reps.length} Outbound Direct reps: ${reps.map(r => r.name).join(', ')}`);
+    const dayList   = data.module1.days;
 
     if (!reps.length) {
       container.innerHTML = '<div style="padding:8px;color:#64748b;font-size:11px">No Outbound Direct reps found</div>';
       return;
     }
 
-    // Update section header with cutoff note
     const rowHdr = document.getElementById('m2-row-hdr');
     if (rowHdr) {
       rowHdr.textContent = optimalCutoff > 0
@@ -770,20 +822,33 @@ function render(data) {
         : 'M2 · Rep Capacity Heat Map · Next 10 Days';
     }
 
-    // Per-day team totals for slot pills
-    const dayTotals = days.map((day, i) => {
+    // Per-day team totals for slot pills (absence-adjusted)
+    const dayTotals = dayList.map((day, i) => {
       if (day.isWeekend) return null;
-      const totalCap    = reps.reduce((s, r) => s + r.maxPerDay, 0);
-      const totalBooked = reps.reduce((s, r) => s + (r.days[i] ? r.days[i].booked : 0), 0);
-      const open        = Math.max(0, totalCap - totalBooked);
-      const openPct     = totalCap > 0 ? (open / totalCap) * 100 : 0;
+      let totalCap    = 0;
+      let totalBooked = 0;
+      for (const rep of reps) {
+        const rs = repStatusMap[rep.name];
+        const isAbsent = rs && rs.status === 'absent';
+        const noCallDay = rs && rs.status === 'nocall' && rs.noCallWeekday;
+        const d = new Date(day.date + 'T12:00:00');
+        const dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const isNoCallDay = noCallDay && dayNames2[d.getDay()] === rs.noCallWeekday;
+
+        if (!isAbsent && !isNoCallDay) {
+          totalCap += rep.maxPerDay;
+        }
+        totalBooked += rep.days[i] ? rep.days[i].booked : 0;
+      }
+      const open    = Math.max(0, totalCap - totalBooked);
+      const openPct = totalCap > 0 ? (open / totalCap) * 100 : 0;
       return { totalCap, totalBooked, open, openPct };
     });
 
-    const headerCols = days.map((d, i) => {
+    const headerCols = dayList.map((d, i) => {
       const isToday   = d.date === todayStr;
       const beyond    = optimalCutoff > 0 && i >= optimalCutoff;
-      const isCutoff  = optimalCutoff > 0 && i === optimalCutoff; // first beyond col
+      const isCutoff  = optimalCutoff > 0 && i === optimalCutoff;
 
       const todayLabel = isToday ? `<div style="color:#60a5fa;font-weight:700;font-size:8px">TODAY</div>` : '';
 
@@ -794,8 +859,7 @@ function render(data) {
           slotPill = `<div><span class="hm-slot-muted">${dt.open} open</span></div>`;
         } else {
           const pillCls = dt.openPct > 50 ? 'hm-slot-green' : dt.openPct > 20 ? 'hm-slot-amber' : 'hm-slot-red';
-          const label   = dt.openPct > 50 ? `${dt.open} left` : dt.openPct > 20 ? `${dt.open} left` : `${dt.open} left`;
-          slotPill = `<div><span class="hm-slot-pill ${pillCls}">${label}</span></div>`;
+          slotPill = `<div><span class="hm-slot-pill ${pillCls}">${dt.open} left</span></div>`;
         }
       } else if (d.isWeekend) {
         slotPill = `<div style="font-size:8px;color:#2d3748">—</div>`;
@@ -811,21 +875,44 @@ function render(data) {
 
     // Next 5 weekday indices starting from tomorrow (index 1)
     const next5Idxs = [];
-    for (let i = 1; i < days.length && next5Idxs.length < 5; i++) {
-      if (!days[i].isWeekend) next5Idxs.push(i);
+    for (let i = 1; i < dayList.length && next5Idxs.length < 5; i++) {
+      if (!dayList[i].isWeekend) next5Idxs.push(i);
     }
 
+    const dayNamesArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
     const repRows = reps.map(rep => {
+      const rs       = repStatusMap[rep.name];
+      const isAbsent = rs && rs.status === 'absent';
+      const isNocall = rs && rs.status === 'nocall';
+      const rowOpacity = isAbsent ? 'opacity:0.6;' : '';
+
       const cells = rep.days.map((d, i) => {
-        const day      = days[i];
+        const day      = dayList[i];
         const isToday  = day.date === todayStr;
         const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
         const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
         const todayCls = isToday ? ' today-col' : '';
-
         const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
 
         if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}color:#2d3748;font-size:9px">—</td>`;
+
+        // Absent rep: future days show as gray cells
+        if (isAbsent && day.date > todayStr) {
+          return `<td class="hm-cell hm-absent-cell${todayCls}" style="${cutBorder}">
+            <div style="line-height:1.2;color:#2d3748">0/${rep.maxPerDay}</div>
+          </td>`;
+        }
+
+        // No-call rep on their off-day: gray
+        if (isNocall && rs.noCallWeekday) {
+          const dd = new Date(day.date + 'T12:00:00');
+          if (dayNamesArr[dd.getDay()] === rs.noCallWeekday && day.date > todayStr) {
+            return `<td class="hm-cell hm-absent-cell${todayCls}" style="${cutBorder}">
+              <div style="line-height:1.2;color:#2d3748">—</div>
+            </td>`;
+          }
+        }
 
         if (beyond) {
           return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}">
@@ -844,10 +931,23 @@ function render(data) {
       const n5Cap    = rep.maxPerDay * next5Idxs.length;
       const p        = n5Cap > 0 ? Math.round((n5Booked / n5Cap) * 100) : 0;
       const totalColor = p >= 80 ? '#22c55e' : p >= 50 ? '#84cc16' : p >= 30 ? '#f59e0b' : '#ef4444';
-      return `<tr>
+
+      // Status tag
+      let statusTag;
+      if (isAbsent) {
+        statusTag = `<span style="color:#64748b;font-size:8px">Out · 0/d</span>`;
+      } else if (isNocall && rs.noCallWeekday) {
+        statusTag = `<span style="color:#60a5fa;font-size:8px">No-call ${rs.noCallWeekday.slice(0,3)}</span>`;
+      } else {
+        const avg = rs ? rs.avgPerDay : '—';
+        statusTag = `<span style="color:#22c55e;font-size:8px">Active · ${avg}/d</span>`;
+      }
+
+      return `<tr style="${rowOpacity}">
         <td class="rep-name">${rep.name}</td>
         ${cells}
         <td class="hm-total-col" style="color:${totalColor}"><strong>${p}%</strong></td>
+        <td class="hm-status-col">${statusTag}</td>
       </tr>`;
     }).join('');
 
@@ -858,6 +958,7 @@ function render(data) {
             <th class="rep-col">Rep</th>
             ${headerCols}
             <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">next 5 days</span></th>
+            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px;text-align:left;padding-left:6px">Status</th>
           </tr>
         </thead>
         <tbody>${repRows}</tbody>
@@ -878,12 +979,13 @@ function render(data) {
   function adjustM2Height() {
     const table  = document.querySelector('#m2-heatmap .heatmap-table');
     const hdr    = document.getElementById('m2-row-hdr');
+    const runway = document.getElementById('runway-card');
     if (!table || !hdr) return;
-    const measured  = table.scrollHeight + hdr.scrollHeight + 16;
-    const maxM2     = Math.floor(window.innerHeight * 0.40); // M2 ≤ 40% of viewport
-    const m2Height  = Math.min(maxM2, Math.max(200, measured));
-    document.body.style.gridTemplateRows = `48px 28px 100px ${m2Height}px 72px 1fr`;
-    // After M2 is sized, let M3 rows fill the rest
+    const measured     = table.scrollHeight + hdr.scrollHeight + 16;
+    const maxM2        = Math.floor(window.innerHeight * 0.38);
+    const m2Height     = Math.min(maxM2, Math.max(180, measured));
+    const runwayHeight = runway ? runway.scrollHeight : 0;
+    document.body.style.gridTemplateRows = `48px 28px 100px ${runwayHeight}px ${m2Height}px 1fr`;
     setTimeout(expandM3Rows, 50);
   }
 
@@ -899,7 +1001,7 @@ function render(data) {
       - (hdr   ? hdr.offsetHeight  : 0)
       - (foot  ? foot.offsetHeight : 0)
       - thead.offsetHeight
-      - 10; // small buffer
+      - 10;
 
     const rows = document.querySelectorAll('#m3-combined-table tr');
     if (!rows.length || available <= 0) return;
@@ -919,112 +1021,86 @@ function render(data) {
   setTimeout(adjustM2Height, 100);
   window.addEventListener('resize', () => { adjustM2Height(); });
 
-  // ── Header booking pill ──────────────────────────────────────────────────
+  // ── Header booking pill (Book Today) ────────────────────────────────────
   (function renderBookingPill() {
     const rec       = data.module3.bookingRec;
     const pill      = document.getElementById('header-book-pill');
     const pillCount = document.getElementById('pill-count');
     const pillDetail= document.getElementById('pill-detail');
-    if (!pill || !rec) return;
+    if (!pill) return;
 
-    if (!rec || rec.optimalCutoff === 0) {
+    // Book Today = runway.bookTodayCount
+    const bookToday = rw && typeof rw.bookTodayCount !== 'undefined' ? rw.bookTodayCount : null;
+
+    // Best day out: from bookingRec.bestDaysOut (already capped to 3d+ min in server)
+    const bestOut  = rec && rec.bestDaysOut  >= 3 ? rec.bestDaysOut  : null;
+    const bestHit  = rec && rec.bestHitRate  || 0;
+    const bestClose= rec && rec.bestCloseRate || 0;
+
+    if (bookToday === null) {
       pillCount.textContent = '—';
-      pillDetail.innerHTML  = 'No clear booking window — hit rates below 15% across all days out';
-      pill.style.visibility = 'visible';
-      return;
+      pillDetail.innerHTML  = 'Calculating…';
+    } else if (bookToday === 0) {
+      pillCount.textContent = '✓';
+      pillDetail.innerHTML  = `Pipeline healthy — 6-day window fully covered`
+        + (bestOut ? ` &nbsp;·&nbsp; Best: <strong>${bestOut}d out</strong> — ${bestHit}% proposal` : '');
+    } else {
+      pillCount.textContent = bookToday;
+      pillDetail.innerHTML  = `To stay in green zone (&le;6 days runway)`
+        + (bestOut ? ` &nbsp;·&nbsp; Best: <strong>${bestOut} day${bestOut > 1 ? 's' : ''} out</strong> — ${bestHit}% proposal · ${bestClose}% close` : '');
     }
-
-    const allFull = rec.meetingsToBook === 0;
-    pillCount.textContent = allFull ? '✓' : rec.meetingsToBook;
-    pillDetail.innerHTML  = allFull
-      ? `All slots filled through day ${rec.optimalCutoff}`
-      : `Next <strong>${rec.optimalCutoff} days</strong> (${rec.windowStr})`
-        + ` &nbsp;·&nbsp; Best: <strong>${rec.bestDaysOut} day${rec.bestDaysOut > 1 ? 's' : ''} out</strong>`
-        + ` — ${rec.bestHitRate}% proposal · ${rec.bestCloseRate}% close`;
     pill.style.visibility = 'visible';
   })();
 
-  // ── Module 4 — 4 horizontal cards ───────────────────────────────────────
-  const m4strip = document.getElementById('m4-strip');
-  const m4rows  = data.module4.meetingsNeeded.filter(r => [2, 5, 7, 10].includes(r.horizon));
-
-  m4strip.innerHTML = [m4rows.map(r => {
-    const isFull    = r.openSlots <= 0;
-    const bookedPct = r.totalCapacity > 0 ? Math.round((r.totalBooked / r.totalCapacity) * 100) : 0;
-    const openPct   = r.totalCapacity > 0 ? (r.openSlots / r.totalCapacity) * 100 : 0;
-    const fillBarClr = isFull ? '#22c55e' : '#3b82f6';
-
-    const isBeyond  = optimalCutoff > 0 && r.horizon > optimalCutoff;
-    const slotsCls  = isFull ? 'good' : isBeyond ? '' : openPct > 50 ? 'critical' : openPct > 20 ? 'warn' : 'good';
-    const slotsNumColor = isBeyond ? '#475569' : '';
-    const slotsNum  = isFull ? '✓' : (r.openSlots < 0 ? '⚠' + Math.abs(r.openSlots) : r.openSlots);
-
-    let badgeHtml;
-    if (isBeyond)              badgeHtml = `<span class="m4-badge badge-beyond">beyond cutoff</span>`;
-    else if (r.openSlots <= 0) badgeHtml = `<span class="m4-badge badge-good">✅ Full</span>`;
-    else if (openPct < 30)     badgeHtml = `<span class="m4-badge badge-warn">⚠️ Book ${r.openSlots}</span>`;
-    else if (openPct <= 60)    badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
-    else                       badgeHtml = `<span class="m4-badge badge-critical">🔴 Book ${r.openSlots}</span>`;
-
-    const wkTag = r.hasWeekend
-      ? ` <span style="font-size:7.5px;color:#475569;background:rgba(139,148,158,.1);border:0.5px solid rgba(139,148,158,.2);border-radius:8px;padding:1px 4px">+wknd</span>` : '';
-
-    return `<div class="m4-card">
-      <div class="m4-card-left">
-        <div class="m4-horizon-line">
-          <span class="m4-horizon">Next ${r.horizon}d${wkTag}</span>
-          <span class="m4-dayrange">${r.firstDayName}–${r.lastDayName}</span>
-        </div>
-        <div class="m4-fill-line">${r.totalBooked}/${r.totalCapacity} filled &nbsp;<strong style="color:#e2e8f0">${bookedPct}%</strong></div>
-        <div class="m4-fill-bar-track"><div class="m4-fill-bar" style="width:${Math.min(100,bookedPct)}%;background:${fillBarClr}"></div></div>
-        ${badgeHtml}
-      </div>
-      <div class="m4-card-right">
-        <div class="m4-open-num ${slotsCls}" style="${slotsNumColor ? `color:${slotsNumColor}` : ''}">${slotsNum}</div>
-        <div class="m4-open-label">open slots</div>
-      </div>
-    </div>`;
-  }).join(''), `<div class="kpi-card accent-rose" id="card-showrate">
-    <div class="kpi-label">DEAL BOTS FILLED</div>
-    <div class="kpi-value" id="k-showrate-pct" style="color:#22c55e;">--%</div>
-    <div class="kpi-sub" id="k-showrate-sub" style="white-space:nowrap;">loading...</div>
-  </div>`].join('');
-
-  // Show Rate Today
-  const srTotal    = data.showRateTotal    || 0;
-  const srHappened = data.showRateHappened || 0;
-  const srPending  = srTotal - srHappened;
-  const srPct      = srTotal > 0 ? Math.round(srHappened / srTotal * 100) : null;
-  const srPctEl    = document.getElementById('k-showrate-pct');
-  const srSubEl    = document.getElementById('k-showrate-sub');
-  if (srPctEl) {
-    srPctEl.textContent = srPct !== null ? srPct + '%' : '--%';
-    srPctEl.style.color = srPct === null ? '#6b7280'
-      : srPct >= 70 ? '#22c55e'
-      : srPct >= 50 ? '#f59e0b' : '#ef4444';
-  }
-  if (srSubEl) {
-    srSubEl.textContent = srTotal > 0
-      ? srHappened + ' of ' + srTotal + ' updated · ' + srPending + ' pending'
-      : 'No meetings today';
-  }
-
-  // ── Module 3 — 30d + 90d + Funnel table ─────────────────────────────────
+  // ── Module 3 — 30d + 90d + redesigned funnel columns ────────────────────
   (function renderCombinedHitTable() {
     const b30   = data.module3.hitRate30;
     const b90   = data.module3.hitRate90;
     const rec   = data.module3.bookingRec;
     const tbody = document.getElementById('m3-combined-table');
 
-    tbody.innerHTML = b30.map((b, i) => {
+    // ── Detect caution line: peak at 3d+ then 5pp drop that doesn't recover ──
+    let peakIdx        = -1;
+    let peakRate       = -1;
+    let cautionInsertAfterIdx = -1; // insert caution row after this row index
+
+    for (let i = 0; i < b90.length; i++) {
+      const b = b90[i];
+      if (b.daysOut >= 3 && b.total > 0 && b.hitRate > peakRate) {
+        peakRate = b.hitRate;
+        peakIdx  = i;
+      }
+    }
+
+    if (peakIdx >= 0 && peakRate > 0) {
+      // Find first row after peak where rate drops 5+ pp AND next row doesn't recover
+      for (let i = peakIdx + 1; i < b90.length - 1; i++) {
+        const dropPP   = peakRate - b90[i].hitRate;
+        const nextPP   = peakRate - b90[i + 1].hitRate;
+        if (dropPP >= 5 && nextPP >= 5) {
+          cautionInsertAfterIdx = peakIdx; // insert caution after peak row
+          break;
+        }
+      }
+    }
+
+    // Track drop rates for caution text
+    const cautionDropFrom = peakRate;
+    const cautionDropTo   = cautionInsertAfterIdx >= 0 && peakIdx + 1 < b90.length
+      ? b90[peakIdx + 1].hitRate : 0;
+
+    let rowsHtml = '';
+    let cautionInjected = false;
+
+    b30.forEach((b, i) => {
       const c = b90[i];
       const isCutoff  = rec && b.daysOut === rec.optimalCutoff && rec.optimalCutoff > 0;
-      const isDropoff = rec && rec.optimalCutoff > 0 && b.daysOut > rec.optimalCutoff;
-      const isBest    = rec && b.daysOut === rec.bestDaysOut && b.total > 0 && !isDropoff;
+      const isPeak    = i === peakIdx && cautionInsertAfterIdx >= 0;
+      const isBelowCaution = cautionInsertAfterIdx >= 0 && i > cautionInsertAfterIdx;
 
-      const rowStyle  = isDropoff ? 'background:rgba(220,38,38,0.04);'
-                      : isBest    ? 'background:rgba(99,153,34,0.07);' : '';
-      const rowBorder = isCutoff  ? 'border-bottom:2px dashed rgba(34,197,94,.4);' : '';
+      const rowOpacity = isBelowCaution ? 'opacity:0.65;' : '';
+      const rowBg      = isPeak ? 'background:rgba(34,197,94,0.07);' : '';
+      const rowBorder  = isCutoff ? 'border-bottom:2px dashed rgba(34,197,94,.4);' : '';
 
       const daysLabel = `${b.daysOut}d out`;
       let daysOutCell;
@@ -1032,12 +1108,9 @@ function render(data) {
         daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px">
           <span>${daysLabel}</span> <span style="color:#86efac;font-weight:700">◀ cutoff</span>
         </td>`;
-      } else if (isDropoff) {
-        daysOutCell = `<td style="padding:2px 6px;font-size:10px;min-width:90px;max-width:110px;opacity:.6">
-          <span>${daysLabel}</span> <span style="color:#475569;font-size:8.5px">· drop-off</span>
-        </td>`;
       } else {
-        daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${isBest ? ' <span style="font-size:9px;color:#22c55e">★</span>' : ''}</td>`;
+        const peakLabel = isPeak ? ' <span style="font-size:8px;color:#22c55e;font-weight:700">↑ peak</span>' : '';
+        daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${peakLabel}</td>`;
       }
 
       const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
@@ -1054,6 +1127,7 @@ function render(data) {
         return `<span class="${cls}" style="${color}"${title}>${label}</span>${asterisk}`;
       }
 
+      // Trend: 30d vs 90d hit rate comparison
       const diff = b.hitRate - c.hitRate;
       let trendHtml;
       if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
@@ -1064,25 +1138,31 @@ function render(data) {
         trendHtml = `<span style="color:#ef4444">▼ ${diff}%</span>`;
       }
 
-      // Funnel: 90d meetings → proposals → closes · True rate (hit% × close%)
-      const closesColor   = c.closeRate >= 15 ? '#22c55e' : c.closeRate >= 10 ? '#f59e0b' : '#ef4444';
-      const trueRate      = c.total > 0 && c.proposals > 0
-        ? ((c.hitRate / 100) * (c.closeRate / 100) * 100).toFixed(1)
-        : null;
-      const trueRateHtml  = trueRate !== null
-        ? ` <span style="color:#8b5cf6;font-weight:600">${trueRate}%</span>`
-        : '';
+      // New funnel columns (90d)
+      const mtgsBadge = c.total === 0
+        ? '<span style="color:#334155">—</span>'
+        : `<span class="m3-pill-blue">${c.total}</span>`;
 
-      const funnelHtml = c.total === 0 ? '<span style="color:#334155">—</span>'
-        : `<span style="color:#475569">${c.total}</span>`
-        + `<span style="color:#2d3748"> → </span>`
-        + `<span style="color:#475569">${c.proposals}</span>`
-        + `<span style="color:#2d3748"> → </span>`
-        + `<span style="color:${c.closes > 0 ? closesColor : '#334155'}">${c.closes}</span>`
-        + (trueRateHtml ? ` ·${trueRateHtml}` : '');
+      const propClosesBadge = c.total === 0
+        ? '<span style="color:#334155">—</span>'
+        : `<span class="m3-pill-teal">${c.proposals}</span> <span class="m3-pill-green">${c.closes}</span>`;
+
+      const trueRateNum = (c.total > 0 && c.proposals > 0)
+        ? ((c.hitRate / 100) * (c.closeRate / 100) * 100)
+        : null;
+      let trueRateBadge;
+      if (trueRateNum === null) {
+        trueRateBadge = '<span style="color:#334155">—</span>';
+      } else if (trueRateNum >= 4) {
+        trueRateBadge = `<span class="m3-true-green">${trueRateNum.toFixed(1)}%</span>`;
+      } else if (trueRateNum >= 2) {
+        trueRateBadge = `<span class="m3-true-amber">${trueRateNum.toFixed(1)}%</span>`;
+      } else {
+        trueRateBadge = `<span class="m3-true-red">${trueRateNum.toFixed(1)}%</span>`;
+      }
 
       const m = 'color:#2d3748';
-      return `<tr style="${rowStyle}${rowBorder}">
+      rowsHtml += `<tr style="${rowOpacity}${rowBg}${rowBorder}">
         ${daysOutCell}
         <td>${b.total}</td>
         <td>${b.proposals}</td>
@@ -1093,9 +1173,24 @@ function render(data) {
         <td style="${m}">${c.proposals}</td>
         <td>${rate90}</td>
         <td>${closeRateCell(c)}</td>
-        <td class="m3-div-funnel" style="white-space:nowrap;font-size:10px;text-align:center;padding:4px 12px">${funnelHtml}</td>
+        <td class="m3-div-funnel" style="text-align:center">${mtgsBadge}</td>
+        <td style="text-align:center">${propClosesBadge}</td>
+        <td style="text-align:center">${trueRateBadge}</td>
       </tr>`;
-    }).join('');
+
+      // Inject caution row after peak row
+      if (cautionInsertAfterIdx >= 0 && i === cautionInsertAfterIdx && !cautionInjected) {
+        cautionInjected = true;
+        rowsHtml += `<tr style="border-top:1.5px dashed #f59e0b;border-bottom:1.5px dashed #f59e0b;background:rgba(245,158,11,0.07)">
+          <td colspan="13" style="padding:3px 12px;font-size:9px;color:#f59e0b">
+            ⚠ Conversion falls off beyond this point — 90d hit rate drops from ${cautionDropFrom}% → ${cautionDropTo}%
+            <span style="float:right;color:#475569;font-size:8px">auto-detected · updates every 60s</span>
+          </td>
+        </tr>`;
+      }
+    });
+
+    tbody.innerHTML = rowsHtml;
 
     const s       = data.module3.sanity30;
     const sanityEl = document.getElementById('m3-sanity');

@@ -74,6 +74,19 @@ function daysBetween(dateA, dateB) {
   return Math.floor((dateA - dateB) / msPerDay);
 }
 
+// Returns last N completed business days before refDate, newest first
+function getLastNBusinessDays(n, refDate) {
+  const days = [];
+  let d = new Date(refDate);
+  while (days.length < n) {
+    d = new Date(d);
+    d.setDate(d.getDate() - 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) days.push(toDateStr(d));
+  }
+  return days;
+}
+
 async function buildDashboardData() {
   // Fetch both tables in parallel (reps may be in a different base)
   const [meetingRecords, repRecords] = await Promise.all([
@@ -278,10 +291,10 @@ async function buildDashboardData() {
     optimalCutoff = hitRate30[sustainedDropIdx - 1].daysOut;
   }
 
-  // Best hit rate row (for banner callout) — from 30d data only
-  let bestHitRateRow = hitRate30[0];
-  for (const b of hitRate30) {
-    if (b.hitRate > bestHitRateRow.hitRate) bestHitRateRow = b;
+  // Best hit rate row — 90d data, minimum 3d out (never show 1d or 2d as best)
+  let bestHitRateRow = hitRate90.find(b => b.daysOut >= 3 && b.total > 0) || hitRate90[2];
+  for (const b of hitRate90) {
+    if (b.daysOut >= 3 && b.total > 0 && b.hitRate > bestHitRateRow.hitRate) bestHitRateRow = b;
   }
 
   // Capacity and bookings from day 2 through cutoff (today+1 skipped as unbookable)
@@ -313,48 +326,141 @@ async function buildDashboardData() {
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MODULE 4 — Meetings Needed Today to Fill Future Capacity
+  // RUNWAY & ABSENCE DETECTION
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // For each horizon N (2..10), look at days: today+1 through today+(N-1)
-  // Wait — re-reading: "for the next 2 days" likely means tomorrow + day after
-  // "next N days" = the N days starting from tomorrow
-  const meetingsNeeded = [];
+  // Group meetings by booking date (Airtable record creation time = when call was booked)
+  const bookingsByDateRep = {}; // dateStr -> repName -> count
+  const bookingsByDate    = {}; // dateStr -> total count
 
-  const shortDayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-  for (let n = 2; n <= 10; n++) {
-    let totalCapacity = 0;
-    let totalBooked = 0;
-    let hasWeekend = false;
-    const dayLog = [];
-
-    // Start from day 2 — today (0) and tomorrow (1) are excluded as too close to book
-    for (let i = 2; i <= n; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      const dow = d.getDay();
-      const dStr = toDateStr(d);
-      const isWeekend = dow === 0 || dow === 6;
-      if (isWeekend) hasWeekend = true;
-      const dayBooked = meetings.filter(m => m.scheduledStr === dStr).length;
-      const dayCapacity = isWeekend ? 0 : totalDailyCapacity;
-      totalCapacity += dayCapacity;
-      totalBooked += dayBooked;
-      dayLog.push(`  day${i}: ${dStr} (${shortDayNames[dow]}) cap=${dayCapacity} booked=${dayBooked}`);
-    }
-
-    console.log(`[M4 n=${n}] dates: ${dayLog.map(l => l.trim()).join(' | ')} => cap=${totalCapacity} booked=${totalBooked} open=${totalCapacity - totalBooked}`);
-
-    // First day is day 2 (day after tomorrow), last is day n
-    const firstD = new Date(today); firstD.setDate(today.getDate() + 2);
-    const lastD  = new Date(today); lastD.setDate(today.getDate() + n);
-    const firstDayName = shortDayNames[firstD.getDay()];
-    const lastDayName  = shortDayNames[lastD.getDay()];
-
-    const openSlots = totalCapacity - totalBooked;
-    meetingsNeeded.push({ horizon: n, totalCapacity, totalBooked, openSlots, hasWeekend, firstDayName, lastDayName });
+  for (const m of meetings) {
+    if (!m.createdDate) continue;
+    const bDate = toDateStr(m.createdDate);
+    bookingsByDate[bDate] = (bookingsByDate[bDate] || 0) + 1;
+    if (!bookingsByDateRep[bDate]) bookingsByDateRep[bDate] = {};
+    bookingsByDateRep[bDate][m.rep] = (bookingsByDateRep[bDate][m.rep] || 0) + 1;
   }
+
+  const last5BizDays = getLastNBusinessDays(5, today);
+
+  // Include today in absence check if the team has bookings today already
+  const teamBookingsToday = bookingsByDate[todayStr] || 0;
+  const absenceCheckDays  = teamBookingsToday > 0
+    ? [todayStr, ...last5BizDays]
+    : [...last5BizDays];
+
+  // Per-rep absence flags
+  const repAbsentDays   = {}; // repName -> Set<dateStr>
+  const repStatus       = {}; // repName -> 'active' | 'absent' | 'nocall'
+  const repNoCallWkday  = {}; // repName -> dayName e.g. 'Monday'
+
+  for (const repName of outboundRepNames) {
+    const absent = new Set();
+    for (const date of absenceCheckDays) {
+      const teamTotal = bookingsByDate[date] || 0;
+      const repTotal  = (bookingsByDateRep[date] || {})[repName] || 0;
+      if (teamTotal > 0 && repTotal === 0) absent.add(date);
+    }
+    repAbsentDays[repName] = absent;
+
+    const mostRecent = absenceCheckDays[0];
+    const secondMost = absenceCheckDays[1];
+
+    // If rep booked anything today, restore immediately regardless of prior flags
+    const todayRepBookings = (bookingsByDateRep[todayStr] || {})[repName] || 0;
+    if (todayRepBookings > 0) {
+      repStatus[repName] = 'active';
+    } else if (absent.has(mostRecent) && secondMost && absent.has(secondMost)) {
+      // 2+ consecutive absent days ending on most recent: ABSENT
+      repStatus[repName] = 'absent';
+    } else if (absent.size === 1) {
+      // Exactly one isolated absent day: NO-CALL DAY
+      repStatus[repName] = 'nocall';
+      const absentDateStr = [...absent][0];
+      const dTmp = new Date(absentDateStr + 'T12:00:00');
+      repNoCallWkday[repName] = dayNames[dTmp.getDay()];
+    } else {
+      repStatus[repName] = 'active';
+    }
+  }
+
+  // teamAvgPerDay: bookings by booking date across last 3 completed biz days
+  const last3BizDays = last5BizDays.slice(0, 3);
+  const totalBookingsLast3 = last3BizDays.reduce((s, d) => s + (bookingsByDate[d] || 0), 0);
+  const teamAvgPerDay = Math.round((totalBookingsLast3 / 3) * 10) / 10;
+
+  // Next 10 business days (starting tomorrow)
+  const next10BizDays = [];
+  for (let i = 1; next10BizDays.length < 10; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    if (d.getDay() !== 0 && d.getDay() !== 6) next10BizDays.push(toDateStr(d));
+  }
+
+  function repAvailableOnDate(repName, dateStr) {
+    if (repStatus[repName] === 'absent') return false;
+    if (repStatus[repName] === 'nocall') {
+      const noCallDay = repNoCallWkday[repName];
+      if (noCallDay) {
+        const d = new Date(dateStr + 'T12:00:00');
+        if (dayNames[d.getDay()] === noCallDay) return false;
+      }
+    }
+    return true;
+  }
+
+  let rawOpenSlots = 0;
+  let absenceAdjustedSlots = 0;
+  for (const dateStr of next10BizDays) {
+    for (const repName of outboundRepNames) {
+      const rep       = outboundReps[repName];
+      const repBooked = meetings.filter(m => m.rep === repName && m.scheduledStr === dateStr).length;
+      const rawOpen   = Math.max(0, rep.maxPerDay - repBooked);
+      rawOpenSlots += rawOpen;
+      if (repAvailableOnDate(repName, dateStr)) absenceAdjustedSlots += rawOpen;
+    }
+  }
+
+  // daysBookedOut: business days until all absence-adjusted open slots are filled at current avg
+  let daysBookedOut = 0;
+  if (teamAvgPerDay > 0 && absenceAdjustedSlots > 0) {
+    daysBookedOut = Math.ceil(absenceAdjustedSlots / teamAvgPerDay);
+  } else if (teamAvgPerDay === 0 && absenceAdjustedSlots > 0) {
+    daysBookedOut = 99;
+  }
+
+  // Book Today count: meetings to book today to stay in green zone (≤6 days runway)
+  const next6BizDays = next10BizDays.slice(0, 6);
+  const bookedInNext6 = next6BizDays.reduce(
+    (s, dateStr) => s + meetings.filter(m => m.scheduledStr === dateStr).length,
+    0
+  );
+  const bookTodayCount = Math.max(0, Math.round(6 * teamAvgPerDay) - bookedInNext6);
+
+  const absentRepNames = [];
+  const perRepStatus = Object.values(outboundReps).map(rep => {
+    const status  = repStatus[rep.name] || 'active';
+    const last3Bk = last3BizDays.reduce((s, d) => s + ((bookingsByDateRep[d] || {})[rep.name] || 0), 0);
+    if (status === 'absent') absentRepNames.push(rep.name);
+    return {
+      name: rep.name,
+      status,
+      avgPerDay: Math.round((last3Bk / 3) * 10) / 10,
+      noCallWeekday: repNoCallWkday[rep.name] || null,
+    };
+  });
+
+  const runway = {
+    teamAvgPerDay,
+    absenceAdjustedSlots,
+    rawOpenSlots,
+    daysBookedOut,
+    activeReps:  perRepStatus.filter(r => r.status === 'active').length,
+    totalReps:   Object.keys(outboundReps).length,
+    absentReps:  absentRepNames,
+    perRepStatus,
+    bookTodayCount,
+    bookedInNext6,
+  };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MODULE 5 — This Week at a Glance (Mon–Fri of current week)
@@ -411,7 +517,7 @@ async function buildDashboardData() {
     module1: { days: days10 },
     module2: { reps: repBreakdown },
     module3: { hitRate30, hitRate90, bookingRec, sanity30: { ...sanity30, blendedCloseRate: parseFloat(sanityBlended) } },
-    module4: { meetingsNeeded },
+    runway,
     showRateTotal,
     showRateHappened,
   };
@@ -464,6 +570,20 @@ app.get('/api/data', async (req, res) => {
     ...cache.data,
     cacheAge: cache.lastFetched ? Math.round((Date.now() - cache.lastFetched) / 1000) : null,
     error: cache.error || null
+  });
+});
+
+app.get('/api/runway', (req, res) => {
+  if (cache.error && !cache.data) {
+    return res.status(500).json({ error: cache.error });
+  }
+  if (!cache.data || !cache.data.runway) {
+    return res.status(503).json({ error: 'Runway data not yet available' });
+  }
+  res.json({
+    ...cache.data.runway,
+    generatedAt: cache.data.generatedAt,
+    cacheAge: cache.lastFetched ? Math.round((Date.now() - cache.lastFetched) / 1000) : null,
   });
 });
 
