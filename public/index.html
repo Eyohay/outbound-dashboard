@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px 100px auto minmax(200px, auto) 1fr;
+      grid-template-rows: 48px 28px auto minmax(200px, auto) 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -169,126 +169,7 @@
     .wg-item { flex-shrink: 0; }
     .wg-week { margin-left: auto; font-size: 10px; color: #334155; flex-shrink: 0; padding-left: 14px; }
 
-    /* ── Row 3: M1 bar chart (100px) ───────────────────────────────────────── */
-    #m1-row {
-      display: grid;
-      grid-template-columns: 56px 1fr;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    #m1-label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
-      border-right: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      gap: 3px;
-    }
-
-    .badge-m {
-      display: inline-flex;
-      align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.05);
-      border: 0.5px solid rgba(255,255,255,0.1);
-      border-radius: 5px;
-      padding: 2px 6px;
-      font-size: 9px; font-weight: 700; color: #64748b;
-      letter-spacing: .05em;
-    }
-
-    .m1-sub {
-      font-size: 7px; font-weight: 500; text-transform: uppercase;
-      letter-spacing: .05em; color: #334155; line-height: 1.3;
-      text-align: center;
-    }
-
-    #m1-chart-wrap {
-      padding: 4px 10px 4px 4px;
-      position: relative;
-      min-height: 0;
-      overflow: hidden;
-      display: flex;
-      align-items: stretch;
-    }
-    #m1-vbars { flex: 1; min-height: 0; display: flex; align-items: stretch; }
-
-    /* ── Vertical bar chart (M1) ─────────────────────────────────────────── */
-    .vbar-chart {
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      width: 100%;
-      height: 100%;
-    }
-    .vbar-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      height: 100%;
-      position: relative;
-    }
-    .vbar-track {
-      flex: 1;
-      width: 100%;
-      background: rgba(255,255,255,0.06);
-      border-radius: 6px !important;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      overflow: hidden;
-      min-height: 0;
-    }
-    .vbar-fill {
-      width: 100%;
-      border-radius: 6px !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 0;
-      transition: height 0.3s ease;
-    }
-    .vbar-label {
-      font-size: 8px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-      pointer-events: none;
-    }
-    .vbar-date {
-      font-size: 7.5px;
-      color: #475569;
-      text-align: center;
-      line-height: 1.3;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-    .vbar-tooltip {
-      display: none;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      margin-bottom: 4px;
-      white-space: nowrap;
-      background: rgba(10,13,20,0.97);
-      border: 0.5px solid rgba(255,255,255,0.12);
-      border-radius: 5px;
-      padding: 3px 8px;
-      font-size: 9px;
-      color: #e2e8f0;
-      z-index: 100;
-      pointer-events: none;
-    }
-    .vbar-col:hover .vbar-tooltip { display: block; }
-
-    /* ── Row 4: Pipeline Runway card (auto) ─────────────────────────────────── */
+    /* ── Row 3: Pipeline Runway card (auto) ─────────────────────────────────── */
     #runway-card {
       background: #0d1017;
       border-bottom: 0.5px solid rgba(255,255,255,0.06);
@@ -386,7 +267,8 @@
     #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
     #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 96px; padding-left: 6px; vertical-align: middle; }
     #m2-heatmap tr                    { height: auto; }
-    #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
+    #m2-heatmap .hm-cell              { padding: 2px; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
+    #m2-heatmap .hm-cell > div       { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
     #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
     #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 96px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
@@ -610,15 +492,7 @@
   <span id="wg-content" style="display:contents"></span>
 </div>
 
-<!-- ── Row 3: M1 bar chart (100px) ──────────────────────────────────────────── -->
-<div id="m1-row">
-  <div id="m1-label">
-    <span class="badge-m">M1</span>
-  </div>
-  <div id="m1-chart-wrap"><div id="m1-vbars"></div></div>
-</div>
-
-<!-- ── Row 4: Pipeline Runway card (auto) ───────────────────────────────────── -->
+<!-- ── Row 3: Pipeline Runway card (auto) ───────────────────────────────────── -->
 <div id="runway-card">
   <div id="runway-left">
     <div class="rw-title-row">
@@ -675,13 +549,10 @@
   </div>
 </div>
 
-<!-- Hidden sink — keeps render() null-safe -->
-<div style="display:none" aria-hidden="true"><div id="m1-stats"></div></div>
 <div id="error-banner"></div>
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
-let chartM1 = null;
 let countdownInterval = null;
 const REFRESH_INTERVAL = 60;
 let secondsLeft = REFRESH_INTERVAL;
@@ -768,41 +639,6 @@ function render(data) {
       `<span class="wg-week">${tw.weekLabel}</span>` +
       `</span>`;
   }
-
-  // ── Module 1 — Vertical CSS bar chart ───────────────────────────────────
-  if (chartM1) { chartM1.destroy(); chartM1 = null; }
-
-  const vbarsHtml = days.map((d, i) => {
-    const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
-    const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
-    const cls      = barColor(d.fillPct);
-    const solid    = cls === 'green' ? '#22c55e' : cls === 'yellow' ? '#f59e0b' : '#ef4444';
-    const fillColor = d.isWeekend
-      ? 'rgba(139,148,158,0.25)'
-      : beyond
-        ? (cls === 'green' ? 'rgba(34,197,94,0.25)' : cls === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)')
-        : solid;
-    const fillPct   = d.isWeekend ? 10 : Math.max(d.fillPct, d.booked > 0 ? 8 : 0);
-    const showLabel = !d.isWeekend && d.booked > 0 && d.fillPct >= 18;
-    const dateColor = beyond ? '#334155' : '#475569';
-    const tooltip   = d.isWeekend
-      ? `${fmtDate(d.date)} — Weekend`
-      : `${fmtDate(d.date)} ${d.dayOfWeek} · ${d.booked}/${d.capacity} booked (${d.fillPct}%)`;
-    const colStyle  = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);padding-left:2px;margin-left:2px;' : '';
-
-    return `<div class="vbar-col" style="${colStyle}">
-      <div class="vbar-tooltip">${tooltip}</div>
-      <div class="vbar-track">
-        <div class="vbar-fill" style="height:${fillPct}%;background:${fillColor}">
-          ${showLabel ? `<span class="vbar-label">${d.fillPct}%</span>` : ''}
-        </div>
-      </div>
-      <div class="vbar-date" style="color:${dateColor}">${fmtDate(d.date)}<br>${d.dayOfWeek.slice(0,3)}</div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('m1-vbars').innerHTML =
-    `<div class="vbar-chart">${vbarsHtml}</div>`;
 
   // ── Pipeline Runway card ─────────────────────────────────────────────────
   (function renderRunway() {
@@ -976,16 +812,43 @@ function render(data) {
           }
         }
 
+        const r = 13, circ = 2 * Math.PI * r, qc = (circ * 0.25).toFixed(2);
+
         if (beyond) {
-          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}">
-            <div style="line-height:1.2">${d.booked}/${rep.maxPerDay}</div>
+          const filled = ((d.fillPct / 100) * circ).toFixed(2);
+          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:2px;">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <svg width="38" height="38" viewBox="0 0 38 38">
+                <circle cx="19" cy="19" r="13" fill="none" stroke="#1e2535" stroke-width="3.5"/>
+                <circle cx="19" cy="19" r="13" fill="none" stroke="#374151" stroke-width="3.5" stroke-linecap="round"
+                  stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
+                <text x="19" y="20" text-anchor="middle" dominant-baseline="middle" fill="#4b5563" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
+              </svg>
+              <div style="font-size:8px;margin-top:2px;opacity:0.65;color:#4b5563">${d.booked}/${rep.maxPerDay}</div>
+            </div>
           </td>`;
         }
 
         const cls = hmCellClass(d.fillPct);
-        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}">
-          <div class="hm-booking">${d.booked}/${rep.maxPerDay}</div>
-          <div class="hm-pct">${d.fillPct}%</div>
+        const arcPalette = {
+          'hm-empty': { track:'#3b0606', arc:'#ef4444', text:'#f87171' },
+          'hm-low':   { track:'#3b1200', arc:'#dc6820', text:'#fb923c' },
+          'hm-mid':   { track:'#3b2800', arc:'#f59e0b', text:'#fbbf24' },
+          'hm-good':  { track:'#04200c', arc:'#22c55e', text:'#4ade80' },
+          'hm-full':  { track:'#04200c', arc:'#22c55e', text:'#4ade80' },
+        };
+        const ac = arcPalette[cls] || arcPalette['hm-empty'];
+        const filled = ((d.fillPct / 100) * circ).toFixed(2);
+        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:2px;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <svg width="38" height="38" viewBox="0 0 38 38">
+              <circle cx="19" cy="19" r="13" fill="none" stroke="${ac.track}" stroke-width="3.5"/>
+              <circle cx="19" cy="19" r="13" fill="none" stroke="${ac.arc}" stroke-width="3.5" stroke-linecap="round"
+                stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
+              <text x="19" y="20" text-anchor="middle" dominant-baseline="middle" fill="${ac.text}" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
+            </svg>
+            <div style="font-size:8px;margin-top:2px;opacity:0.65;color:${ac.text}">${d.booked}/${rep.maxPerDay}</div>
+          </div>
         </td>`;
       }).join('');
 
@@ -1051,7 +914,7 @@ function render(data) {
     const maxM2        = Math.floor(window.innerHeight * 0.38);
     const m2Height     = Math.min(maxM2, Math.max(180, measured));
     const runwayHeight = runway ? runway.scrollHeight : 0;
-    document.body.style.gridTemplateRows = `48px 28px 100px ${runwayHeight}px ${m2Height}px 1fr`;
+    document.body.style.gridTemplateRows = `48px 28px ${runwayHeight}px ${m2Height}px 1fr`;
     setTimeout(expandM3Rows, 50);
   }
 
