@@ -519,7 +519,6 @@
 
 <!-- ── Row 5: M2 heatmap ─────────────────────────────────────────────────────── -->
 <div id="m2-row">
-  <div class="row-hdr" id="m2-row-hdr">M2 · Rep Capacity Heat Map · Next 10 Days</div>
   <div id="m2-heatmap"></div>
 </div>
 
@@ -757,7 +756,7 @@ function render(data) {
       const dateLabel = `<div style="font-size:8.5px;color:${isToday ? '#60a5fa' : beyond ? '#334155' : ''}">${fmtDate(d.date)}</div>`
         + `<div style="font-size:7.5px;color:${isToday ? '#60a5fa' : beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
 
-      const colWidth = d.isWeekend ? 'width:3%' : 'width:7%';
+      const colWidth = d.isWeekend ? 'width:18px;min-width:18px;max-width:18px' : 'width:7%';
       const wkStyle  = d.isWeekend ? 'opacity:0.2' : '';
       const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
       return `<th style="${[colWidth, wkStyle, cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
@@ -787,7 +786,7 @@ function render(data) {
         const todayCls  = isToday ? ' today-col' : '';
         const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
 
-        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}color:#2d3748;font-size:9px">—</td>`;
+        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}width:18px;min-width:18px;max-width:18px;color:#2d3748;font-size:9px">—</td>`;
 
         // Absent rep: all future days gray
         if (isAbsent && day.date > todayStr) {
@@ -883,7 +882,7 @@ function render(data) {
       <table class="heatmap-table">
         <thead>
           <tr>
-            <th class="rep-col">Rep</th>
+            <th class="rep-col"><div style="font-size:7px;color:#374151;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;white-space:nowrap">M2 · HEAT MAP</div>Rep</th>
             ${headerCols}
             <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px;width:52px;min-width:52px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">next 5 days</span></th>
             <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px;text-align:left;padding-left:6px;width:110px;min-width:110px">Status</th>
@@ -903,12 +902,11 @@ function render(data) {
   // ── Measure actual rendered M2 height, capped so M3 always gets space ────
   function adjustM2Height() {
     const table  = document.querySelector('#m2-heatmap .heatmap-table');
-    const hdr    = document.getElementById('m2-row-hdr');
     const runway = document.getElementById('runway-card');
-    if (!table || !hdr) return;
-    const measured     = table.scrollHeight + hdr.scrollHeight + 16;
-    const maxM2        = Math.floor(window.innerHeight * 0.95);
-    const m2Height     = Math.min(maxM2, Math.max(250, measured));
+    if (!table) return;
+    const measured     = table.scrollHeight + 16;
+    const maxM2        = Math.floor(window.innerHeight * 0.98);
+    const m2Height     = Math.min(maxM2, Math.max(280, measured));
     const runwayHeight = runway ? runway.scrollHeight : 0;
     document.body.style.gridTemplateRows = `48px 28px ${runwayHeight}px ${m2Height}px 1fr`;
 
@@ -918,7 +916,7 @@ function render(data) {
     if (thead && tbody) {
       const repRows = tbody.querySelectorAll('tr');
       if (repRows.length) {
-        const available  = m2Height - hdr.scrollHeight - thead.offsetHeight - 8;
+        const available  = m2Height - thead.offsetHeight - 8;
         const targetRowH = Math.max(28, Math.floor(available / repRows.length));
         repRows.forEach(tr => {
           tr.style.height    = targetRowH + 'px';
