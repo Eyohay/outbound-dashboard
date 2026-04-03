@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px auto minmax(200px, auto) 1fr;
+      grid-template-rows: 48px 28px auto minmax(240px, auto) 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -702,13 +702,6 @@ function render(data) {
       return;
     }
 
-    const rowHdr = document.getElementById('m2-row-hdr');
-    if (rowHdr) {
-      rowHdr.textContent = optimalCutoff > 0
-        ? `M2 · Rep Capacity Heat Map · Next 10 Days  ·  cells past cutoff (day ${optimalCutoff}) shown in gray — empty slots beyond cutoff are not urgent`
-        : 'M2 · Rep Capacity Heat Map · Next 10 Days';
-    }
-
     // Per-day team totals for slot pills (absence+limited-adjusted)
     const dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const dayTotals = dayList.map((day, i) => {
@@ -756,10 +749,10 @@ function render(data) {
       const dateLabel = `<div style="font-size:8.5px;color:${isToday ? '#60a5fa' : beyond ? '#334155' : ''}">${fmtDate(d.date)}</div>`
         + `<div style="font-size:7.5px;color:${isToday ? '#60a5fa' : beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
 
-      const colWidth = d.isWeekend ? 'width:18px;min-width:18px;max-width:18px' : 'width:7%';
-      const wkStyle  = d.isWeekend ? 'opacity:0.2' : '';
       const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
-      return `<th style="${[colWidth, wkStyle, cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
+      if (d.isWeekend) return `<th style="width:12px;min-width:12px;max-width:12px;padding:0;overflow:hidden;opacity:0.2${cutStyle ? ';' + cutStyle : ''}"></th>`;
+      const wkStyle  = '';
+      return `<th style="${['width:7%', cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
     }).join('');
 
     // Next 5 weekday indices starting from tomorrow (index 1)
@@ -786,7 +779,7 @@ function render(data) {
         const todayCls  = isToday ? ' today-col' : '';
         const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
 
-        if (d.isWeekend) return `<td class="hm-cell weekend-col${todayCls}" style="${cutBorder}width:18px;min-width:18px;max-width:18px;color:#2d3748;font-size:9px">—</td>`;
+        if (d.isWeekend) return `<td class="hm-cell weekend-col" style="${cutBorder}width:12px;min-width:12px;max-width:12px;padding:0;overflow:hidden;"></td>`;
 
         // Absent rep: all future days gray
         if (isAbsent && day.date > todayStr) {
@@ -905,8 +898,8 @@ function render(data) {
     const runway = document.getElementById('runway-card');
     if (!table) return;
     const measured     = table.scrollHeight + 16;
-    const maxM2        = Math.floor(window.innerHeight * 0.98);
-    const m2Height     = Math.min(maxM2, Math.max(280, measured));
+    const maxM2        = Math.floor(window.innerHeight * 0.99);
+    const m2Height     = Math.min(maxM2, Math.max(320, measured));
     const runwayHeight = runway ? runway.scrollHeight : 0;
     document.body.style.gridTemplateRows = `48px 28px ${runwayHeight}px ${m2Height}px 1fr`;
 
