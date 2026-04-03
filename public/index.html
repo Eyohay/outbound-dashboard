@@ -822,9 +822,8 @@ function render(data) {
                 <circle cx="15" cy="15" r="10" fill="none" stroke="#1e2535" stroke-width="2.5"/>
                 <circle cx="15" cy="15" r="10" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round"
                   stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
-                <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="#4b5563" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
+                <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="#4b5563" font-size="7" font-weight="700" font-family="monospace">${d.booked}/${rep.maxPerDay}</text>
               </svg>
-              <div style="font-size:7px;margin-top:0;line-height:1;opacity:0.65;color:#4b5563">${d.booked}/${rep.maxPerDay}</div>
             </div>
           </td>`;
         }
@@ -845,9 +844,8 @@ function render(data) {
               <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.track}" stroke-width="2.5"/>
               <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.arc}" stroke-width="2.5" stroke-linecap="round"
                 stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
-              <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="${ac.text}" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
+              <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="${ac.text}" font-size="7" font-weight="700" font-family="monospace">${d.booked}/${rep.maxPerDay}</text>
             </svg>
-            <div style="font-size:7px;margin-top:0;line-height:1;opacity:0.65;color:${ac.text}">${d.booked}/${rep.maxPerDay}</div>
           </div>
         </td>`;
       }).join('');
