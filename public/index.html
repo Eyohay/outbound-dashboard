@@ -267,15 +267,15 @@
     #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
     #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 96px; padding-left: 6px; vertical-align: middle; }
     #m2-heatmap tr                    { height: auto; }
-    #m2-heatmap .hm-cell              { padding: 1px; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
-    #m2-heatmap .hm-cell > div       { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #m2-heatmap .hm-cell              { padding: 0 !important; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
+    #m2-heatmap .hm-cell > div       { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; margin: 0; }
     #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
     #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
     #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 96px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
     #m2-heatmap .hm-total-col         { font-size: 9.5px; padding: 0 6px; text-align: center; border-left: 0.5px solid rgba(255,255,255,0.06); }
     #m2-heatmap .hm-status-col        { font-size: 8.5px; padding: 0 6px; text-align: left; border-left: 0.5px solid rgba(255,255,255,0.06); white-space: nowrap; }
     #m2-heatmap .weekend-col          { opacity: 0.2; }
-    #m2-heatmap .today-col            { outline: 1.5px solid #3b82f6; outline-offset: -1px; border-radius: 5px; }
+    #m2-heatmap th.today-col          { outline: 1.5px solid #3b82f6; outline-offset: -1px; border-radius: 5px; }
 
     .hm-slot-pill {
       display: inline-block;
@@ -816,15 +816,15 @@ function render(data) {
 
         if (beyond) {
           const filled = ((d.fillPct / 100) * circ).toFixed(2);
-          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:1px 2px;">
+          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:0;">
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-              <svg width="30" height="30" viewBox="0 0 30 30">
+              <svg width="26" height="26" viewBox="0 0 30 30">
                 <circle cx="15" cy="15" r="10" fill="none" stroke="#1e2535" stroke-width="2.5"/>
                 <circle cx="15" cy="15" r="10" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round"
                   stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
                 <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="#4b5563" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
               </svg>
-              <div style="font-size:8px;margin-top:1px;opacity:0.65;color:#4b5563">${d.booked}/${rep.maxPerDay}</div>
+              <div style="font-size:7px;margin-top:0;line-height:1;opacity:0.65;color:#4b5563">${d.booked}/${rep.maxPerDay}</div>
             </div>
           </td>`;
         }
@@ -839,15 +839,15 @@ function render(data) {
         };
         const ac = arcPalette[cls] || arcPalette['hm-empty'];
         const filled = ((d.fillPct / 100) * circ).toFixed(2);
-        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:1px 2px;">
+        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:0;">
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <svg width="30" height="30" viewBox="0 0 30 30">
+            <svg width="26" height="26" viewBox="0 0 30 30">
               <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.track}" stroke-width="2.5"/>
               <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.arc}" stroke-width="2.5" stroke-linecap="round"
                 stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
               <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="${ac.text}" font-size="8" font-weight="700" font-family="monospace">${d.fillPct}%</text>
             </svg>
-            <div style="font-size:8px;margin-top:1px;opacity:0.65;color:${ac.text}">${d.booked}/${rep.maxPerDay}</div>
+            <div style="font-size:7px;margin-top:0;line-height:1;opacity:0.65;color:${ac.text}">${d.booked}/${rep.maxPerDay}</div>
           </div>
         </td>`;
       }).join('');
@@ -908,8 +908,8 @@ function render(data) {
     const runway = document.getElementById('runway-card');
     if (!table || !hdr) return;
     const measured     = table.scrollHeight + hdr.scrollHeight + 16;
-    const maxM2        = Math.floor(window.innerHeight * 0.42);
-    const m2Height     = Math.min(maxM2, Math.max(240, measured));
+    const maxM2        = Math.floor(window.innerHeight * 0.85);
+    const m2Height     = Math.min(maxM2, Math.max(220, measured));
     const runwayHeight = runway ? runway.scrollHeight : 0;
     document.body.style.gridTemplateRows = `48px 28px ${runwayHeight}px ${m2Height}px 1fr`;
 
