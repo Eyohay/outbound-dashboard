@@ -19,7 +19,7 @@
 
     body {
       display: grid;
-      grid-template-rows: 48px 28px auto minmax(240px, auto) 1fr;
+      grid-template-rows: 48px 28px 72px minmax(240px, auto) 1fr;
       height: 100vh;
       min-height: 100vh;
       max-height: 100vh;
@@ -495,11 +495,6 @@
 <!-- ── Row 3: Pipeline Runway card (auto) ───────────────────────────────────── -->
 <div id="runway-card">
   <div id="runway-left">
-    <div class="rw-title-row">
-      <span class="rw-title">Pipeline runway</span>
-    </div>
-    <div id="rw-sub1" class="rw-sub">Loading…</div>
-    <div id="rw-sub2" class="rw-sub"></div>
     <!-- Zone bar -->
     <div class="rw-zone-wrap" id="rw-zone-bar">
       <div class="rw-zone-seg rw-zone-green" style="width:50%">3–6 days · healthy</div>
@@ -634,7 +629,9 @@ function render(data) {
       `<span class="wg-item">Open this week: <strong style="color:#e2e8f0">${tw.openSlots}</strong> slots</span>${sep}` +
       `<span class="wg-item">Today: <strong style="color:#e2e8f0">${todayData.booked ?? 0}/${todayData.capacity ?? data.totalDailyCapacity}</strong></span>${sep}` +
       `<span class="wg-item">10d avg: <strong style="color:${avgFillColor}">${avgFill10}%</strong></span>${sep}` +
-      `<span class="wg-item">Reps: <strong style="color:#e2e8f0">${data.outboundRepCount}</strong></span>` +
+      `<span class="wg-item">Reps: <strong style="color:#e2e8f0">${data.outboundRepCount}</strong></span>${sep}` +
+      `<span class="wg-item">Runway: <strong style="color:#e2e8f0">${rw.teamAvgPerDay ?? '—'}/d avg</strong></span>${sep}` +
+      `<span class="wg-item">Slots: <strong style="color:#94a3b8">${rw.absenceAdjustedSlots ?? '—'} adj. open</strong></span>` +
       `<span class="wg-week">${tw.weekLabel}</span>` +
       `</span>`;
   }
@@ -644,17 +641,6 @@ function render(data) {
     if (!rw || typeof rw.daysBookedOut === 'undefined') return;
 
     const dbo = rw.daysBookedOut;
-
-    // Subtitle lines
-    const sub1 = document.getElementById('rw-sub1');
-    const sub2 = document.getElementById('rw-sub2');
-    if (sub1) sub1.textContent = `Team booked ${rw.teamAvgPerDay}/day avg over last 3 business days`;
-    if (sub2) {
-      const absentNote = rw.absentReps && rw.absentReps.length
-        ? ` · absent: ${rw.absentReps.join(', ')}`
-        : '';
-      sub2.textContent = `Simulating against ${rw.absenceAdjustedSlots} absence-adjusted open slots${absentNote}`;
-    }
 
     // Needle position: scale 0-12 days → 0-100%
     const MAX_SCALE = 12;
