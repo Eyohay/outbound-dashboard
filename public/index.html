@@ -666,27 +666,29 @@ function renderCPC(brands) {
     afterDraw(chart) {
       const { ctx, chartArea, scales } = chart;
       ctx.save();
+      ctx.font = "500 8px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'right';
 
-      // avg line (dashed white)
+      // danger line — solid #f87171, label ABOVE the line
+      const yDanger = scales.y.getPixelForValue(DANGER);
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.5; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yDanger); ctx.lineTo(chartArea.right, yDanger); ctx.stroke();
+      ctx.fillStyle = '#f87171';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('danger $6k', chartArea.right - 3, yDanger - 4);
+
+      // avg line — dashed, label BELOW the line
       const yAvg = scales.y.getPixelForValue(avg);
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeStyle = 'rgba(255,255,255,.22)';
       ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(chartArea.left, yAvg); ctx.lineTo(chartArea.right, yAvg); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '10px "JetBrains Mono"';
-      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-      ctx.fillText(`avg $${(avg / 1000).toFixed(1)}k`, chartArea.right - 3, yAvg - 2);
-
-      // danger line (solid red)
-      const yDanger = scales.y.getPixelForValue(DANGER);
-      ctx.strokeStyle = 'rgba(248,113,113,.7)';
-      ctx.lineWidth = 1; ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(chartArea.left, yDanger); ctx.lineTo(chartArea.right, yDanger); ctx.stroke();
-      ctx.fillStyle = 'rgba(248,113,113,.8)';
-      ctx.font = '10px "JetBrains Mono"';
-      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-      ctx.fillText('danger $6k', chartArea.right - 3, yDanger + 2);
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.textBaseline = 'top';
+      // if avg and danger are close ($1k), push avg label further down
+      const extraOffset = Math.abs(yAvg - yDanger) < 14 ? 14 : 0;
+      ctx.fillText(`avg $${(avg / 1000).toFixed(1)}k`, chartArea.right - 3, yAvg + 4 + extraOffset);
 
       ctx.restore();
     }
