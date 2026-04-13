@@ -416,8 +416,8 @@ function renderBkFuture(bkFuture) {
 
 // ── Panel 2b: Blended / OC / Belkins rates ────────────────
 function renderRates(brands) {
-  const bk = brands.filter(b => b.isBk);
-  const oc = brands.filter(b => !b.isBk);
+  const oc  = brands.filter(b => b.isOC);
+  const bk  = brands.filter(b => b.name === 'Belkins');
   const sum = (arr, k) => arr.reduce((s, b) => s + b[k], 0);
 
   const rows = [

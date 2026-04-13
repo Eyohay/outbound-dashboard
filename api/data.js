@@ -51,31 +51,37 @@ export default async function handler(req, res) {
         cpc:     Number(f['fldXssZcxPaFMHg3Q'] ?? 0),
         m10:     Number(f['fldG7jYf1BSVoHohy'] ?? 0),
         p10:     Number(f['fld4pNyquCZi0hpV9'] ?? 0),
-        isBk:    BK_ALIASES.includes(name.toLowerCase()),
+        isBk:    /belkins/i.test(name),
+        isOC:    !/belkins|inbound|reengage/i.test(name),
       };
     });
 
     // --- Belkins upcoming meetings (next 7 days) ---
-    const bkOr = BK_ALIASES.map(a => `{fld7zZzMwap8H0mUC}="${a}"`).join(',');
-    const mFormula = `AND(OR(${bkOr}),NOT(IS_BEFORE({fldkuIMYiI1ZDVnfJ},TODAY())),NOT(IS_AFTER({fldkuIMYiI1ZDVnfJ},DATEADD(TODAY(),7,'days'))))`;
-    const meetParams = new URLSearchParams({ filterByFormula: mFormula, returnFieldsByFieldId: 'true' });
-    ['fld7zZzMwap8H0mUC', 'fldkuIMYiI1ZDVnfJ'].forEach(f => meetParams.append('fields[]', f));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const meetFields = 'fields[]=fld7zZzMwap8H0mUC&fields[]=fldkuIMYiI1ZDVnfJ&returnFieldsByFieldId=true';
+    const meetFormula = encodeURIComponent(
+      `AND({fld7zZzMwap8H0mUC}="Belkins", IS_AFTER({fldkuIMYiI1ZDVnfJ}, TODAY()))`
+    );
+    const meetUrl = `${BASE_URL}/tblf9yaWmUjZ7Ggj5?${meetFields}&filterByFormula=${meetFormula}&pageSize=500&sort[0][field]=fldkuIMYiI1ZDVnfJ&sort[0][direction]=asc`;
 
-    const meetRecs = await airtableFetch('tblf9yaWmUjZ7Ggj5', meetParams);
+    const meetResp = await fetch(meetUrl, { headers: HEADERS });
+    if (!meetResp.ok) throw new Error(`Airtable meetings ${meetResp.status}: ${await meetResp.text()}`);
+    const meetJson = await meetResp.json();
+    const meetRecs = meetJson.records || [];
 
-    // Build next-7-days bucket map
+    // Build next-7-days bucket map (UTC dates)
     const today = new Date();
     const dateMap = {};
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
-      d.setDate(d.getDate() + i);
-      dateMap[`${d.getMonth() + 1}/${d.getDate()}`] = 0;
+      d.setUTCDate(d.getUTCDate() + i);
+      dateMap[`${d.getUTCMonth() + 1}/${d.getUTCDate()}`] = 0;
     }
     for (const r of meetRecs) {
       const raw = r.fields['fldkuIMYiI1ZDVnfJ'];
       if (!raw) continue;
       const d = new Date(raw);
-      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+      const key = `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
       if (key in dateMap) dateMap[key]++;
     }
     const bkFuture = Object.entries(dateMap).map(([date, count]) => ({ date, count }));
