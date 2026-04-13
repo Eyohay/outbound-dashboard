@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
     // --- Brands ---
-    const brandParams = new URLSearchParams({ filterByFormula: '{fldCaUzDXtZI0KNtD}>4' });
+    const brandParams = new URLSearchParams({ filterByFormula: '{fldCaUzDXtZI0KNtD}>4', returnFieldsByFieldId: 'true' });
     [
       'fldshFXjqXByq1s9M', // name
       'fldCaUzDXtZI0KNtD', // m30
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     // --- Belkins upcoming meetings (next 7 days) ---
     const bkOr = BK_ALIASES.map(a => `{fld7zZzMwap8H0mUC}="${a}"`).join(',');
     const mFormula = `AND(OR(${bkOr}),NOT(IS_BEFORE({fldkuIMYiI1ZDVnfJ},TODAY())),NOT(IS_AFTER({fldkuIMYiI1ZDVnfJ},DATEADD(TODAY(),7,'days'))))`;
-    const meetParams = new URLSearchParams({ filterByFormula: mFormula });
+    const meetParams = new URLSearchParams({ filterByFormula: mFormula, returnFieldsByFieldId: 'true' });
     ['fld7zZzMwap8H0mUC', 'fldkuIMYiI1ZDVnfJ'].forEach(f => meetParams.append('fields[]', f));
 
     const meetRecs = await airtableFetch('tblf9yaWmUjZ7Ggj5', meetParams);
