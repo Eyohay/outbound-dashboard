@@ -57,10 +57,9 @@ export default async function handler(req, res) {
     });
 
     // --- Belkins upcoming meetings (next 7 days) ---
-    const todayStr = new Date().toISOString().split('T')[0];
     const meetFields = 'fields[]=fld7zZzMwap8H0mUC&fields[]=fldkuIMYiI1ZDVnfJ&returnFieldsByFieldId=true';
     const meetFormula = encodeURIComponent(
-      `AND({fld7zZzMwap8H0mUC}="Belkins", IS_AFTER({fldkuIMYiI1ZDVnfJ}, TODAY()))`
+      `AND(IS_AFTER({fldkuIMYiI1ZDVnfJ},YESTERDAY()),FIND("Sales",ARRAYJOIN({fldoQAtxSD2QZ3jof})),OR(FIND("Belkins",{fld7zZzMwap8H0mUC}),FIND("inbound",LOWER({fld7zZzMwap8H0mUC}))))`
     );
     const meetUrl = `${BASE_URL}/tblf9yaWmUjZ7Ggj5?${meetFields}&filterByFormula=${meetFormula}&pageSize=100&sort[0][field]=fldkuIMYiI1ZDVnfJ&sort[0][direction]=asc`;
 
