@@ -27,9 +27,11 @@ export default async function handler(req, res) {
     [
       'fldshFXjqXByq1s9M', // name
       'fldCaUzDXtZI0KNtD', // m30
-      'fldVzzdDOJPpBOKiJ', // p30
+      'fldVzzdDOJPpBOKiJ', // p30  (panel 3 table)
+      'fldNEbE4UJI23fTXf', // rp30 (rate-specific proposals 30d)
       'fldDIYGSKi8nC7Pmz', // m60
-      'fldhDCNf4BDUPJzCE', // p60
+      'fldhDCNf4BDUPJzCE', // p60  (panel 3 table)
+      'fldqLIicpbKG0en8M', // rp60 (rate-specific proposals 60d)
       'fldoB114soMUt2fo6', // close60
       'fldXssZcxPaFMHg3Q', // cpc
       'fldG7jYf1BSVoHohy', // m10
@@ -51,6 +53,8 @@ export default async function handler(req, res) {
         cpc:     Number(f['fldXssZcxPaFMHg3Q'] ?? 0),
         m10:     Number(f['fldG7jYf1BSVoHohy'] ?? 0),
         p10:     Number(f['fld4pNyquCZi0hpV9'] ?? 0),
+        rp30:    Number(f['fldNEbE4UJI23fTXf'] ?? 0),
+        rp60:    Number(f['fldqLIicpbKG0en8M'] ?? 0),
         isBk:    /belkins/i.test(name),
         isOC:    !/belkins|inbound|reengage/i.test(name),
       };
@@ -86,8 +90,25 @@ export default async function handler(req, res) {
     }
     const bkFuture = Object.entries(dateMap).map(([date, count]) => ({ date, count }));
 
+    // --- Rates (from pre-computed Airtable fields) ---
+    const r = (p, m) => m ? Math.round((p / m) * 100) : 0;
+    const ocB    = brands.filter(b => b.isOC);
+    const bkB    = brands.filter(b => b.name === 'Belkins');
+    const s      = (arr, k) => arr.reduce((acc, b) => acc + b[k], 0);
+
+    const ocM30  = s(ocB, 'm30');  const ocRP30 = s(ocB, 'rp30');
+    const ocM60  = s(ocB, 'm60');  const ocRP60 = s(ocB, 'rp60');
+    const bkM30  = s(bkB, 'm30');  const bkRP30 = s(bkB, 'rp30');
+    const bkM60  = s(bkB, 'm60');  const bkRP60 = s(bkB, 'rp60');
+
+    const rates = {
+      oc:      { r30: r(ocRP30, ocM30),          r60: r(ocRP60, ocM60) },
+      belkins: { r30: r(bkRP30, bkM30),          r60: r(bkRP60, bkM60) },
+      blended: { r30: r(ocRP30 + bkRP30, ocM30 + bkM30), r60: r(ocRP60 + bkRP60, ocM60 + bkM60) },
+    };
+
     res.setHeader('Cache-Control', 's-maxage=300');
-    return res.status(200).json({ brands, bkFuture });
+    return res.status(200).json({ brands, bkFuture, rates });
 
   } catch (err) {
     console.error('[data]', err);

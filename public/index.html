@@ -438,16 +438,12 @@ function renderBkFuture(bkFuture) {
     </div>`).join('');
 }
 
-// ── Panel 2b: OC / Belkins rates (Option B) ──────────────
-function renderRates(brands) {
-  const oc  = brands.filter(b => b.isOC);
-  const bk  = brands.filter(b => b.name === 'Belkins');
-  const sum = (arr, k) => arr.reduce((s, b) => s + b[k], 0);
-
+// ── Panel 2b: Blended / OC / Belkins rates ───────────────
+function renderRates(rates) {
   const rows = [
-    { label: 'Blended', m30: sum(brands,'m30'), p30: sum(brands,'p30'), m60: sum(brands,'m60'), p60: sum(brands,'p60') },
-    { label: 'OC',      m30: sum(oc,'m30'),     p30: sum(oc,'p30'),     m60: sum(oc,'m60'),     p60: sum(oc,'p60') },
-    { label: 'Belkins', m30: sum(bk,'m30'),     p30: sum(bk,'p30'),     m60: sum(bk,'m60'),     p60: sum(bk,'p60') },
+    { label: 'Blended', ...rates.blended },
+    { label: 'OC',      ...rates.oc },
+    { label: 'Belkins', ...rates.belkins },
   ];
 
   document.getElementById('mp-rates').innerHTML = `
@@ -460,16 +456,14 @@ function renderRates(brands) {
         </tr>
       </thead>
       <tbody>
-        ${rows.map(row => {
-          const r30   = pct(row.p30, row.m30);
-          const r60   = pct(row.p60, row.m60);
+        ${rows.map(({ label, r30, r60 }) => {
           const delta = r30 - r60;
           const pt    = Math.abs(delta);
           const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '';
           const aCls  = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
           return `
             <tr class="rates-row">
-              <td><span class="rates-channel">${row.label}</span></td>
+              <td><span class="rates-channel">${label}</span></td>
               <td>
                 <div class="rates-now-cell">
                   <span class="rates-now-val" style="color:${rateColor(r30)}">${r30}%</span>
@@ -580,14 +574,14 @@ function renderCPC(brands) {
 // ── Main render ───────────────────────────────────────────
 async function render() {
   try {
-    const { brands, bkFuture } = await fetchData();
+    const { brands, bkFuture, rates } = await fetchData();
 
     document.getElementById('loading').style.display      = 'none';
     document.getElementById('error-banner').style.display = 'none';
 
     renderM30(brands);
     renderBkFuture(bkFuture);
-    renderRates(brands);
+    renderRates(rates);
     renderMPTable(brands);
     renderClose60(brands);
     renderCPC(brands);
