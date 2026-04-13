@@ -226,19 +226,19 @@
     /* ── Panel 3: Table ── */
     .perf-table { width: 100%; border-collapse: collapse; }
     .perf-table th {
-      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      font-size: 7.5px; font-weight: 600; text-transform: uppercase;
       letter-spacing: .06em; color: var(--muted);
-      padding: 2px 6px 5px; border-bottom: 1px solid var(--border);
+      padding: 2px 6px; border-bottom: 1px solid var(--border);
       text-align: right;
     }
     .perf-table th:first-child { text-align: left; }
     .perf-table td {
-      padding: 3px 6px; text-align: right;
-      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 1.5px 6px; text-align: right;
+      font-family: 'JetBrains Mono', monospace; font-size: 7.5px;
       border-bottom: 1px solid rgba(31,41,55,.45);
     }
     .perf-table td:first-child {
-      text-align: left; font-family: 'Inter', sans-serif; font-size: 11px;
+      text-align: left; font-family: 'Inter', sans-serif; font-size: 7.5px;
       color: var(--text); max-width: 160px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
@@ -249,29 +249,29 @@
     /* ── Momentum section ── */
     .momentum-divider {
       border: none; border-top: 1px solid var(--border);
-      margin: 6px 0 4px;
+      margin: 4px 0;
     }
     .momentum-header {
-      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      font-size: 7.5px; font-weight: 600; text-transform: uppercase;
       letter-spacing: .08em; color: var(--muted);
-      padding: 2px 6px 5px;
+      padding: 2px 6px 3px;
     }
     .momentum-row {
       display: flex; align-items: center; gap: 6px;
       background: #0a1018; border-radius: 5px;
-      padding: 4px 7px; margin: 2px 4px;
+      padding: 3px 7px; margin: 2px 4px;
     }
     .momentum-name {
-      font-family: 'Inter', sans-serif; font-size: 10px; color: #d1d5db;
+      font-family: 'Inter', sans-serif; font-size: 7.5px; color: #d1d5db;
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .momentum-arrow { font-size: 12px; flex-shrink: 0; }
+    .momentum-arrow { font-size: 10px; flex-shrink: 0; }
     .momentum-rates {
-      font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6b7280;
+      font-family: 'JetBrains Mono', monospace; font-size: 7.5px; color: #6b7280;
       flex-shrink: 0;
     }
     .momentum-badge {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      font-size: 7px; font-weight: 700; text-transform: uppercase;
       letter-spacing: .06em; border-radius: 3px; padding: 1px 4px; flex-shrink: 0;
     }
     .badge-hot      { color: #00d26a; background: rgba(0,210,106,.12); border: 1px solid rgba(0,210,106,.25); }
@@ -301,7 +301,7 @@
   <!-- P3: M→P Table — top left (large) -->
   <div class="card accent-purple top-left">
     <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
-    <div class="card-body" style="overflow-y:auto; padding:0 0 4px;">
+    <div class="card-body" style="overflow:hidden; padding:0 0 4px;">
       <table class="perf-table" id="mp-table">
         <thead><tr><th>Brand</th><th>10d</th><th>30d</th><th>60d</th></tr></thead>
         <tbody></tbody>
@@ -410,7 +410,7 @@ function mergeBelkins(brands) {
 }
 
 function renderM30(brands) {
-  const sorted = [...mergeBelkins(brands)].sort((a, b) => b.m30 - a.m30);
+  const sorted = [...mergeBelkins(brands)].sort((a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30));
   const labels  = sorted.map(b => b.name);
   const mData   = sorted.map(b => b.m30);
   const colors  = sorted.map((b, i) => brandClr(b.name, i));
@@ -572,11 +572,11 @@ function renderMPTable(brands) {
 
   // Momentum: 10d vs 30d, min m10=3, top 6 by abs delta
   const candidates = merged
-    .filter(b => b.m10 >= 3)
+    .filter(b => b.m10 >= 5)
     .map(b => ({ b, r10: pct(b.p10, b.m10), r30: pct(b.p30, b.m30) }))
     .map(o => ({ ...o, delta: o.r10 - o.r30 }))
     .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 6);
+    .slice(0, 5);
 
   const momentumHTML = candidates.map(({ b, r10, r30, delta }) => {
     const absDelta = Math.abs(delta);
