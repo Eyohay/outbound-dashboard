@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     const meetFormula = encodeURIComponent(
       `AND({fld7zZzMwap8H0mUC}="Belkins", IS_AFTER({fldkuIMYiI1ZDVnfJ}, TODAY()))`
     );
-    const meetUrl = `${BASE_URL}/tblf9yaWmUjZ7Ggj5?${meetFields}&filterByFormula=${meetFormula}&pageSize=500&sort[0][field]=fldkuIMYiI1ZDVnfJ&sort[0][direction]=asc`;
+    const meetUrl = `${BASE_URL}/tblf9yaWmUjZ7Ggj5?${meetFields}&filterByFormula=${meetFormula}&pageSize=100&sort[0][field]=fldkuIMYiI1ZDVnfJ&sort[0][direction]=asc`;
 
     const meetResp = await fetch(meetUrl, { headers: HEADERS });
     if (!meetResp.ok) throw new Error(`Airtable meetings ${meetResp.status}: ${await meetResp.text()}`);
