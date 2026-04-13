@@ -226,19 +226,19 @@
     /* ── Panel 3: Table ── */
     .perf-table { width: 100%; border-collapse: collapse; }
     .perf-table th {
-      font-size: 7.5px; font-weight: 600; text-transform: uppercase;
+      font-size: 7px; font-weight: 600; text-transform: uppercase;
       letter-spacing: .06em; color: var(--muted);
-      padding: 2px 6px; border-bottom: 1px solid var(--border);
+      padding: 1px 6px 2px; border-bottom: 1px solid var(--border);
       text-align: right;
     }
     .perf-table th:first-child { text-align: left; }
     .perf-table td {
-      padding: 1.5px 6px; text-align: right;
-      font-family: 'JetBrains Mono', monospace; font-size: 7.5px;
+      padding: 1px 6px; text-align: right;
+      font-family: 'JetBrains Mono', monospace; font-size: 7px;
       border-bottom: 1px solid rgba(31,41,55,.45);
     }
     .perf-table td:first-child {
-      text-align: left; font-family: 'Inter', sans-serif; font-size: 7.5px;
+      text-align: left; font-family: 'Inter', sans-serif; font-size: 7px;
       color: var(--text); max-width: 160px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
@@ -410,7 +410,7 @@ function mergeBelkins(brands) {
 }
 
 function renderM30(brands) {
-  const sorted = [...mergeBelkins(brands)].sort((a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30));
+  const sorted = [...mergeBelkins(brands)].sort((a, b) => b.m30 - a.m30);
   const labels  = sorted.map(b => b.name);
   const mData   = sorted.map(b => b.m30);
   const colors  = sorted.map((b, i) => brandClr(b.name, i));
@@ -652,11 +652,50 @@ function renderCPC(brands) {
   const data   = [...brands].filter(b => b.cpc > 0).sort((a, b) => a.cpc - b.cpc);
   const labels = data.map(b => b.name);
   const vals   = data.map(b => b.cpc);
-  const colors = vals.map(v => cpcColor(v));
+  const avg    = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  const DANGER = 6000;
+
+  const colors = vals.map(v => {
+    if (v > DANGER)  return 'rgba(248,113,113,.8)';
+    if (v > avg)     return '#f59e0b';
+    return '#22c55e';
+  });
+
+  const linesPlugin = {
+    id: 'cpcLines',
+    afterDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      ctx.save();
+
+      // avg line (dashed white)
+      const yAvg = scales.y.getPixelForValue(avg);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yAvg); ctx.lineTo(chartArea.right, yAvg); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`avg $${(avg / 1000).toFixed(1)}k`, chartArea.right - 3, yAvg - 2);
+
+      // danger line (solid red)
+      const yDanger = scales.y.getPixelForValue(DANGER);
+      ctx.strokeStyle = 'rgba(248,113,113,.7)';
+      ctx.lineWidth = 1; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yDanger); ctx.lineTo(chartArea.right, yDanger); ctx.stroke();
+      ctx.fillStyle = 'rgba(248,113,113,.8)';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+      ctx.fillText('danger $6k', chartArea.right - 3, yDanger + 2);
+
+      ctx.restore();
+    }
+  };
 
   if (charts.cpc) charts.cpc.destroy();
   charts.cpc = new Chart(document.getElementById('chart-cpc'), {
     type: 'bar',
+    plugins: [linesPlugin],
     data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
     options: {
       responsive: true, maintainAspectRatio: false,
