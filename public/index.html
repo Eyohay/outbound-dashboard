@@ -233,13 +233,13 @@
     }
     .perf-table th:first-child { text-align: left; }
     .perf-table td {
-      padding: 4px 6px; text-align: right;
+      padding: 3px 6px; text-align: right;
       font-family: 'JetBrains Mono', monospace; font-size: 11px;
       border-bottom: 1px solid rgba(31,41,55,.45);
     }
     .perf-table td:first-child {
       text-align: left; font-family: 'Inter', sans-serif; font-size: 11px;
-      color: var(--text); max-width: 110px;
+      color: var(--text); max-width: 160px;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .rate-green { color: var(--green); }
@@ -263,11 +263,14 @@
 </header>
 
 <main>
-  <!-- P1: Meetings 30d -->
-  <div class="card accent-blue top-left">
-    <div class="card-header"><div class="card-title">Meetings Last 30 Days</div></div>
-    <div class="card-body">
-      <div class="chart-wrap"><canvas id="chart-m30"></canvas></div>
+  <!-- P3: M→P Table — top left (large) -->
+  <div class="card accent-purple top-left">
+    <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
+    <div class="card-body" style="overflow-y:auto; padding:0 0 4px;">
+      <table class="perf-table" id="mp-table">
+        <thead><tr><th>Brand</th><th>10d</th><th>30d</th><th>60d</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
@@ -291,14 +294,11 @@
 
   <!-- Bottom Row -->
   <div class="bottom-row">
-    <!-- P3: M→P Table -->
-    <div class="card accent-purple">
-      <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
-      <div class="card-body" style="overflow-y:auto; padding:0 0 4px;">
-        <table class="perf-table" id="mp-table">
-          <thead><tr><th>Brand</th><th>10d</th><th>30d</th><th>60d</th></tr></thead>
-          <tbody></tbody>
-        </table>
+    <!-- P1: Meetings 30d — bottom left (smaller) -->
+    <div class="card accent-blue">
+      <div class="card-header"><div class="card-title">Meetings Last 30 Days</div></div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chart-m30"></canvas></div>
       </div>
     </div>
     <!-- P4: Close Rate 60d -->
@@ -358,8 +358,24 @@ async function fetchData() {
 }
 
 // ── Panel 1: Meetings 30d horizontal bar + ghost overlay ──
+function mergeBelkins(brands) {
+  const bkList = brands.filter(b => b.isBk);
+  const others = brands.filter(b => !b.isBk);
+  if (!bkList.length) return brands;
+  const sum = k => bkList.reduce((s, b) => s + b[k], 0);
+  const main = bkList.find(b => b.name === 'Belkins') ?? bkList[0];
+  return [...others, {
+    name: 'Belkins',
+    m30: sum('m30'), p30: sum('p30'),
+    m60: sum('m60'), p60: sum('p60'),
+    m10: sum('m10'), p10: sum('p10'),
+    close60: main.close60, cpc: main.cpc,
+    isBk: true, isOC: false,
+  }];
+}
+
 function renderM30(brands) {
-  const sorted = [...brands].sort((a, b) => b.m30 - a.m30);
+  const sorted = [...mergeBelkins(brands)].sort((a, b) => b.m30 - a.m30);
   const labels  = sorted.map(b => b.name);
   const mData   = sorted.map(b => b.m30);
   const colors  = sorted.map((b, i) => brandClr(b.name, i));
@@ -501,7 +517,7 @@ function renderRates(rates) {
 
 // ── Panel 3: M→P by brand table ───────────────────────────
 function renderMPTable(brands) {
-  const sorted = [...brands].sort((a, b) => b.m30 - a.m30);
+  const sorted = [...mergeBelkins(brands)].sort((a, b) => b.m30 - a.m30);
   document.querySelector('#mp-table tbody').innerHTML = sorted.map(b => {
     const r10 = pct(b.p10, b.m10);
     const r30 = pct(b.p30, b.m30);
