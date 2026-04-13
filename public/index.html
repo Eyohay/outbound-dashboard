@@ -415,55 +415,19 @@ function renderM30(brands) {
   const mData   = sorted.map(b => b.m30);
   const colors  = sorted.map((b, i) => brandClr(b.name, i));
 
-  const ghostPlugin = {
-    id: 'ghost',
-    afterDatasetsDraw(chart) {
-      const ctx  = chart.ctx;
-      const meta = chart.getDatasetMeta(0);
-      ctx.save();
-      sorted.forEach((brand, i) => {
-        const bar = meta.data[i];
-        if (!bar || !brand.m30) return;
-
-        const barLen = bar.x - bar.base;
-        const propLen = (brand.p30 / brand.m30) * barLen;
-        const bh = bar.height;
-
-        // ghost fill (proposals portion)
-        ctx.globalAlpha = 0.22;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(bar.base, bar.y - bh / 2, propLen, bh);
-        ctx.globalAlpha = 1;
-
-        // label after bar
-        const propPct = pct(brand.p30, brand.m30);
-        ctx.font = '500 10px "JetBrains Mono"';
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${propPct}%→P`, bar.x + 5, bar.y);
-      });
-      ctx.restore();
-    }
-  };
-
   if (charts.m30) charts.m30.destroy();
   charts.m30 = new Chart(document.getElementById('chart-m30'), {
     type: 'bar',
-    plugins: [ghostPlugin],
     data: { labels, datasets: [{ data: mData, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
     options: {
       indexAxis: 'y',
       responsive: true, maintainAspectRatio: false,
-      layout: { padding: { right: 52 } },
+      layout: { padding: { right: 0 } },
       plugins: {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label(ctx) {
-              const b = sorted[ctx.dataIndex];
-              return ` ${ctx.raw} meetings · ${b.p30} proposals (${pct(b.p30, b.m30)}%)`;
-            }
+            label(ctx) { return ` ${ctx.raw} meetings`; }
           }
         }
       },
