@@ -245,6 +245,41 @@
     .rate-green { color: var(--green); }
     .rate-amber { color: var(--amber); }
     .rate-red   { color: var(--red); }
+
+    /* ── Momentum section ── */
+    .momentum-divider {
+      border: none; border-top: 1px solid var(--border);
+      margin: 6px 0 4px;
+    }
+    .momentum-header {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--muted);
+      padding: 2px 6px 5px;
+    }
+    .momentum-row {
+      display: flex; align-items: center; gap: 6px;
+      background: #0a1018; border-radius: 5px;
+      padding: 4px 7px; margin: 2px 4px;
+    }
+    .momentum-name {
+      font-family: 'Inter', sans-serif; font-size: 10px; color: #d1d5db;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .momentum-arrow { font-size: 12px; flex-shrink: 0; }
+    .momentum-rates {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #6b7280;
+      flex-shrink: 0;
+    }
+    .momentum-badge {
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; border-radius: 3px; padding: 1px 4px; flex-shrink: 0;
+    }
+    .badge-hot      { color: #00d26a; background: rgba(0,210,106,.12); border: 1px solid rgba(0,210,106,.25); }
+    .badge-cooling  { color: #f87171; background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.25); }
+    .badge-steady   { color: #6b7280; background: rgba(46,62,78,.5);    border: 1px solid #2e3e4e; }
+    .arrow-hot      { color: #00d26a; }
+    .arrow-cooling  { color: #f87171; }
+    .arrow-steady   { color: #4b5563; }
   </style>
 </head>
 <body>
@@ -515,9 +550,13 @@ function renderRates(rates) {
     </table>`;
 }
 
-// ── Panel 3: M→P by brand table ───────────────────────────
+// ── Panel 3: M→P by brand table + momentum ────────────────
 function renderMPTable(brands) {
-  const sorted = [...mergeBelkins(brands)].sort((a, b) => b.m30 - a.m30);
+  const merged = mergeBelkins(brands);
+
+  // Sort by 30d rate descending
+  const sorted = [...merged].sort((a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30));
+
   document.querySelector('#mp-table tbody').innerHTML = sorted.map(b => {
     const r10 = pct(b.p10, b.m10);
     const r30 = pct(b.p30, b.m30);
@@ -530,6 +569,40 @@ function renderMPTable(brands) {
         <td class="${rateClass(r60)}">${r60}%</td>
       </tr>`;
   }).join('');
+
+  // Momentum: 10d vs 30d, min m10=3, top 6 by abs delta
+  const candidates = merged
+    .filter(b => b.m10 >= 3)
+    .map(b => ({ b, r10: pct(b.p10, b.m10), r30: pct(b.p30, b.m30) }))
+    .map(o => ({ ...o, delta: o.r10 - o.r30 }))
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 6);
+
+  const momentumHTML = candidates.map(({ b, r10, r30, delta }) => {
+    const absDelta = Math.abs(delta);
+    const type  = absDelta > 5 ? (delta > 0 ? 'hot' : 'cooling') : 'steady';
+    const arrow = type === 'hot' ? '↑' : type === 'cooling' ? '↓' : '→';
+    return `
+      <div class="momentum-row">
+        <span class="momentum-name" title="${b.name}">${b.name}</span>
+        <span class="momentum-arrow arrow-${type}">${arrow}</span>
+        <span class="momentum-rates">${r10}% vs ${r30}%</span>
+        <span class="momentum-badge badge-${type}">${type}</span>
+      </div>`;
+  }).join('');
+
+  // Append below table inside card-body
+  const cardBody = document.querySelector('#mp-table').closest('.card-body');
+  let momentumEl = cardBody.querySelector('.momentum-wrap');
+  if (!momentumEl) {
+    momentumEl = document.createElement('div');
+    momentumEl.className = 'momentum-wrap';
+    cardBody.appendChild(momentumEl);
+  }
+  momentumEl.innerHTML = `
+    <hr class="momentum-divider">
+    <div class="momentum-header">10d momentum vs 30d avg</div>
+    ${momentumHTML}`;
 }
 
 // ── Panel 4: Close Rate 60d vertical bar + avg line ───────
