@@ -397,13 +397,13 @@ function mergeBelkins(brands) {
   const bkList = brands.filter(b => b.isBk);
   const others = brands.filter(b => !b.isBk);
   if (!bkList.length) return brands;
-  const sum = k => bkList.reduce((s, b) => s + b[k], 0);
-  const main = bkList.find(b => b.name === 'Belkins') ?? bkList[0];
+  const sumP = k => bkList.reduce((s, b) => s + b[k], 0); // proposals only — aliases split these
+  const main = bkList.find(b => b.name === 'Belkins') ?? bkList[0]; // meetings shared across aliases
   return [...others, {
     name: 'Belkins',
-    m30: sum('m30'), p30: sum('p30'),
-    m60: sum('m60'), p60: sum('p60'),
-    m10: sum('m10'), p10: sum('p10'),
+    m30: main.m30, p30: sumP('p30'),
+    m60: main.m60, p60: sumP('p60'),
+    m10: main.m10, p10: sumP('p10'),
     close60: main.close60, cpc: main.cpc,
     isBk: true, isOC: false,
   }];
