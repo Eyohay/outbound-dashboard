@@ -174,20 +174,44 @@
     }
 
     /* ── Panel 2b: Rates ── */
-    .rates-grid { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
-    .rate-row { display: flex; align-items: center; gap: 10px; }
-    .rate-label {
+    .rates-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .rates-hdr th {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted);
+      padding: 0 6px 7px; text-align: center;
+    }
+    .rates-hdr th:first-child { text-align: left; padding-left: 0; }
+    .rates-row td { padding: 5px 6px; vertical-align: middle; }
+    .rates-row td:first-child { padding-left: 0; }
+    .rates-channel {
       font-size: 10px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: .06em; color: var(--muted); width: 52px; flex-shrink: 0;
+      letter-spacing: .07em; color: var(--muted);
     }
-    .rate-30d {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 24px; font-weight: 600; color: var(--text); flex: 1;
+    .rates-now-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 6px; padding: 7px 10px; text-align: center;
     }
-    .rate-60d-wrap {
-      display: flex; align-items: center; gap: 3px;
+    .rates-now-val {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; color: var(--muted);
+      font-size: 22px; font-weight: 600; display: block; line-height: 1;
+    }
+    .rates-delta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; display: block; margin-top: 2px;
+    }
+    .rates-now-label {
+      font-size: 8px; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); display: block; margin-top: 2px;
+    }
+    .rates-ref-cell { text-align: center; }
+    .rates-ref-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; color: var(--muted); display: block; line-height: 1;
+    }
+    .rates-ref-label {
+      font-size: 8px; text-transform: uppercase; letter-spacing: .07em;
+      color: rgba(107,114,128,0.55); display: block; margin-top: 3px;
     }
     .delta-up   { color: var(--green); }
     .delta-down { color: var(--red); }
@@ -414,34 +438,54 @@ function renderBkFuture(bkFuture) {
     </div>`).join('');
 }
 
-// ── Panel 2b: Blended / OC / Belkins rates ────────────────
+// ── Panel 2b: OC / Belkins rates (Option B) ──────────────
 function renderRates(brands) {
   const oc  = brands.filter(b => b.isOC);
   const bk  = brands.filter(b => b.name === 'Belkins');
   const sum = (arr, k) => arr.reduce((s, b) => s + b[k], 0);
 
   const rows = [
-    { label: 'Blended', m30: sum(brands,'m30'), p30: sum(brands,'p30'), m60: sum(brands,'m60'), p60: sum(brands,'p60') },
-    { label: 'OC',      m30: sum(oc,'m30'),     p30: sum(oc,'p30'),     m60: sum(oc,'m60'),     p60: sum(oc,'p60') },
-    { label: 'Belkins', m30: sum(bk,'m30'),     p30: sum(bk,'p30'),     m60: sum(bk,'m60'),     p60: sum(bk,'p60') },
+    { label: 'OC',      m30: sum(oc,'m30'), p30: sum(oc,'p30'), m60: sum(oc,'m60'), p60: sum(oc,'p60') },
+    { label: 'Belkins', m30: sum(bk,'m30'), p30: sum(bk,'p30'), m60: sum(bk,'m60'), p60: sum(bk,'p60') },
   ];
 
-  document.getElementById('mp-rates').innerHTML = rows.map(row => {
-    const r30   = pct(row.p30, row.m30);
-    const r60   = pct(row.p60, row.m60);
-    const delta = r30 - r60;
-    const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
-    const aCls  = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
-    return `
-      <div class="rate-row">
-        <span class="rate-label">${row.label}</span>
-        <span class="rate-30d" style="color:${rateColor(r30)}">${r30}%</span>
-        <div class="rate-60d-wrap">
-          <span class="${aCls}">${arrow}</span>
-          <span>${r60}% 60d</span>
-        </div>
-      </div>`;
-  }).join('');
+  document.getElementById('mp-rates').innerHTML = `
+    <table class="rates-table">
+      <thead class="rates-hdr">
+        <tr>
+          <th>Channel</th>
+          <th>30 days</th>
+          <th>60 days</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(row => {
+          const r30   = pct(row.p30, row.m30);
+          const r60   = pct(row.p60, row.m60);
+          const delta = r30 - r60;
+          const pt    = Math.abs(delta);
+          const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '';
+          const aCls  = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
+          return `
+            <tr class="rates-row">
+              <td><span class="rates-channel">${row.label}</span></td>
+              <td>
+                <div class="rates-now-cell">
+                  <span class="rates-now-val" style="color:${rateColor(r30)}">${r30}%</span>
+                  ${delta !== 0 ? `<span class="rates-delta ${aCls}">${arrow}${pt}pt</span>` : ''}
+                  <span class="rates-now-label">now</span>
+                </div>
+              </td>
+              <td>
+                <div class="rates-ref-cell">
+                  <span class="rates-ref-val">${r60}%</span>
+                  <span class="rates-ref-label">60d avg</span>
+                </div>
+              </td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
 }
 
 // ── Panel 3: M→P by brand table ───────────────────────────
