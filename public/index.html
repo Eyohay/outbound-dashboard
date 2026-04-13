@@ -159,6 +159,13 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px; color: var(--muted); width: 34px; flex-shrink: 0;
     }
+    .weekend-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 8px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .05em; color: #92400e;
+      background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.25);
+      border-radius: 3px; padding: 1px 3px; flex-shrink: 0;
+    }
     .mini-bar-track {
       flex: 1; height: 10px;
       background: rgba(34,197,94,.1);
@@ -428,14 +435,23 @@ function renderM30(brands) {
 // ── Panel 2a: Belkins future mini-bars ────────────────────
 function renderBkFuture(bkFuture) {
   const max = Math.max(...bkFuture.map(d => d.count), 1);
-  document.getElementById('bk-future').innerHTML = bkFuture.map(({ date, count }) => `
+  const year = new Date().getFullYear();
+  document.getElementById('bk-future').innerHTML = bkFuture.map(({ date, count }) => {
+    const [m, day] = date.split('/').map(Number);
+    const dow = new Date(year, m - 1, day).getDay();
+    const badge = dow === 6 ? '<span class="weekend-badge">SAT</span>'
+                : dow === 0 ? '<span class="weekend-badge">SUN</span>'
+                : '';
+    return `
     <div class="mini-bar-row">
       <span class="mini-bar-label">${date}</span>
+      ${badge}
       <div class="mini-bar-track">
         <div class="mini-bar-fill" style="width:${(count / max) * 100}%"></div>
       </div>
       <span class="mini-bar-count">${count}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── Panel 2b: Blended / OC / Belkins rates ───────────────
