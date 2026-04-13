@@ -667,16 +667,22 @@ function renderCPC(brands) {
       const { ctx, chartArea, scales } = chart;
       ctx.save();
       ctx.font = "500 8px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'right';
+      ctx.textAlign = 'left';
+      const lx = chartArea.left + 4; // left-side label anchor
 
       // danger line — solid #f87171, label ABOVE the line
       const yDanger = scales.y.getPixelForValue(DANGER);
       ctx.strokeStyle = '#f87171';
       ctx.lineWidth = 1.5; ctx.setLineDash([]);
       ctx.beginPath(); ctx.moveTo(chartArea.left, yDanger); ctx.lineTo(chartArea.right, yDanger); ctx.stroke();
+      // label background
+      const dLabel = 'danger $6k';
+      const dW = ctx.measureText(dLabel).width;
+      ctx.fillStyle = 'rgba(7,10,15,.75)';
+      ctx.fillRect(lx - 2, yDanger - 14, dW + 4, 11);
       ctx.fillStyle = '#f87171';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('danger $6k', chartArea.right - 3, yDanger - 4);
+      ctx.fillText(dLabel, lx, yDanger - 4);
 
       // avg line — dashed, label BELOW the line
       const yAvg = scales.y.getPixelForValue(avg);
@@ -684,11 +690,15 @@ function renderCPC(brands) {
       ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
       ctx.beginPath(); ctx.moveTo(chartArea.left, yAvg); ctx.lineTo(chartArea.right, yAvg); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      const aLabel = `avg $${(avg / 1000).toFixed(1)}k`;
+      const aW = ctx.measureText(aLabel).width;
+      const extraOffset = Math.abs(yAvg - yDanger) < 16 ? 14 : 0;
+      const ayLabel = yAvg + 4 + extraOffset;
+      ctx.fillStyle = 'rgba(7,10,15,.75)';
+      ctx.fillRect(lx - 2, ayLabel, aW + 4, 11);
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
       ctx.textBaseline = 'top';
-      // if avg and danger are close ($1k), push avg label further down
-      const extraOffset = Math.abs(yAvg - yDanger) < 14 ? 14 : 0;
-      ctx.fillText(`avg $${(avg / 1000).toFixed(1)}k`, chartArea.right - 3, yAvg + 4 + extraOffset);
+      ctx.fillText(aLabel, lx, ayLabel);
 
       ctx.restore();
     }
