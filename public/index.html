@@ -445,8 +445,9 @@ function renderRates(brands) {
   const sum = (arr, k) => arr.reduce((s, b) => s + b[k], 0);
 
   const rows = [
-    { label: 'OC',      m30: sum(oc,'m30'), p30: sum(oc,'p30'), m60: sum(oc,'m60'), p60: sum(oc,'p60') },
-    { label: 'Belkins', m30: sum(bk,'m30'), p30: sum(bk,'p30'), m60: sum(bk,'m60'), p60: sum(bk,'p60') },
+    { label: 'Blended', m30: sum(brands,'m30'), p30: sum(brands,'p30'), m60: sum(brands,'m60'), p60: sum(brands,'p60') },
+    { label: 'OC',      m30: sum(oc,'m30'),     p30: sum(oc,'p30'),     m60: sum(oc,'m60'),     p60: sum(oc,'p60') },
+    { label: 'Belkins', m30: sum(bk,'m30'),     p30: sum(bk,'p30'),     m60: sum(bk,'m60'),     p60: sum(bk,'p60') },
   ];
 
   document.getElementById('mp-rates').innerHTML = `
