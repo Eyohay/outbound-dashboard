@@ -252,6 +252,7 @@
     .rate-green { color: #00d26a; }
     .rate-amber { color: #fbbf24; }
     .rate-red   { color: #f87171; }
+    .trend-cell { width: 40px; text-align: center; font-size: 16px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -275,7 +276,7 @@
     <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
     <div class="card-body" style="overflow:hidden; padding:0 0 4px;">
       <table class="perf-table" id="mp-table">
-        <thead><tr><th>Brand</th><th>10d</th><th class="col-30d">30d</th><th>60d</th></tr></thead>
+        <thead><tr><th>Brand</th><th>10d</th><th class="col-30d">30d</th><th>60d</th><th style="width:40px;text-align:center;font-size:9px;font-weight:600;text-transform:lowercase;letter-spacing:.04em;color:var(--muted);padding:6px 4px;">trend</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -494,12 +495,27 @@ function renderMPTable(brands) {
     const r10 = pct(b.p10, b.m10);
     const r30 = pct(b.p30, b.m30);
     const r60 = pct(b.p60, b.m60);
+
+    let trendArrow = '—', trendColor = '#4b5563';
+    if (b.m10 >= 5) {
+      const up30   = r30 - r60 > 5;
+      const down30 = r60 - r30 > 5;
+      const up10   = r10 - r30 > 5;
+      const down10 = r30 - r10 > 5;
+      if      (up30 && up10)     { trendArrow = '↑'; trendColor = '#00d26a'; }
+      else if (down30 && down10) { trendArrow = '↓'; trendColor = '#f87171'; }
+      else if (up30 || up10)     { trendArrow = '↑'; trendColor = '#fbbf24'; }
+      else if (down30 || down10) { trendArrow = '↓'; trendColor = 'rgba(248,113,113,.5)'; }
+      else                       { trendArrow = '→'; trendColor = '#4b5563'; }
+    }
+
     return `
       <tr>
         <td title="${b.name}">${b.name}</td>
         <td class="${rateClass(r10)}">${r10}%</td>
         <td class="col-30d ${rateClass(r30)}">${r30}%</td>
         <td class="${rateClass(r60)}">${r60}%</td>
+        <td class="trend-cell" style="color:${trendColor}">${trendArrow}</td>
       </tr>`;
   }).join('');
 }
