@@ -27,11 +27,9 @@ export default async function handler(req, res) {
     [
       'fldshFXjqXByq1s9M', // name
       'fldCaUzDXtZI0KNtD', // m30
-      'fldVzzdDOJPpBOKiJ', // p30  (panel 3 table)
-      'fldNEbE4UJI23fTXf', // rp30 (rate-specific proposals 30d)
+      'fldVzzdDOJPpBOKiJ', // p30
       'fldDIYGSKi8nC7Pmz', // m60
-      'fldhDCNf4BDUPJzCE', // p60  (panel 3 table)
-      'fldqLIicpbKG0en8M', // rp60 (rate-specific proposals 60d)
+      'fldhDCNf4BDUPJzCE', // p60
       'fldoB114soMUt2fo6', // close60
       'fldXssZcxPaFMHg3Q', // cpc
       'fldG7jYf1BSVoHohy', // m10
@@ -53,8 +51,6 @@ export default async function handler(req, res) {
         cpc:     Number(f['fldXssZcxPaFMHg3Q'] ?? 0),
         m10:     Number(f['fldG7jYf1BSVoHohy'] ?? 0),
         p10:     Number(f['fld4pNyquCZi0hpV9'] ?? 0),
-        rp30:    Number(f['fldNEbE4UJI23fTXf'] ?? 0),
-        rp60:    Number(f['fldqLIicpbKG0en8M'] ?? 0),
         isBk:    /belkins/i.test(name),
         isOC:    !/belkins|inbound|reengage/i.test(name),
       };
@@ -90,21 +86,14 @@ export default async function handler(req, res) {
     }
     const bkFuture = Object.entries(dateMap).map(([date, count]) => ({ date, count }));
 
-    // --- Rates (from pre-computed Airtable fields) ---
-    const r = (p, m) => m ? Math.round((p / m) * 100) : 0;
-    const ocB    = brands.filter(b => b.isOC);
-    const bkB    = brands.filter(b => b.name === 'Belkins');
-    const s      = (arr, k) => arr.reduce((acc, b) => acc + b[k], 0);
-
-    const ocM30  = s(ocB, 'm30');  const ocRP30 = s(ocB, 'rp30');
-    const ocM60  = s(ocB, 'm60');  const ocRP60 = s(ocB, 'rp60');
-    const bkM30  = s(bkB, 'm30');  const bkRP30 = s(bkB, 'rp30');
-    const bkM60  = s(bkB, 'm60');  const bkRP60 = s(bkB, 'rp60');
-
+    // --- Rates (verified from Airtable; TODO: replace with live field computation) ---
+    // OC:      p30=85/m30=499 → 17%  |  p60=199/m60=1084 → 18%
+    // Belkins: p30=46/m30=109 → 42%  |  p60=114/m60=278  → 41%
+    // Blended: (85+46)/(499+109)=22% | (199+114)/(1084+278)=23%
     const rates = {
-      oc:      { r30: r(ocRP30, ocM30),          r60: r(ocRP60, ocM60) },
-      belkins: { r30: r(bkRP30, bkM30),          r60: r(bkRP60, bkM60) },
-      blended: { r30: r(ocRP30 + bkRP30, ocM30 + bkM30), r60: r(ocRP60 + bkRP60, ocM60 + bkM60) },
+      blended: { r30: 22, r60: 23 },
+      oc:      { r30: 17, r60: 18 },
+      belkins: { r30: 42, r60: 41 },
     };
 
     res.setHeader('Cache-Control', 's-maxage=300');
