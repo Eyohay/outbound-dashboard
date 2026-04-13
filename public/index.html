@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outbound Consulting — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #070a0f;
+      --card:    #0d1117;
+      --border:  #1f2937;
+      --text:    #f3f4f6;
+      --muted:   #6b7280;
+      --green:   #22c55e;
+      --amber:   #f59e0b;
+      --red:     #ef4444;
+      --teal:    #14b8a6;
+      --blue:    #3b82f6;
+      --purple:  #8b5cf6;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: #0a0d14;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      height: 40px;
+    }
+    header h1 {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .last-updated {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Main Grid ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 55fr 45fr;
+      gap: 8px;
+      padding: 8px;
+      min-height: 0;
+    }
+
+    .top-left  { grid-column:1; grid-row:1; }
+    .top-right { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:8px; }
+    .bottom-row {
+      grid-column: 1 / -1; grid-row: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .card-header {
+      padding: 8px 14px 7px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .card-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .card-body {
+      flex: 1;
+      padding: 10px 14px;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
+    }
+
+    /* accent strips */
+    .accent-blue   { border-top: 2px solid var(--blue); }
+    .accent-green  { border-top: 2px solid var(--green); }
+    .accent-amber  { border-top: 2px solid var(--amber); }
+    .accent-teal   { border-top: 2px solid var(--teal); }
+    .accent-purple { border-top: 2px solid var(--purple); }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 200; gap: 14px;
+    }
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+
+    /* ── Error banner ── */
+    #error-banner {
+      display: none;
+      background: #1a0808; border: 1px solid var(--red);
+      border-radius: 6px; padding: 8px 14px;
+      font-size: 12px; color: var(--red);
+      margin: 8px;
+    }
+
+    /* ── Chart wrapper ── */
+    .chart-wrap { position: relative; width: 100%; height: 100%; }
+
+    /* ── Panel 2a: Belkins mini-bars ── */
+    .mini-bars { display: flex; flex-direction: column; gap: 5px; }
+    .mini-bar-row { display: flex; align-items: center; gap: 7px; }
+    .mini-bar-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted); width: 34px; flex-shrink: 0;
+    }
+    .mini-bar-track {
+      flex: 1; height: 10px;
+      background: rgba(34,197,94,.1);
+      border-radius: 2px; overflow: hidden;
+    }
+    .mini-bar-fill {
+      height: 100%; background: var(--green);
+      border-radius: 2px; opacity: .75;
+    }
+    .mini-bar-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text); width: 14px; text-align: right; flex-shrink: 0;
+    }
+
+    /* ── Panel 2b: Rates ── */
+    .rates-grid { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
+    .rate-row { display: flex; align-items: center; gap: 10px; }
+    .rate-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); width: 52px; flex-shrink: 0;
+    }
+    .rate-30d {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px; font-weight: 600; color: var(--text); flex: 1;
+    }
+    .rate-60d-wrap {
+      display: flex; align-items: center; gap: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+    }
+    .delta-up   { color: var(--green); }
+    .delta-down { color: var(--red); }
+
+    /* ── Panel 3: Table ── */
+    .perf-table { width: 100%; border-collapse: collapse; }
+    .perf-table th {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted);
+      padding: 2px 6px 5px; border-bottom: 1px solid var(--border);
+      text-align: right;
+    }
+    .perf-table th:first-child { text-align: left; }
+    .perf-table td {
+      padding: 4px 6px; text-align: right;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      border-bottom: 1px solid rgba(31,41,55,.45);
+    }
+    .perf-table td:first-child {
+      text-align: left; font-family: 'Inter', sans-serif; font-size: 11px;
+      color: var(--text); max-width: 110px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rate-green { color: var(--green); }
+    .rate-amber { color: var(--amber); }
+    .rate-red   { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading dashboard…</p>
+</div>
+
+<div id="error-banner"></div>
+
+<header>
+  <div class="live-dot"></div>
+  <h1>Outbound Consulting — Performance Dashboard</h1>
+  <span class="last-updated" id="last-updated">—</span>
+</header>
+
+<main>
+  <!-- P1: Meetings 30d -->
+  <div class="card accent-blue top-left">
+    <div class="card-header"><div class="card-title">Meetings Last 30 Days</div></div>
+    <div class="card-body">
+      <div class="chart-wrap"><canvas id="chart-m30"></canvas></div>
+    </div>
+  </div>
+
+  <!-- P2: Top Right stack -->
+  <div class="top-right">
+    <!-- 2a Belkins Future -->
+    <div class="card accent-green" style="flex:0 0 auto;">
+      <div class="card-header"><div class="card-title">Belkins Future Booked</div></div>
+      <div class="card-body" style="padding:8px 14px;">
+        <div class="mini-bars" id="bk-future"></div>
+      </div>
+    </div>
+    <!-- 2b M→P Rates -->
+    <div class="card accent-purple" style="flex:1;">
+      <div class="card-header"><div class="card-title">Meeting → Proposal Rate</div></div>
+      <div class="card-body">
+        <div class="rates-grid" id="mp-rates"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-row">
+    <!-- P3: M→P Table -->
+    <div class="card accent-purple">
+      <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
+      <div class="card-body" style="overflow-y:auto; padding:0 0 4px;">
+        <table class="perf-table" id="mp-table">
+          <thead><tr><th>Brand</th><th>10d</th><th>30d</th><th>60d</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- P4: Close Rate 60d -->
+    <div class="card accent-teal">
+      <div class="card-header"><div class="card-title">Close Rate — 60 Days</div></div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chart-close60"></canvas></div>
+      </div>
+    </div>
+    <!-- P5: Cost Per Close -->
+    <div class="card accent-amber">
+      <div class="card-header"><div class="card-title">Forecasted Cost Per Close</div></div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chart-cpc"></canvas></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+const REFRESH_MS  = 5 * 60 * 1000;
+const BK_ALIASES  = ['belkins', 'belkins.io lead', 'belkins no show'];
+const BK_COLOR    = '#22c55e';
+const OC_PALETTE  = ['#3b82f6','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#a855f7','#0ea5e9','#84cc16','#fb923c','#10b981','#e879f9'];
+
+const charts = {};
+
+// ── helpers ──────────────────────────────────────────────
+function pct(n, d)    { return d ? Math.round((n / d) * 100) : 0; }
+function isBk(name)   { return BK_ALIASES.includes(name.toLowerCase()); }
+function brandClr(name, i) { return isBk(name) ? BK_COLOR : OC_PALETTE[i % OC_PALETTE.length]; }
+
+function rateColor(r) {
+  if (r >= 30) return '#22c55e';
+  if (r >= 15) return '#f59e0b';
+  return '#ef4444';
+}
+function rateClass(r) {
+  if (r >= 30) return 'rate-green';
+  if (r >= 15) return 'rate-amber';
+  return 'rate-red';
+}
+function cpcColor(v) {
+  if (v < 1500) return '#22c55e';
+  if (v < 4000) return '#14b8a6';
+  if (v < 7000) return '#f59e0b';
+  return '#ef4444';
+}
+
+// ── fetch ─────────────────────────────────────────────────
+async function fetchData() {
+  const r = await fetch('/api/data');
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+// ── Panel 1: Meetings 30d horizontal bar + ghost overlay ──
+function renderM30(brands) {
+  const sorted = [...brands].sort((a, b) => b.m30 - a.m30);
+  const labels  = sorted.map(b => b.name);
+  const mData   = sorted.map(b => b.m30);
+  const colors  = sorted.map((b, i) => brandClr(b.name, i));
+
+  const ghostPlugin = {
+    id: 'ghost',
+    afterDatasetsDraw(chart) {
+      const ctx  = chart.ctx;
+      const meta = chart.getDatasetMeta(0);
+      ctx.save();
+      sorted.forEach((brand, i) => {
+        const bar = meta.data[i];
+        if (!bar || !brand.m30) return;
+
+        const barLen = bar.x - bar.base;
+        const propLen = (brand.p30 / brand.m30) * barLen;
+        const bh = bar.height;
+
+        // ghost fill (proposals portion)
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bar.base, bar.y - bh / 2, propLen, bh);
+        ctx.globalAlpha = 1;
+
+        // label after bar
+        const propPct = pct(brand.p30, brand.m30);
+        ctx.font = '500 10px "JetBrains Mono"';
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${propPct}%→P`, bar.x + 5, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  if (charts.m30) charts.m30.destroy();
+  charts.m30 = new Chart(document.getElementById('chart-m30'), {
+    type: 'bar',
+    plugins: [ghostPlugin],
+    data: { labels, datasets: [{ data: mData, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: 52 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const b = sorted[ctx.dataIndex];
+              return ` ${ctx.raw} meetings · ${b.p30} proposals (${pct(b.p30, b.m30)}%)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 } },
+          border: { display: false },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#d1d5db', font: { family: 'Inter', size: 11 } },
+          border: { display: false },
+        }
+      }
+    }
+  });
+}
+
+// ── Panel 2a: Belkins future mini-bars ────────────────────
+function renderBkFuture(bkFuture) {
+  const max = Math.max(...bkFuture.map(d => d.count), 1);
+  document.getElementById('bk-future').innerHTML = bkFuture.map(({ date, count }) => `
+    <div class="mini-bar-row">
+      <span class="mini-bar-label">${date}</span>
+      <div class="mini-bar-track">
+        <div class="mini-bar-fill" style="width:${(count / max) * 100}%"></div>
+      </div>
+      <span class="mini-bar-count">${count}</span>
+    </div>`).join('');
+}
+
+// ── Panel 2b: Blended / OC / Belkins rates ────────────────
+function renderRates(brands) {
+  const bk = brands.filter(b => b.isBk);
+  const oc = brands.filter(b => !b.isBk);
+  const sum = (arr, k) => arr.reduce((s, b) => s + b[k], 0);
+
+  const rows = [
+    { label: 'Blended', m30: sum(brands,'m30'), p30: sum(brands,'p30'), m60: sum(brands,'m60'), p60: sum(brands,'p60') },
+    { label: 'OC',      m30: sum(oc,'m30'),     p30: sum(oc,'p30'),     m60: sum(oc,'m60'),     p60: sum(oc,'p60') },
+    { label: 'Belkins', m30: sum(bk,'m30'),     p30: sum(bk,'p30'),     m60: sum(bk,'m60'),     p60: sum(bk,'p60') },
+  ];
+
+  document.getElementById('mp-rates').innerHTML = rows.map(row => {
+    const r30   = pct(row.p30, row.m30);
+    const r60   = pct(row.p60, row.m60);
+    const delta = r30 - r60;
+    const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
+    const aCls  = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
+    return `
+      <div class="rate-row">
+        <span class="rate-label">${row.label}</span>
+        <span class="rate-30d" style="color:${rateColor(r30)}">${r30}%</span>
+        <div class="rate-60d-wrap">
+          <span class="${aCls}">${arrow}</span>
+          <span>${r60}% 60d</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Panel 3: M→P by brand table ───────────────────────────
+function renderMPTable(brands) {
+  const sorted = [...brands].sort((a, b) => b.m30 - a.m30);
+  document.querySelector('#mp-table tbody').innerHTML = sorted.map(b => {
+    const r10 = pct(b.p10, b.m10);
+    const r30 = pct(b.p30, b.m30);
+    const r60 = pct(b.p60, b.m60);
+    return `
+      <tr>
+        <td title="${b.name}">${b.name}</td>
+        <td class="${rateClass(r10)}">${r10}%</td>
+        <td class="${rateClass(r30)}">${r30}%</td>
+        <td class="${rateClass(r60)}">${r60}%</td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Panel 4: Close Rate 60d vertical bar + avg line ───────
+function renderClose60(brands) {
+  const data   = [...brands].filter(b => b.close60 > 0).sort((a, b) => b.close60 - a.close60);
+  const labels = data.map(b => b.name);
+  const vals   = data.map(b => b.close60);
+  const colors = vals.map(v => rateColor(v));
+  const avg    = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+
+  const avgLine = {
+    id: 'avgLine',
+    afterDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      const y = scales.y.getPixelForValue(avg);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`avg ${Math.round(avg)}%`, chartArea.right - 3, y - 2);
+      ctx.restore();
+    }
+  };
+
+  if (charts.close60) charts.close60.destroy();
+  charts.close60 = new Chart(document.getElementById('chart-close60'), {
+    type: 'bar',
+    plugins: [avgLine],
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}%` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7280', font: { family: 'Inter', size: 9 }, maxRotation: 40 }, border: { display: false } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + '%' }, border: { display: false }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── Panel 5: Cost Per Close vertical bar ──────────────────
+function renderCPC(brands) {
+  const data   = [...brands].filter(b => b.cpc > 0).sort((a, b) => a.cpc - b.cpc);
+  const labels = data.map(b => b.name);
+  const vals   = data.map(b => b.cpc);
+  const colors = vals.map(v => cpcColor(v));
+
+  if (charts.cpc) charts.cpc.destroy();
+  charts.cpc = new Chart(document.getElementById('chart-cpc'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` $${c.raw.toLocaleString('en-US', { maximumFractionDigits: 0 })}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7280', font: { family: 'Inter', size: 9 }, maxRotation: 40 }, border: { display: false } },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => '$' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) },
+          border: { display: false }, beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// ── Main render ───────────────────────────────────────────
+async function render() {
+  try {
+    const { brands, bkFuture } = await fetchData();
+
+    document.getElementById('loading').style.display      = 'none';
+    document.getElementById('error-banner').style.display = 'none';
+
+    renderM30(brands);
+    renderBkFuture(bkFuture);
+    renderRates(brands);
+    renderMPTable(brands);
+    renderClose60(brands);
+    renderCPC(brands);
+
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    const b = document.getElementById('error-banner');
+    b.style.display = 'block';
+    b.textContent = 'Failed to load: ' + err.message;
+  }
+}
+
+render();
+setInterval(render, REFRESH_MS);
+</script>
+</body>
+</html>
