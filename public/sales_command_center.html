@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Sales Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0e13;
+    --surface: #111418;
+    --surface2: #161a20;
+    --surface3: #1c2128;
+    --border: #2a2f3a;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --teal: #0d9488;
+    --teal-hover: #14b8a6;
+    --violet: #7c3aed;
+    --violet-hover: #8b5cf6;
+    --amber: #f59e0b;
+    --sky: #0ea5e9;
+    --emerald: #10b981;
+    --red: #ef4444;
+    --green: #22c55e;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-size: clamp(10px, 0.85vw, 16px);
+  }
+  body {
+    width: 100%; height: 100%;
+    margin: 0; padding: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+  }
+  #app {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 44px 76px 1fr 1fr;
+    gap: 6px; padding: 6px;
+    background: var(--bg);
+  }
+
+  /* ROW 1 - Header */
+  #header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; align-items: center;
+    padding: 0 20px; gap: 16px;
+    min-height: 0;
+  }
+  .live-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--emerald);
+    box-shadow: 0 0 8px var(--emerald);
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.5;transform:scale(1.3)}
+  }
+  .header-title {
+    font-size: 18px; font-weight: 700; letter-spacing: .04em;
+    color: var(--text); flex: 1;
+  }
+  .header-title span { color: var(--teal); }
+  .header-subtitle {
+    font-size: 11px; color: var(--muted); font-weight: 400;
+    margin-left: 4px;
+  }
+  #clock {
+    font-family: var(--mono); font-size: 15px; font-weight: 500;
+    color: var(--text); letter-spacing: .05em;
+  }
+  .countdown-wrap {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .countdown-label { font-size: 10px; color: var(--muted); }
+  #countdown-ring {
+    width: 36px; height: 36px; transform: rotate(-90deg);
+  }
+  #countdown-ring circle.bg { fill: none; stroke: var(--surface3); stroke-width: 3; }
+  #countdown-ring circle.prog { fill: none; stroke: var(--teal); stroke-width: 3;
+    stroke-dasharray: 88; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear;
+    stroke-linecap: round;
+  }
+  #last-updated { font-size: 10px; color: var(--muted); }
+
+  /* ROW 2 - KPI cards */
+  #kpi-row {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 6px;
+    height: 100%;
+    align-items: stretch;
+    min-height: 0;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+  .kpi-card::before {
+    content:''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    border-radius: 8px 8px 0 0;
+  }
+  .kpi-card.accent-teal::before   { background: var(--teal); }
+  .kpi-card.accent-violet::before { background: var(--violet); }
+  .kpi-card.accent-amber::before  { background: var(--amber); }
+  .kpi-card.accent-emerald::before { background: var(--emerald); }
+  .kpi-card.accent-rose::before    { background: #e11d48; }
+  .kpi-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted);
+    line-height: 1; flex-shrink: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kpi-value {
+    font-size: clamp(24px, 2vw, 36px); font-weight: 600; line-height: 1;
+    font-family: var(--mono); flex-shrink: 0; white-space: nowrap;
+  }
+  .kpi-value.teal    { color: var(--teal); }
+  .kpi-value.violet  { color: var(--violet); }
+  .kpi-value.amber   { color: var(--amber); }
+  .kpi-value.emerald { color: var(--emerald); }
+  /* All subtext lines — same size, nowrap, ellipsis */
+  .kpi-sub, .kpi-sub2, .kpi-sub3 {
+    font-size: clamp(11px, 0.8vw, 13px); line-height: 1.25;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; width: 100%;
+  }
+  .kpi-sub2, .kpi-sub3 { color: var(--muted); }
+  .kpi-sub .teal,  .kpi-sub2 .teal    { color: var(--teal);    font-weight: 600; }
+  .kpi-sub .violet,.kpi-sub2 .violet  { color: var(--violet);  font-weight: 600; }
+  .kpi-sub .amber, .kpi-sub2 .amber   { color: var(--amber);   font-weight: 600; }
+  .kpi-sub .emerald,.kpi-sub2 .emerald{ color: var(--emerald); font-weight: 600; }
+  .kpi-sub .up,    .kpi-sub2 .up      { color: var(--green);   font-weight: 600; }
+  .kpi-sub .down,  .kpi-sub2 .down    { color: var(--red);     font-weight: 600; }
+  .kpi-buckets {
+    display: flex; gap: 3px; flex: 1; align-items: center; margin-top: 2px;
+  }
+  .kpi-bucket {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 5px;
+    padding: 3px 4px; text-align: center;
+  }
+  .kpi-bucket .bval {
+    font-family: var(--mono); font-size: clamp(16px, 1.3vw, 22px); font-weight: 600;
+    line-height: 1; white-space: nowrap;
+  }
+  .kpi-bucket .bval.amber   { color: var(--amber); }
+  .kpi-bucket .bval.emerald { color: var(--emerald); }
+  .kpi-bucket .blbl { font-size: 9px; color: var(--muted); line-height: 1.2; margin-top: 1px; }
+  .trend-arrow { font-size: 16px; font-weight: 700; align-self: center; flex-shrink: 0; }
+  .trend-arrow.up   { color: var(--green); }
+  .trend-arrow.down { color: var(--red); }
+  .trend-arrow.flat { color: var(--muted); }
+
+  /* ROW 3 */
+  #row3 {
+    display: grid;
+    grid-template-columns: 21% 1fr 17%;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  /* Rep Status Panel */
+  #rep-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 9px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #rep-list {
+    flex: 1; overflow-y: auto; padding: 4px 8px;
+  }
+  #rep-list::-webkit-scrollbar { width: 4px; }
+  #rep-list::-webkit-scrollbar-track { background: transparent; }
+  #rep-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .rep-row {
+    display: flex; align-items: center;
+    padding: 5px 4px;
+    border-bottom: 1px solid var(--border);
+    gap: 6px;
+    min-height: 36px;
+  }
+  .rep-row:last-child { border-bottom: none; }
+  .rep-name {
+    font-size: 10px; font-weight: 600; color: var(--text);
+    width: 90px; min-width: 90px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .rep-divider {
+    width: 1px; height: 24px;
+    background: var(--border); flex-shrink: 0;
+  }
+  .rep-pills {
+    display: flex; flex-wrap: wrap; gap: 3px; flex: 1;
+  }
+  .rep-pill {
+    font-size: 9px; font-weight: 700; font-family: var(--mono);
+    padding: 2px 5px; border-radius: 4px;
+    line-height: 1.2; white-space: nowrap;
+  }
+  .pill-teal { background: #0d948822; color: var(--teal); border: 1px solid #0d948844; }
+  .pill-green { background: #22c55e22; color: var(--green); border: 1px solid #22c55e44; }
+  .pill-red { background: #ef444422; color: var(--red); border: 1px solid #ef444444; }
+  .pill-amber { background: #f59e0b22; color: var(--amber); border: 1px solid #f59e0b44; }
+  .pill-gray { background: #64748b22; color: var(--muted); border: 1px solid #64748b44; }
+  .pill-violet { background: #7c3aed22; color: var(--violet); border: 1px solid #7c3aed44; }
+
+  /* Weekly Chart */
+  #weekly-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    padding: 8px;
+  }
+  .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+  /* Funnel Panel */
+  #funnel-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .gauge-row {
+    display: flex; gap: 4px; padding: 6px 8px 0;
+    flex-shrink: 0;
+  }
+  .gauge-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+  }
+  .gauge-svg-wrap { position: relative; width: 100%; }
+  .gauge-svg-wrap svg { width: 100%; height: auto; }
+  .gauge-center {
+    position: absolute;
+    bottom: 12px; left: 50%; transform: translateX(-50%);
+    text-align: center; pointer-events: none;
+  }
+  .gauge-pct {
+    font-family: var(--mono); font-size: 18px; font-weight: 700;
+    line-height: 1;
+  }
+  .gauge-pct.amber { color: var(--amber); }
+  .gauge-pct.emerald { color: var(--emerald); }
+  .gauge-label {
+    font-size: 8px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+    text-align: center; margin-top: 2px;
+  }
+  .gauge-count {
+    font-size: 9px; color: var(--muted); text-align: center; margin-top: 1px;
+  }
+  .efficiency-row {
+    display: flex; gap: 4px; padding: 6px 8px;
+    flex: 1; min-height: 0;
+  }
+  .eff-col {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px;
+  }
+  .eff-title {
+    font-size: 8px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .eff-line {
+    font-size: 10px; color: var(--text); line-height: 1.6;
+  }
+  .eff-line .val {
+    font-family: var(--mono); font-weight: 700;
+    color: var(--amber);
+  }
+  .eff-note {
+    padding: 4px 8px 6px;
+    font-size: 9px; color: var(--muted);
+    text-align: center; flex-shrink: 0;
+  }
+
+  /* ROW 4 */
+  #row4 {
+    display: grid;
+    grid-template-columns: 1.8fr 1fr 1fr 1fr;
+    gap: 6px;
+    min-height: 0;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Error Banner */
+  #error-banner {
+    display: none; position: fixed;
+    top: 8px; left: 50%; transform: translateX(-50%);
+    background: #7f1d1d; border: 1px solid #b91c1c;
+    color: #fca5a5; padding: 8px 20px;
+    border-radius: 6px; font-size: 12px;
+    z-index: 9999; max-width: 600px; text-align: center;
+  }
+
+  /* Loading overlay */
+  #loading {
+    position: fixed; inset: 0;
+    background: rgba(11,14,19,.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9998; flex-direction: column; gap: 12px;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { color: var(--muted); font-size: 12px; }
+
+  .eff-val-lg {
+    font-family: var(--mono); font-size: 18px; font-weight: 600; line-height: 1.3;
+  }
+  .eff-val-lg.teal-col { color: #14b8a6; }
+  .eff-val-lg.violet-col { color: #8b5cf6; }
+  .eff-val-sm {
+    font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--muted); line-height: 1.3;
+  }
+
+  .forecast-section {
+    padding: 5px 8px 4px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .forecast-title {
+    font-size: 8px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  }
+  .forecast-cols { display: flex; gap: 4px; }
+  .forecast-col {
+    flex: 1; background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 6px; text-align: center;
+  }
+  .forecast-col-label {
+    font-size: 8px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .08em; margin-bottom: 2px;
+  }
+  .forecast-big {
+    font-family: var(--mono); font-size: 22px; font-weight: 700; line-height: 1;
+  }
+  .forecast-big.teal-col { color: #14b8a6; }
+  .forecast-big.violet-col { color: #8b5cf6; }
+  .forecast-big.white-col { color: #ffffff; }
+  .forecast-from { font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .forecast-note {
+    font-size: 8.5px; color: var(--muted); font-style: italic;
+    text-align: center; padding: 3px 8px 5px; flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div id="error-banner"></div>
+<div id="loading"><div class="spinner"></div><p>Loading data…</p></div>
+
+<div id="app">
+  <!-- ROW 1: Header -->
+  <div id="header">
+    <div class="live-dot"></div>
+    <div class="header-title"><span>Sales</span> Command Center <span class="header-subtitle">outbound</span></div>
+    <div id="last-updated"></div>
+    <div class="countdown-wrap">
+      <div class="countdown-label">REFRESH</div>
+      <svg id="countdown-ring" viewBox="0 0 36 36">
+        <circle class="bg" cx="18" cy="18" r="14"/>
+        <circle class="prog" cx="18" cy="18" r="14"/>
+      </svg>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <!-- ROW 2: KPI Cards (8 cards) -->
+  <div id="kpi-row">
+    <!-- Card 1: Meetings Today -->
+    <div class="kpi-card accent-teal">
+      <div class="kpi-label">Meetings Today</div>
+      <div class="kpi-value teal" id="k1-big">—</div>
+    </div>
+    <!-- Card 2: Booked Today -->
+    <div class="kpi-card accent-violet">
+      <div class="kpi-label">Booked Today</div>
+      <div class="kpi-value violet" id="k2-big">—</div>
+    </div>
+    <!-- Card 3: Proposals Today -->
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">Proposals Today</div>
+      <div class="kpi-value amber" id="k-pt-big">—</div>
+    </div>
+    <!-- Card 4: OC Channel -->
+    <div class="kpi-card accent-teal">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);line-height:1;">OC Channel (30d)</div>
+      <div id="k3-big" style="font-size:36px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;color:#2dd4bf;">—</div>
+      <div id="k3-trend" style="font-size:15px;font-weight:600;white-space:nowrap;color:var(--muted);">—</div>
+    </div>
+    <!-- Card 5: Belkins Channel -->
+    <div class="kpi-card accent-violet">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);line-height:1;">Belkins Channel (30d)</div>
+      <div id="k4-big" style="font-size:36px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;color:#a78bfa;">—</div>
+      <div id="k4-trend" style="font-size:15px;font-weight:600;white-space:nowrap;color:var(--muted);">—</div>
+    </div>
+    <!-- Card 6: Proposals Sent -->
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">Proposals Sent</div>
+      <div class="kpi-buckets">
+        <div class="kpi-bucket">
+          <div class="bval amber" id="p0-30">—</div>
+          <div class="blbl">0-30d</div>
+        </div>
+        <div class="trend-arrow flat" id="p-trend">→</div>
+        <div class="kpi-bucket">
+          <div class="bval amber" id="p31-60">—</div>
+          <div class="blbl">31-60d</div>
+        </div>
+        <div class="kpi-bucket" style="opacity:.6">
+          <div class="bval amber" id="p61-90">—</div>
+          <div class="blbl">61-90d</div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 7: Deals Closed -->
+    <div class="kpi-card accent-emerald">
+      <div class="kpi-label">Deals Closed</div>
+      <div class="kpi-buckets">
+        <div class="kpi-bucket">
+          <div class="bval emerald" id="c0-30">—</div>
+          <div class="blbl">0-30d</div>
+        </div>
+        <div class="trend-arrow flat" id="c-trend">→</div>
+        <div class="kpi-bucket">
+          <div class="bval emerald" id="c31-60">—</div>
+          <div class="blbl">31-60d</div>
+        </div>
+        <div class="kpi-bucket" style="opacity:.6">
+          <div class="bval emerald" id="c61-90">—</div>
+          <div class="blbl">61-90d</div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 8: Close Rate -->
+    <div class="kpi-card accent-amber">
+      <div class="kpi-label">Close Rate</div>
+      <div class="kpi-value amber" id="k7-big">—</div>
+      <div class="kpi-sub" id="k7-sub">—</div>
+    </div>
+    <!-- Card 9: Show Rate Today -->
+    <div class="kpi-card accent-rose" id="card-showrate">
+      <div class="kpi-label">DEAL BOTS FILLED</div>
+      <div class="kpi-value" id="k-showrate-pct" style="color:#22c55e;">--%</div>
+      <div class="kpi-sub" id="k-showrate-sub" style="font-size:13px;white-space:nowrap;">loading...</div>
+    </div>
+  </div>
+
+  <!-- ROW 3 -->
+  <div id="row3">
+    <!-- Rep Status Panel -->
+    <div id="rep-panel">
+      <div class="panel-header">
+        <span>Rep Status</span>
+        <span id="rep-count" style="font-size:9px;color:var(--muted)"></span>
+        <span id="rep-proposals-today" style="font-size:9px;color:var(--amber);font-weight:700;margin-left:4px;text-transform:none;letter-spacing:.02em;"></span>
+      </div>
+      <div id="rep-list"></div>
+    </div>
+
+    <!-- Weekly Chart Panel -->
+    <div id="weekly-panel">
+      <div class="panel-header">Weekly Meetings (Stacked) + Proposals</div>
+      <div class="chart-wrap">
+        <canvas id="weekly-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Funnel Panel -->
+    <div id="funnel-panel">
+      <div class="panel-header">Pipeline Funnel (90d)</div>
+      <div class="gauge-row">
+        <div class="gauge-item">
+          <div class="gauge-svg-wrap">
+            <svg viewBox="0 0 200 105" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 18,100 A 82,82 0 0,1 182,100" fill="none" stroke="#161a20" stroke-width="16" stroke-linecap="round"/>
+              <path id="gauge1-path" d="M 18,100 A 82,82 0 0,1 182,100" fill="none" stroke="#f59e0b" stroke-width="16" stroke-linecap="round"
+                stroke-dasharray="257.6" stroke-dashoffset="257.6"/>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-pct amber" id="gauge1-pct">0%</div>
+            </div>
+          </div>
+          <div class="gauge-label">Meetings → Proposals</div>
+          <div class="gauge-count" id="gauge1-count">— of — meetings</div>
+        </div>
+        <div class="gauge-item">
+          <div class="gauge-svg-wrap">
+            <svg viewBox="0 0 200 105" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 18,100 A 82,82 0 0,1 182,100" fill="none" stroke="#161a20" stroke-width="16" stroke-linecap="round"/>
+              <path id="gauge2-path" d="M 18,100 A 82,82 0 0,1 182,100" fill="none" stroke="#10b981" stroke-width="16" stroke-linecap="round"
+                stroke-dasharray="257.6" stroke-dashoffset="257.6"/>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-pct emerald" id="gauge2-pct">0%</div>
+            </div>
+          </div>
+          <div class="gauge-label">Proposals → Closed</div>
+          <div class="gauge-count" id="gauge2-count">— of — proposals</div>
+        </div>
+      </div>
+      <div class="efficiency-row">
+        <div class="eff-col">
+          <div class="eff-title" style="color:var(--teal)">OC Efficiency</div>
+          <div><span class="eff-val-lg teal-col" id="oc-mtg-per-deal">—</span><span class="eff-line"> mtgs/deal</span></div>
+          <div><span class="eff-val-sm" id="oc-prop-per-deal">—</span><span class="eff-line"> props/deal</span></div>
+        </div>
+        <div class="eff-col">
+          <div class="eff-title" style="color:var(--violet)">Belkins Efficiency</div>
+          <div><span class="eff-val-lg violet-col" id="bel-mtg-per-deal">—</span><span class="eff-line"> mtgs/deal</span></div>
+          <div><span class="eff-val-sm" id="bel-prop-per-deal">—</span><span class="eff-line"> props/deal</span></div>
+        </div>
+      </div>
+      <div class="eff-note" id="overall-eff">Overall: —</div>
+      <div class="forecast-section">
+        <div class="forecast-title">30-Day Forecast</div>
+        <div class="forecast-cols">
+          <div class="forecast-col">
+            <div class="forecast-col-label">OC</div>
+            <div class="forecast-big teal-col" id="fc-oc-deals">~—</div>
+            <div class="forecast-from" id="fc-oc-mtgs">from ~— mtgs</div>
+          </div>
+          <div class="forecast-col">
+            <div class="forecast-col-label">Belkins</div>
+            <div class="forecast-big violet-col" id="fc-bel-deals">~—</div>
+            <div class="forecast-from" id="fc-bel-mtgs">from ~— mtgs</div>
+          </div>
+          <div class="forecast-col">
+            <div class="forecast-col-label">Total</div>
+            <div class="forecast-big white-col" id="fc-total-deals">~—</div>
+          </div>
+        </div>
+      </div>
+      <div class="forecast-note">Based on 90d avg rates · 30 calendar days · includes weekends</div>
+    </div>
+  </div>
+
+  <!-- ROW 4 -->
+  <div id="row4">
+    <!-- Daily Chart -->
+    <div class="chart-card">
+      <div class="panel-header">Daily Meetings — 35 Days (Grouped: OC + Belkins)</div>
+      <div class="chart-wrap">
+        <canvas id="daily-chart"></canvas>
+      </div>
+    </div>
+    <!-- Weekly Closes -->
+    <div class="chart-card">
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>WEEKLY CLOSES</span>
+        <span style="display:flex;gap:4px;align-items:center;font-size:9px;font-weight:500;letter-spacing:.04em;text-transform:none;">
+          <span style="width:10px;height:10px;border-radius:2px;background:rgba(16,185,129,0.9);display:inline-block;"></span>
+          <span style="color:#10b981;">Deals closed</span>
+        </span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="proposals-chart"></canvas>
+      </div>
+    </div>
+    <!-- Daily Proposals: This Week vs Last Week -->
+    <div class="chart-card">
+      <div class="panel-header">DAILY PROPOSALS · THIS WEEK VS LAST WEEK</div>
+      <div style="display:flex;gap:5px;padding:5px 8px 4px;flex-shrink:0;">
+        <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;">
+          <div style="font-size:clamp(7px,0.48vw,9px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">This Week So Far</div>
+          <div id="dpwc-curr-total" style="font-family:var(--mono);font-size:clamp(14px,1.3vw,22px);font-weight:700;color:var(--amber);line-height:1;">—</div>
+          <div id="dpwc-curr-sub" style="font-size:clamp(7px,0.45vw,9px);color:var(--muted);margin-top:2px;">Mon–Mon</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;">
+          <div style="font-size:clamp(7px,0.48vw,9px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Last Week Total</div>
+          <div id="dpwc-last-total" style="font-family:var(--mono);font-size:clamp(14px,1.3vw,22px);font-weight:700;color:var(--amber);line-height:1;">—</div>
+          <div id="dpwc-last-sub" style="font-size:clamp(7px,0.45vw,9px);color:var(--muted);margin-top:2px;">— vs prior wk</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 7px;">
+          <div style="font-size:clamp(7px,0.48vw,9px);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;">Daily Avg (Last Wk)</div>
+          <div id="dpwc-avg-total" style="font-family:var(--mono);font-size:clamp(14px,1.3vw,22px);font-weight:700;color:var(--amber);line-height:1;">—</div>
+          <div style="font-size:clamp(7px,0.45vw,9px);color:var(--muted);margin-top:2px;">Mon–Fri only</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="mpr-chart"></canvas>
+      </div>
+    </div>
+    <!-- CPR -->
+    <div class="chart-card">
+      <div class="panel-header">Close Rate % (CPR) — Weekly</div>
+      <div class="chart-wrap">
+        <canvas id="cpr-chart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+const BASE_ID   = 'appSlS4aXPKvMhSTl';
+const TABLE_ID  = 'tblIM2ox6XbOY2tqd';
+const API_KEY   = 'patMc42iCnbiadHaI.fe44cd60df24ff3cbfba75708f3ec5a1286332797635c0f0a2aac9d6dc28ef6f';
+
+const F = {
+  CREATED:     'fldjdTHBbxhAij8x9',
+  SCHEDULED:   'fldzfYMT58yVWPrgm',
+  REP:         'fldYSNOXi8eyWSO9g',
+  BRAND:       'fld2WHEs5gGl06toR',
+  STATUS:      'fld1JsS7z7gy0eLlD',
+  CALLTYPE:    'fldHf2ZJrIAUcdwSS',
+  CLOSED:      'fldLFpMfDnpGWNPb4',
+  DATE_CLOSED: 'fldIeYRE4L7iyS9m1',
+};
+
+const BELKINS_BRANDS = new Set(['Belkins','Outbound Consulting Inbound','Outbound Consulting Linkedin Inbound']);
+const REFRESH_MS = 1 * 60 * 1000;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let charts = {};
+let refreshTimer = null;
+let nextRefreshAt = null;
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+// For calendar date fields (e.g. Call Scheduled Date stored as UTC midnight):
+// extract the date portion directly from the ISO string to avoid UTC→local
+// timezone shift making "2026-03-31T00:00:00.000Z" appear as March 30 locally.
+function toLocalDateStr(dateInput) {
+  if (!dateInput) return '';
+  const s = String(dateInput);
+  if (/^\d{4}-\d{2}-\d{2}(T|$)/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  if (isNaN(d)) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+// For actual timestamps (e.g. createdTime): always use the user's LOCAL date,
+// not the UTC date — a record created at 11 PM Eastern is March 29 locally
+// even though its UTC timestamp rolls over to March 30.
+function toLocalDateStrLocal(dateInput) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  if (isNaN(d)) return '';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getTodayStr() {
+  return toLocalDateStr(new Date());
+}
+
+function getWeekKey(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return toLocalDateStr(mon);
+}
+
+function isWeekday(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  return day >= 1 && day <= 5;
+}
+
+function pct(num, den) {
+  if (!den) return 0;
+  return Math.round((num / den) * 100);
+}
+
+function fmt(n) {
+  return Number(n).toLocaleString();
+}
+
+function trendArrow(curr, prev) {
+  if (curr > prev) return { char: '↑', cls: 'up' };
+  if (curr < prev) return { char: '↓', cls: 'down' };
+  return { char: '→', cls: 'flat' };
+}
+
+// ─── FETCH ────────────────────────────────────────────────────────────────────
+async function fetchWithFilter(filter) {
+  let allRecords = [];
+  let offset = null;
+  let page = 0;
+  do {
+    let url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?returnFieldsByFieldId=true&pageSize=100&filterByFormula=${filter}`;
+    if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${API_KEY}` } });
+    if (!resp.ok) throw new Error(`Airtable error ${resp.status}: ${resp.statusText}`);
+    const data = await resp.json();
+    allRecords = allRecords.concat(data.records || []);
+    offset = data.offset || null;
+    page++;
+    if (page > 50) break;
+  } while (offset);
+  return allRecords;
+}
+
+async function fetchAllRecords() {
+  // Fetch 1: all records created in last 91 days — drives meeting metrics
+  const f1 = encodeURIComponent(`IS_AFTER({Event Created Date}, DATEADD(TODAY(), -91, 'days'))`);
+
+  // Fetch 2: closed deals where DATE_CLOSED is in last 91 days.
+  // Catches deals where the originating meeting was booked >90 days ago
+  // but the deal was actually closed within the current window.
+  const f2 = encodeURIComponent(
+    `AND({fldLFpMfDnpGWNPb4}=TRUE(), IS_AFTER({fldIeYRE4L7iyS9m1}, DATEADD(TODAY(), -91, 'days')))`
+  );
+
+  const [recs1, recs2] = await Promise.all([
+    fetchWithFilter(f1),
+    fetchWithFilter(f2),
+  ]);
+
+  // Merge, deduplicating by record ID (records in both fetches appear only once)
+  const seen = new Set();
+  const merged = [];
+  for (const rec of [...recs1, ...recs2]) {
+    if (!seen.has(rec.id)) {
+      seen.add(rec.id);
+      merged.push(rec);
+    }
+  }
+  return merged;
+}
+
+// ─── PROCESS ──────────────────────────────────────────────────────────────────
+function processRecords(records) {
+  const today = getTodayStr();
+  const now = new Date();
+
+  const d90 = new Date(now); d90.setDate(d90.getDate() - 90);
+  const d35 = new Date(now); d35.setDate(d35.getDate() - 35);
+  const d90str = toLocalDateStr(d90);
+  const d35str = toLocalDateStr(d35);
+
+  // Filter to Sales only
+  const salesRecs = records.filter(r => r.fields[F.CALLTYPE] === 'Sales');
+
+  // Aggregation vars
+  let total90=0, oc90=0, belkins90=0, proposals90=0, closed90=0, noShows90=0;
+  let ocProposals90=0, ocClosed90=0, belkinsProposals90=0, belkinsClosed90=0;
+  let todaySchedMeetings=0, todaySchedOC=0, todaySchedBelkins=0;
+  let todayBookedMeetings=0, todayBookedOC=0, todayBookedBelkins=0;
+  let props_0_30=0, props_31_60=0, props_61_90=0;
+  let closed_0_30=0, closed_31_60=0, closed_61_90=0;
+  let oc_0_30=0, oc_31_60=0, belkins_0_30=0, belkins_31_60=0;
+  let todaySchedProposals = 0;
+  let totalProposalsOnWeekdays = 0;
+
+  const weekdaySchedCounts = {};
+  const weekdayBookedCounts = {};
+  const repMap = {};
+  const weekMap = {};
+  const dayMap = {};
+  const propDayMap = {};        // proposals per local-date, keyed by scheduled date
+  const propCloseWeekMap = {};  // proposals+closes per week-key, keyed by scheduled date
+
+  function ensureRep(name) {
+    if (!repMap[name]) {
+      repMap[name] = {
+        name,
+        happening: { total: 0, proposals: 0, noShows: 0, cancelled: 0, pending: 0 },
+        booked: 0
+      };
+    }
+    return repMap[name];
+  }
+
+  function ensureWeek(wk) {
+    if (!weekMap[wk]) weekMap[wk] = { oc:0, belkins:0, proposals:0, meetings:0, noShows:0, closes:0, reps: new Set() };
+    return weekMap[wk];
+  }
+
+  function ensureDay(ds) {
+    if (!dayMap[ds]) dayMap[ds] = { oc:0, belkins:0 };
+    return dayMap[ds];
+  }
+
+  for (const rec of salesRecs) {
+    const fields = rec.fields;
+    const createdRaw = rec.createdTime || fields[F.CREATED];
+    const scheduledRaw = fields[F.SCHEDULED];
+    const brand = String(fields[F.BRAND] || '');
+    const status = String(fields[F.STATUS] || '').toLowerCase();
+    const repRaw = fields[F.REP];
+    const repName = Array.isArray(repRaw) ? repRaw[0] : (repRaw || 'Unknown');
+    const closedFlag = fields[F.CLOSED];
+    const dateClosedRaw = fields[F.DATE_CLOSED];
+
+    const createdDateStr = toLocalDateStrLocal(createdRaw);   // local time — timestamps
+    const scheduledDateStr = toLocalDateStr(scheduledRaw);    // UTC-slice — calendar dates
+
+    const isOC = !BELKINS_BRANDS.has(brand);
+    const isBelkins = BELKINS_BRANDS.has(brand);
+
+    const isProposal = status.includes('proposal sent');
+    const isNoShow = status.includes('no-show');
+    const isCancelled = status.includes('cancel');
+    // A record is a closed deal only if the checkbox is set AND DATE_CLOSED exists and is parseable
+    const isClosed = !!closedFlag && !!dateClosedRaw;
+    // Use local-time parsing for DATE_CLOSED (it's a lastModifiedTime timestamp)
+    const closeDateStr = isClosed ? toLocalDateStrLocal(dateClosedRaw) : '';
+    const inCloseWindow = !!closeDateStr && closeDateStr >= d90str && closeDateStr <= today;
+
+    // ── ALL closed deal counting — keyed on DATE_CLOSED, independent of createdTime ──
+    // All close metrics (90d totals, period buckets, weekly chart) live here so that
+    // records fetched via the second fetch (old meetings closed recently) are fully counted.
+    if (isClosed && inCloseWindow) {
+      closed90++;
+      if (isOC) ocClosed90++;
+      if (isBelkins) belkinsClosed90++;
+
+      // Period buckets by close date
+      const closedRefObj = new Date(closeDateStr + 'T00:00:00');
+      const closedDaysDiff = Math.floor((now - closedRefObj) / (1000*60*60*24));
+      if (closedDaysDiff <= 30) closed_0_30++;
+      else if (closedDaysDiff <= 60) closed_31_60++;
+      else closed_61_90++;
+
+      // Weekly close chart — bucket by the week containing the close date
+      const closeWk = getWeekKey(closeDateStr);
+      if (closeWk) {
+        if (!propCloseWeekMap[closeWk]) propCloseWeekMap[closeWk] = { proposals: 0, closes: 0 };
+        propCloseWeekMap[closeWk].closes++;
+      }
+    }
+
+    // Meeting metrics — only count if createdTime falls in the 90d window.
+    // createdTime (when meeting was booked) drives meeting totals, charts, and averages.
+    // scheduledDate is used ONLY for "Meetings Today" / "Proposals Today" / rep happening-today checks.
+    const inCreated = !!createdDateStr && createdDateStr >= d90str && createdDateStr <= today;
+
+    if (!inCreated) continue;
+
+    // ── All 90d meeting metrics — keyed on createdTime ────────────────────────
+    total90++;
+    if (isOC) oc90++;
+    if (isBelkins) belkins90++;
+    if (isProposal) {
+      proposals90++;
+      if (isOC) ocProposals90++;
+      if (isBelkins) belkinsProposals90++;
+    }
+    if (isNoShow) noShows90++;
+
+    // Meetings Today / Proposals Today / Rep happening-today pills — scheduled date only
+    if (scheduledDateStr === today) {
+      todaySchedMeetings++;
+      if (isOC) todaySchedOC++;
+      if (isBelkins) todaySchedBelkins++;
+      if (isProposal) todaySchedProposals++;
+
+      const rep = ensureRep(repName);
+      rep.happening.total++;
+      if (isProposal) rep.happening.proposals++;
+      else if (isNoShow) rep.happening.noShows++;
+      else if (isCancelled) rep.happening.cancelled++;
+      else rep.happening.pending++;
+    }
+
+    // Booked Today / Rep booked pills — createdTime
+    if (createdDateStr === today) {
+      todayBookedMeetings++;
+      if (isOC) todayBookedOC++;
+      if (isBelkins) todayBookedBelkins++;
+
+      const rep = ensureRep(repName);
+      rep.booked++;
+    }
+
+    // Weekday avg tracking — createdTime (both avg vars draw from same source)
+    if (isWeekday(createdDateStr)) {
+      weekdaySchedCounts[createdDateStr]  = (weekdaySchedCounts[createdDateStr]  || 0) + 1;
+      weekdayBookedCounts[createdDateStr] = (weekdayBookedCounts[createdDateStr] || 0) + 1;
+    }
+
+    // Proposal period buckets — keyed on scheduled date (when the proposal was sent)
+    if (isProposal && scheduledDateStr && scheduledDateStr >= d90str && scheduledDateStr <= today) {
+      const schedDateObj = new Date(scheduledDateStr + 'T00:00:00');
+      const schedDaysDiff = Math.floor((now - schedDateObj) / (1000*60*60*24));
+      if (schedDaysDiff <= 30) props_0_30++;
+      else if (schedDaysDiff <= 60) props_31_60++;
+      else props_61_90++;
+    }
+
+    // OC/Belkins 30d/60d meeting period buckets — keyed on createdTime
+    const createdDateObj = new Date(createdDateStr + 'T00:00:00');
+    const mtgDaysDiff = Math.floor((now - createdDateObj) / (1000*60*60*24));
+    if (mtgDaysDiff <= 30) { if (isOC) oc_0_30++; else belkins_0_30++; }
+    else if (mtgDaysDiff <= 60) { if (isOC) oc_31_60++; else belkins_31_60++; }
+
+    // Weekly meetings — bucket by created date (when the meeting was booked)
+    const wk = getWeekKey(createdDateStr);
+    if (wk) {
+      const wd = ensureWeek(wk);
+      if (isOC) wd.oc++; else wd.belkins++;
+      wd.meetings++;
+      if (isNoShow) wd.noShows++;
+      if (repName) wd.reps.add(repName);
+    }
+
+    // Proposals — bucket by scheduled date (proposal is sent during the call)
+    if (isProposal && scheduledDateStr && scheduledDateStr >= d90str && scheduledDateStr <= today) {
+      const schedWk = getWeekKey(scheduledDateStr);
+      if (schedWk) {
+        if (!propCloseWeekMap[schedWk]) propCloseWeekMap[schedWk] = { proposals: 0, closes: 0 };
+        propCloseWeekMap[schedWk].proposals++;
+      }
+    }
+
+    // Daily aggregation (35 days) — bucket by created date
+    if (createdDateStr >= d35str) {
+      const dd = ensureDay(createdDateStr);
+      if (isOC) dd.oc++; else dd.belkins++;
+    }
+
+    // Weekday proposals tracking — by created date
+    if (isProposal && isWeekday(createdDateStr)) {
+      totalProposalsOnWeekdays++;
+    }
+
+    // Daily proposal map — bucket by scheduled date (when the proposal was sent during the call)
+    if (isProposal && scheduledDateStr && scheduledDateStr <= today) {
+      propDayMap[scheduledDateStr] = (propDayMap[scheduledDateStr] || 0) + 1;
+    }
+  }
+
+  // Compute weekday avg for scheduled
+  const weekdayDatesInWindow = new Set();
+  for (let i = 0; i <= 90; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const ds = toLocalDateStr(d);
+    if (isWeekday(ds) && ds <= today) weekdayDatesInWindow.add(ds);
+  }
+  const numWeekdays90 = weekdayDatesInWindow.size;
+
+  const totalSchedOnWeekdays = Object.values(weekdaySchedCounts).reduce((a,b)=>a+b,0);
+  const avgSchedPerWeekday = numWeekdays90 > 0 ? totalSchedOnWeekdays / numWeekdays90 : 0;
+
+  const totalBookedOnWeekdays = Object.values(weekdayBookedCounts).reduce((a,b)=>a+b,0);
+  const avgBookedPerWeekday = numWeekdays90 > 0 ? totalBookedOnWeekdays / numWeekdays90 : 0;
+
+  const avgSchedProposalsPerWeekday = numWeekdays90 > 0 ? totalProposalsOnWeekdays / numWeekdays90 : 0;
+
+  // MPR / CPR per week — filter future weeks using Date comparison at noon
+  // to avoid UTC/local midnight boundary shifting week Monday dates.
+  const _todayEnd = new Date(); _todayEnd.setHours(23, 59, 59, 999);
+  const weekKeys = Object.keys(weekMap).sort()
+    .filter(wk => new Date(wk + 'T12:00:00') <= _todayEnd);
+  const weeklyData = weekKeys.map(wk => {
+    const w  = weekMap[wk];
+    const pc = propCloseWeekMap[wk] || { proposals: 0, closes: 0 };
+    const repCount = w.reps.size;
+    const mpr = repCount > 0 ? (w.meetings / repCount) : 0;
+    const cpr = pc.proposals > 0 ? (pc.closes / pc.proposals) * 100 : 0;
+    // Override proposals/closes with scheduled-date-bucketed values
+    return { ...w, wk, mpr, cpr, repCount, proposals: pc.proposals, closes: pc.closes };
+  });
+
+  const mpr90 = 0; // computed per-week above
+  const cpr90 = proposals90 > 0 ? (closed90 / proposals90) * 100 : 0;
+
+  // Build 35-day keys
+  const dayKeys = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const ds = toLocalDateStr(d);
+    if (ds <= today) dayKeys.push(ds);
+  }
+  const dailyData = dayKeys.map(ds => ({ ds, ...(dayMap[ds] || { oc:0, belkins:0 }) }));
+
+  // Rates
+  const ocProposalRate = pct(ocProposals90, oc90);
+  const ocPropToCloseRate = pct(ocClosed90, ocProposals90);
+  const ocMtgToCloseRate = pct(ocClosed90, oc90);
+  const belkinsProposalRate = pct(belkinsProposals90, belkins90);
+  const belkinsPropToCloseRate = pct(belkinsClosed90, belkinsProposals90);
+  const belkinsMtgToCloseRate = pct(belkinsClosed90, belkins90);
+
+  // Reps sorted by happening.total desc
+  const reps = Object.values(repMap).sort((a,b) => b.happening.total - a.happening.total);
+
+  return {
+    total90, oc90, belkins90, proposals90, closed90, noShows90, mpr90, cpr90,
+    ocProposals90, ocClosed90, ocProposalRate, ocPropToCloseRate, ocMtgToCloseRate,
+    belkinsProposals90, belkinsClosed90, belkinsProposalRate, belkinsPropToCloseRate, belkinsMtgToCloseRate,
+    props_0_30, props_31_60, props_61_90,
+    closed_0_30, closed_31_60, closed_61_90,
+    oc_0_30, oc_31_60, belkins_0_30, belkins_31_60,
+    todaySchedMeetings, todaySchedOC, todaySchedBelkins,
+    todayBookedMeetings, todayBookedOC, todayBookedBelkins,
+    avgSchedPerWeekday, avgBookedPerWeekday,
+    todaySchedProposals, avgSchedProposalsPerWeekday,
+    reps, weekKeys, weeklyData, dayKeys, dailyData, propDayMap,
+    todayStr: today,
+  };
+}
+
+// ─── RENDER KPIs ──────────────────────────────────────────────────────────────
+function renderKPIs(d) {
+  const set = (id, html, isText) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (isText) el.textContent = html; else el.innerHTML = html;
+  };
+
+  // Card 1: Meetings Today
+  set('k1-big', fmt(d.todaySchedMeetings), true);
+
+  // Card 2: Booked Today
+  set('k2-big', fmt(d.todayBookedMeetings), true);
+
+  // Card 3: Proposals Today
+  set('k-pt-big', fmt(d.todaySchedProposals), true);
+
+  // Card 4: OC Channel — last 30d count + trend only
+  set('k3-big', fmt(d.oc_0_30 || 0), true);
+  {
+    const diff    = (d.oc_0_30 || 0) - (d.oc_31_60 || 0);
+    const absDiff = Math.abs(diff);
+    const el = document.getElementById('k3-trend');
+    if (el) {
+      if (diff > 0)      { el.style.color = '#22c55e'; el.textContent = `↑ +${absDiff} vs prior 30d`; }
+      else if (diff < 0) { el.style.color = '#ef4444'; el.textContent = `↓ -${absDiff} vs prior 30d`; }
+      else               { el.style.color = '#64748b'; el.textContent = `→ flat vs prior 30d`; }
+    }
+  }
+
+  // Card 5: Belkins Channel — last 30d count + trend only
+  set('k4-big', fmt(d.belkins_0_30 || 0), true);
+  {
+    const diff    = (d.belkins_0_30 || 0) - (d.belkins_31_60 || 0);
+    const absDiff = Math.abs(diff);
+    const el = document.getElementById('k4-trend');
+    if (el) {
+      if (diff > 0)      { el.style.color = '#22c55e'; el.textContent = `↑ +${absDiff} vs prior 30d`; }
+      else if (diff < 0) { el.style.color = '#ef4444'; el.textContent = `↓ -${absDiff} vs prior 30d`; }
+      else               { el.style.color = '#64748b'; el.textContent = `→ flat vs prior 30d`; }
+    }
+  }
+
+  // Card 6: Proposals Sent — period buckets
+  set('p0-30',  fmt(d.props_0_30),  true);
+  set('p31-60', fmt(d.props_31_60), true);
+  set('p61-90', fmt(d.props_61_90), true);
+  const pt   = trendArrow(d.props_0_30, d.props_31_60);
+  const ptEl = document.getElementById('p-trend');
+  if (ptEl) { ptEl.textContent = pt.char; ptEl.className = `trend-arrow ${pt.cls}`; }
+
+  // Card 7: Deals Closed — period buckets
+  set('c0-30',  fmt(d.closed_0_30),  true);
+  set('c31-60', fmt(d.closed_31_60), true);
+  set('c61-90', fmt(d.closed_61_90), true);
+  const ct   = trendArrow(d.closed_0_30, d.closed_31_60);
+  const ctEl = document.getElementById('c-trend');
+  if (ctEl) { ctEl.textContent = ct.char; ctEl.className = `trend-arrow ${ct.cls}`; }
+
+  // Card 8: Close Rate
+  const overallCR = d.proposals90 > 0 ? Math.round((d.closed90 / d.proposals90) * 100) : 0;
+  set('k7-big', overallCR + '%', true);
+  set('k7-sub',
+    `<span class="teal">OC ${d.ocPropToCloseRate}%</span> · <span class="violet">Belkins ${d.belkinsPropToCloseRate}%</span>`);
+
+}
+
+// ─── RENDER FUNNEL ────────────────────────────────────────────────────────────
+function renderFunnel(d) {
+  const ARC = 257.6;
+
+  // Gauge 1: Meetings → Proposals
+  const g1pct = d.total90 > 0 ? Math.min(100, Math.round((d.proposals90 / d.total90) * 100)) : 0;
+  document.getElementById('gauge1-pct').textContent = g1pct + '%';
+  document.getElementById('gauge1-count').textContent = `${fmt(d.proposals90)} of ${fmt(d.total90)} meetings`;
+  const g1offset = ARC * (1 - g1pct / 100);
+  const g1path = document.getElementById('gauge1-path');
+  // Use setTimeout to allow CSS transition
+  setTimeout(() => {
+    g1path.style.transition = 'stroke-dashoffset 1s ease';
+    g1path.style.strokeDashoffset = g1offset;
+  }, 100);
+
+  // Gauge 2: Proposals → Closed
+  const g2pct = d.proposals90 > 0 ? Math.min(100, Math.round((d.closed90 / d.proposals90) * 100)) : 0;
+  document.getElementById('gauge2-pct').textContent = g2pct + '%';
+  document.getElementById('gauge2-count').textContent = `${fmt(d.closed90)} of ${fmt(d.proposals90)} proposals`;
+  const g2offset = ARC * (1 - g2pct / 100);
+  const g2path = document.getElementById('gauge2-path');
+  setTimeout(() => {
+    g2path.style.transition = 'stroke-dashoffset 1s ease';
+    g2path.style.strokeDashoffset = g2offset;
+  }, 100);
+
+  // Efficiency
+  const ocMtgPer = d.ocClosed90 > 0 ? (d.oc90 / d.ocClosed90).toFixed(1) : '∞';
+  const ocPropPer = d.ocClosed90 > 0 ? (d.ocProposals90 / d.ocClosed90).toFixed(1) : '∞';
+  const belMtgPer = d.belkinsClosed90 > 0 ? (d.belkins90 / d.belkinsClosed90).toFixed(1) : '∞';
+  const belPropPer = d.belkinsClosed90 > 0 ? (d.belkinsProposals90 / d.belkinsClosed90).toFixed(1) : '∞';
+  document.getElementById('oc-mtg-per-deal').textContent = ocMtgPer;
+  document.getElementById('oc-prop-per-deal').textContent = ocPropPer;
+  document.getElementById('bel-mtg-per-deal').textContent = belMtgPer;
+  document.getElementById('bel-prop-per-deal').textContent = belPropPer;
+
+  const overallMtgPer = d.closed90 > 0 ? (d.total90 / d.closed90).toFixed(1) : '∞';
+  const overallPropPer = d.closed90 > 0 ? (d.proposals90 / d.closed90).toFixed(1) : '∞';
+  document.getElementById('overall-eff').textContent =
+    `Overall: ~${overallMtgPer} meetings or ~${overallPropPer} proposals per deal`;
+
+  // 30-day forecast
+  const ocDailyAvg = d.oc90 / 90;
+  const belDailyAvg = d.belkins90 / 90;
+  const ocProjMtg = ocDailyAvg * 30;
+  const belProjMtg = belDailyAvg * 30;
+  const ocPropRate = d.oc90 > 0 ? d.ocProposals90 / d.oc90 : 0;
+  const belPropRate = d.belkins90 > 0 ? d.belkinsProposals90 / d.belkins90 : 0;
+  const ocCloseRate2 = d.ocProposals90 > 0 ? d.ocClosed90 / d.ocProposals90 : 0;
+  const belCloseRate2 = d.belkinsProposals90 > 0 ? d.belkinsClosed90 / d.belkinsProposals90 : 0;
+  const ocProjCloses = ocProjMtg * ocPropRate * ocCloseRate2;
+  const belProjCloses = belProjMtg * belPropRate * belCloseRate2;
+  const totalProjCloses = ocProjCloses + belProjCloses;
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('fc-oc-deals', `~${ocProjCloses.toFixed(1)}`);
+  setEl('fc-oc-mtgs', `from ~${ocProjMtg.toFixed(1)} mtgs`);
+  setEl('fc-bel-deals', `~${belProjCloses.toFixed(1)}`);
+  setEl('fc-bel-mtgs', `from ~${belProjMtg.toFixed(1)} mtgs`);
+  setEl('fc-total-deals', `~${totalProjCloses.toFixed(1)}`);
+}
+
+// ─── RENDER REPS ──────────────────────────────────────────────────────────────
+function renderReps(reps, todayProposals) {
+  const container = document.getElementById('rep-list');
+  container.innerHTML = '';
+  const shown = reps.filter(r => r.happening.total > 0 || r.booked > 0);
+  document.getElementById('rep-count').textContent = `${shown.length} reps`;
+
+  const propTodayEl = document.getElementById('rep-proposals-today');
+  if (propTodayEl) {
+    propTodayEl.textContent = todayProposals > 0 ? `✦ ${todayProposals} proposals sent today` : '';
+  }
+
+  // Column label header row
+  const colHeader = document.createElement('div');
+  colHeader.style.cssText = 'display:flex;align-items:center;padding:3px 4px 3px;gap:6px;border-bottom:1px solid var(--border);';
+  const chName = document.createElement('div');
+  chName.style.cssText = 'width:90px;min-width:90px;';
+  colHeader.appendChild(chName);
+  const chHap = document.createElement('div');
+  chHap.style.cssText = 'flex:1;font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.04em;';
+  chHap.textContent = "today's calls";
+  colHeader.appendChild(chHap);
+  const chDiv = document.createElement('div');
+  chDiv.style.cssText = 'width:1px;height:12px;background:transparent;flex-shrink:0;';
+  colHeader.appendChild(chDiv);
+  const chBooked = document.createElement('div');
+  chBooked.style.cssText = 'flex:1;font-size:9px;color:var(--muted);font-weight:600;letter-spacing:.04em;';
+  chBooked.textContent = '+booked';
+  colHeader.appendChild(chBooked);
+  container.appendChild(colHeader);
+
+  for (const rep of shown) {
+    const row = document.createElement('div');
+    row.className = 'rep-row';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'rep-name';
+    const parts = (rep.name || '').split(' ');
+    nameEl.textContent = parts.length > 1
+      ? `${parts[0]} ${parts[parts.length-1][0]}.`
+      : rep.name;
+    nameEl.title = rep.name;
+    row.appendChild(nameEl);
+
+    // Happening pills — fully readable labels
+    const hapDiv = document.createElement('div');
+    hapDiv.className = 'rep-pills';
+    const h = rep.happening;
+    if (h.total > 0) hapDiv.appendChild(makePill(`${h.total}m`, 'teal'));
+    if (h.proposals > 0) hapDiv.appendChild(makePill(`${h.proposals} prop`, 'green'));
+    if (h.noShows > 0) hapDiv.appendChild(makePill(`${h.noShows} no-show`, 'red'));
+    if (h.cancelled > 0) hapDiv.appendChild(makePill(`${h.cancelled} cancel`, 'amber'));
+    if (h.pending > 0) hapDiv.appendChild(makePill(`${h.pending} pending`, 'gray'));
+    row.appendChild(hapDiv);
+
+    const div = document.createElement('div');
+    div.className = 'rep-divider';
+    row.appendChild(div);
+
+    // Booked pills
+    const bookedDiv = document.createElement('div');
+    bookedDiv.className = 'rep-pills';
+    if (rep.booked > 0) bookedDiv.appendChild(makePill(`+${rep.booked} booked`, 'violet'));
+    row.appendChild(bookedDiv);
+
+    container.appendChild(row);
+  }
+}
+
+function makePill(text, color) {
+  const el = document.createElement('div');
+  el.className = `rep-pill pill-${color}`;
+  el.textContent = text;
+  return el;
+}
+
+// ─── CHART DEFAULTS ────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 600 },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1c2128',
+      titleColor: '#e2e8f0',
+      bodyColor: '#94a3b8',
+      borderColor: '#2a2f3a',
+      borderWidth: 1,
+      callbacks: {
+        label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString()}`,
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: '#2a2f3a', drawBorder: false },
+      ticks: { color: '#64748b', font: { family: "'DM Mono', monospace", size: 9 } }
+    },
+    y: {
+      grid: { color: '#2a2f3a', drawBorder: false },
+      ticks: { color: '#64748b', font: { family: "'DM Mono', monospace", size: 9 } }
+    }
+  }
+};
+
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+}
+
+// ─── DAILY CHART ──────────────────────────────────────────────────────────────
+function renderDailyChart(d) {
+  destroyChart('daily');
+  const ctx = document.getElementById('daily-chart').getContext('2d');
+
+  const labels = d.dayKeys.map(ds => {
+    const dt = new Date(ds + 'T12:00:00');
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  });
+  const ocData = d.dailyData.map(dd => dd.oc);
+  const belData = d.dailyData.map(dd => dd.belkins);
+  const todayIdx = d.dayKeys.indexOf(d.todayStr);
+
+  const todayBookedOC = d.todayBookedOC;
+  const todayBookedBel = d.todayBookedBelkins;
+
+  const todayAnnotationPlugin = {
+    id: 'todayAnnotation',
+    afterDraw(chart) {
+      if (todayIdx < 0) return;
+      const { ctx: c, chartArea } = chart;
+      const meta0 = chart.getDatasetMeta(0);
+      const meta1 = chart.getDatasetMeta(1);
+      if (!meta0.data[todayIdx] || !meta1.data[todayIdx]) return;
+      const bar0 = meta0.data[todayIdx];
+      const bar1 = meta1.data[todayIdx];
+      const x = (bar0.x + bar1.x) / 2;
+      const ocVal = ocData[todayIdx];
+      const belVal = belData[todayIdx];
+      const y = chartArea.top + 10;
+      c.save();
+      c.font = "bold 8px 'DM Mono', monospace";
+      c.fillStyle = '#94a3b8';
+      c.textAlign = 'center';
+      c.fillText(`Today · Sched: ${ocVal} OC ${belVal} Bel · Booked: ${todayBookedOC} OC ${todayBookedBel} Bel`, x, y);
+      c.restore();
+    }
+  };
+
+  charts['daily'] = new Chart(ctx, {
+    type: 'bar',
+    plugins: [todayAnnotationPlugin],
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'OC',
+          data: ocData,
+          backgroundColor: '#0d9488cc',
+          borderColor: '#0d9488',
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+        {
+          label: 'Belkins',
+          data: belData,
+          backgroundColor: '#7c3aedcc',
+          borderColor: '#7c3aed',
+          borderWidth: 1,
+          borderRadius: 2,
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          display: true,
+          labels: { color: '#64748b', font: { size: 9 }, boxWidth: 10, padding: 8 }
+        }
+      },
+      scales: {
+        x: {
+          ...CHART_DEFAULTS.scales.x,
+          ticks: {
+            color: (ctx2) => ctx2.index === todayIdx ? '#e2e8f0' : '#64748b',
+            font: { family: "'DM Mono', monospace", size: 8 },
+            maxRotation: 45,
+          }
+        },
+        y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ─── WEEKLY CHART ─────────────────────────────────────────────────────────────
+function renderWeeklyChart(d) {
+  destroyChart('weekly');
+  const ctx = document.getElementById('weekly-chart').getContext('2d');
+
+  // Use T12:00:00 (noon) to avoid UTC midnight shifting dates across timezone
+  const labels = d.weeklyData.map(w => {
+    const dt = new Date(w.wk + 'T12:00:00');
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  });
+  const ocData = d.weeklyData.map(w => w.oc);
+  const belData = d.weeklyData.map(w => w.belkins);
+  const propData = d.weeklyData.map(w => w.proposals);
+  const avgMeetings = d.weeklyData.length > 0
+    ? d.weeklyData.reduce((s,w) => s + w.meetings, 0) / d.weeklyData.length : 0;
+  const avgProps = d.weeklyData.length > 0
+    ? d.weeklyData.reduce((s,w) => s + w.proposals, 0) / d.weeklyData.length : 0;
+
+  charts['weekly'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'OC',
+          data: ocData,
+          backgroundColor: '#0d9488cc',
+          borderColor: '#0d9488',
+          borderWidth: 1,
+          stack: 'meetings',
+          borderRadius: 2,
+          order: 3,
+        },
+        {
+          label: 'Belkins',
+          data: belData,
+          backgroundColor: '#7c3aedcc',
+          borderColor: '#7c3aed',
+          borderWidth: 1,
+          stack: 'meetings',
+          borderRadius: 2,
+          order: 2,
+        },
+        {
+          label: 'Proposals',
+          data: propData,
+          type: 'line',
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          borderDash: [6, 3],
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#f59e0b',
+          tension: 0.3,
+          yAxisID: 'y',
+          order: 1,
+          z: 10,
+        },
+        {
+          label: 'Avg Meetings',
+          data: labels.map(() => +avgMeetings.toFixed(1)),
+          type: 'line',
+          borderColor: '#ef4444',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          yAxisID: 'y',
+          order: 4,
+        },
+        {
+          label: 'Avg Proposals',
+          data: labels.map(() => +avgProps.toFixed(1)),
+          type: 'line',
+          borderColor: '#ef444488',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [3, 3],
+          pointRadius: 0,
+          yAxisID: 'y',
+          order: 5,
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          display: true,
+          labels: { color: '#64748b', font: { size: 9 }, boxWidth: 10, padding: 6 }
+        }
+      },
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x, stacked: true },
+        y: { ...CHART_DEFAULTS.scales.y, stacked: false, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ─── WEEKLY CLOSES CHART ──────────────────────────────────────────────────────
+function renderProposalsChart(d) {
+  destroyChart('proposals');
+  const ctx = document.getElementById('proposals-chart').getContext('2d');
+  const labels = d.weeklyData.map(w => {
+    const dt = new Date(w.wk + 'T12:00:00');
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  });
+  const closeData = d.weeklyData.map(w => w.closes);
+  const closeAvg  = closeData.length > 0 ? closeData.reduce((a,b)=>a+b,0) / closeData.length : 0;
+
+  charts['proposals'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Deals closed',
+          data: closeData,
+          backgroundColor: 'rgba(16,185,129,0.9)',
+          borderRadius: 3,
+          barPercentage: 0.7,
+          categoryPercentage: 0.8,
+          order: 2,
+        },
+        {
+          label: 'Close avg',
+          data: labels.map(() => +closeAvg.toFixed(1)),
+          type: 'line',
+          borderColor: 'rgba(16,185,129,0.55)',
+          backgroundColor: 'transparent',
+          borderDash: [5, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          order: 1,
+        },
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x },
+        y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins?.tooltip,
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label(ctx) {
+              if (ctx.dataset.label === 'Close avg') return null;
+              return ` ${ctx.dataset.label}: ${ctx.parsed.y}`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ─── DAILY PROPOSALS WEEK-COMPARE CHART ───────────────────────────────────────
+function renderHitRateChart(d) {
+  destroyChart('mpr');
+
+  const todayStr = d.todayStr;
+  const propDayMap = d.propDayMap || {};
+  const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri'];
+
+  // Returns the Monday (YYYY-MM-DD) of the week containing dateStr
+  function mondayOf(dateStr) {
+    return getWeekKey(dateStr); // already defined globally
+  }
+
+  // Returns array of 5 YYYY-MM-DD strings Mon–Fri starting from monStr
+  function weekDays(monStr) {
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      const dt = new Date(monStr + 'T00:00:00');
+      dt.setDate(dt.getDate() + i);
+      days.push(toLocalDateStr(dt));
+    }
+    return days;
+  }
+
+  // Offset a Monday by N weeks
+  function shiftWeek(monStr, weeks) {
+    const dt = new Date(monStr + 'T00:00:00');
+    dt.setDate(dt.getDate() + weeks * 7);
+    return toLocalDateStr(dt);
+  }
+
+  const currMon  = mondayOf(todayStr);
+  const lastMon  = shiftWeek(currMon, -1);
+  const prevMon  = shiftWeek(currMon, -2);
+
+  const currDays = weekDays(currMon);
+  const lastDays = weekDays(lastMon);
+  const prevDays = weekDays(prevMon);
+
+  // This week: future days → null (no bar rendered)
+  const currData = currDays.map(ds => ds <= todayStr ? (propDayMap[ds] || 0) : null);
+  const lastData = lastDays.map(ds => propDayMap[ds] || 0);
+  const prevData = prevDays.map(ds => propDayMap[ds] || 0);
+
+  // Summary stats
+  const currTotal  = currData.reduce((a, v) => a + (v ?? 0), 0);
+  const lastTotal  = lastData.reduce((a, v) => a + v, 0);
+  const prevTotal  = prevData.reduce((a, v) => a + v, 0);
+  const lastAvg    = (lastTotal / 5).toFixed(1);
+
+  // Day range label for "this week so far"
+  const todayDow  = new Date(todayStr + 'T00:00:00').getDay(); // 0=Sun
+  const wkIdx     = todayDow === 0 ? 4 : Math.min(todayDow - 1, 4); // 0=Mon
+  const currLabel = currDays[0] === todayStr
+    ? 'Mon only'
+    : `Mon–${DAY_NAMES[wkIdx]}`;
+
+  // Update stat cards
+  document.getElementById('dpwc-curr-total').textContent = currTotal;
+  document.getElementById('dpwc-curr-sub').textContent   = currLabel;
+  document.getElementById('dpwc-last-total').textContent = lastTotal;
+  if (prevTotal > 0) {
+    const pct  = Math.round((lastTotal - prevTotal) / prevTotal * 100);
+    const up   = pct >= 0;
+    document.getElementById('dpwc-last-sub').innerHTML =
+      `<span style="color:${up ? '#22c55e' : '#ef4444'}">${up ? '↑' : '↓'} ${up ? '+' : ''}${pct}% vs prior wk</span>`;
+  } else {
+    document.getElementById('dpwc-last-sub').textContent = '— vs prior wk';
+  }
+  document.getElementById('dpwc-avg-total').textContent = lastAvg;
+
+  // Y-axis cap
+  const maxVal = Math.max(...lastData, ...prevData, 1);
+  const yMax   = Math.ceil(Math.max(maxVal * 1.4, 15));
+
+  const ctx = document.getElementById('mpr-chart').getContext('2d');
+  charts['mpr'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DAY_NAMES,
+      datasets: [
+        {
+          label: 'This week',
+          data: currData,
+          backgroundColor: 'rgba(217,119,6,0.9)',
+          borderRadius: 4,
+          barPercentage: 0.6,
+          categoryPercentage: 0.75,
+        },
+        {
+          label: 'Last week',
+          data: lastData,
+          backgroundColor: 'rgba(217,119,6,0.35)',
+          borderRadius: 4,
+          barPercentage: 0.6,
+          categoryPercentage: 0.75,
+        },
+        {
+          label: 'Wk before',
+          data: prevData,
+          backgroundColor: 'rgba(217,119,6,0.15)',
+          borderRadius: 4,
+          barPercentage: 0.6,
+          categoryPercentage: 0.75,
+        },
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: { display: false },
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            label: ctx => {
+              const v = ctx.parsed.y;
+              return ` ${ctx.dataset.label}: ${v != null ? v : '—'}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x },
+        y: {
+          ...CHART_DEFAULTS.scales.y,
+          beginAtZero: true,
+          max: yMax,
+          ticks: { ...CHART_DEFAULTS.scales.y.ticks, maxTicksLimit: 4 }
+        }
+      }
+    }
+  });
+}
+
+// ─── CPR CHART ────────────────────────────────────────────────────────────────
+function renderCPRChart(d) {
+  destroyChart('cpr');
+  const ctx = document.getElementById('cpr-chart').getContext('2d');
+  const labels = d.weeklyData.map(w => {
+    const dt = new Date(w.wk + 'T12:00:00');
+    return `${dt.getMonth()+1}/${dt.getDate()}`;
+  });
+  const cprData = d.weeklyData.map(w => +w.cpr.toFixed(1));
+  const avg = cprData.length > 0 ? cprData.reduce((a,b)=>a+b,0)/cprData.length : 0;
+
+  charts['cpr'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'CPR %',
+          data: cprData,
+          borderColor: '#10b981',
+          backgroundColor: '#10b98122',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#10b981',
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Avg',
+          data: labels.map(() => +avg.toFixed(1)),
+          borderColor: '#ef4444',
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [5, 4],
+          pointRadius: 0,
+        }
+      ]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}%` }
+        }
+      },
+      scales: {
+        x: { ...CHART_DEFAULTS.scales.x },
+        y: { ...CHART_DEFAULTS.scales.y, beginAtZero: true, max: 40,
+          ticks: { ...CHART_DEFAULTS.scales.y.ticks, callback: v => v + '%' }
+        }
+      }
+    }
+  });
+}
+
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+
+// ─── COUNTDOWN RING ───────────────────────────────────────────────────────────
+function updateCountdown() {
+  if (!nextRefreshAt) return;
+  const remaining = Math.max(0, nextRefreshAt - Date.now());
+  const fraction = remaining / REFRESH_MS;
+  const CIRC = 88;
+  const offset = CIRC * (1 - fraction);
+  document.querySelector('#countdown-ring .prog').style.strokeDashoffset = offset;
+}
+
+// ─── MAIN LOAD & RENDER ───────────────────────────────────────────────────────
+async function loadAndRender() {
+  try {
+    const records = await fetchAllRecords();
+    const d = processRecords(records);
+
+    renderKPIs(d);
+
+    // Show Rate Today
+    const todayLocal = new Date();
+    const todayStr = todayLocal.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const todayMtgs = records.filter(r => {
+      const sched = r.fields['fldzfYMT58yVWPrgm'];
+      if (!sched) return false;
+      const schedLocal = new Date(sched).toLocaleDateString('en-CA');
+      return schedLocal === todayStr && r.fields['fldHf2ZJrIAUcdwSS'] === 'Sales';
+    });
+    const showRateTotal = todayMtgs.length;
+    const showRateHappened = todayMtgs.filter(r => r.fields['fld1JsS7z7gy0eLlD']).length;
+    const showRatePending = showRateTotal - showRateHappened;
+    const showRatePct = showRateTotal > 0 ? Math.round(showRateHappened / showRateTotal * 100) : null;
+    const srPctEl = document.getElementById('k-showrate-pct');
+    const srSubEl = document.getElementById('k-showrate-sub');
+    if (srPctEl) {
+      srPctEl.textContent = showRatePct !== null ? showRatePct + '%' : '--%';
+      srPctEl.style.color = showRatePct === null ? '#6b7280'
+        : showRatePct >= 70 ? '#22c55e'
+        : showRatePct >= 50 ? '#f59e0b'
+        : '#ef4444';
+    }
+    if (srSubEl) {
+      srSubEl.textContent = showRateTotal > 0
+        ? showRateHappened + ' of ' + showRateTotal + ' updated · ' + showRatePending + ' pending'
+        : 'No meetings scheduled today';
+    }
+
+    renderFunnel(d);
+    renderReps(d.reps, d.todaySchedProposals);
+    renderDailyChart(d);
+    renderWeeklyChart(d);
+    renderProposalsChart(d);
+    renderHitRateChart(d);
+    renderCPRChart(d);
+
+    const now = new Date();
+    document.getElementById('last-updated').textContent =
+      `Updated ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')} · ${records.length} records`;
+
+    document.getElementById('error-banner').style.display = 'none';
+  } catch (err) {
+    console.error('Load error:', err);
+    const banner = document.getElementById('error-banner');
+    banner.textContent = `Error loading data: ${err.message}`;
+    banner.style.display = 'block';
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+// ─── SCHEDULE REFRESH ─────────────────────────────────────────────────────────
+function scheduleRefresh() {
+  if (refreshTimer) clearTimeout(refreshTimer);
+  nextRefreshAt = Date.now() + REFRESH_MS;
+  refreshTimer = setTimeout(async () => {
+    document.getElementById('loading').style.display = 'flex';
+    await loadAndRender();
+    scheduleRefresh();
+  }, REFRESH_MS);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  updateClock();
+  setInterval(() => {
+    updateClock();
+    updateCountdown();
+  }, 1000);
+
+  await loadAndRender();
+  scheduleRefresh();
+})();
+</script>
+</body>
+</html>
