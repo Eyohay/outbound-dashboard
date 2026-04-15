@@ -677,6 +677,7 @@ const REFRESH_MS = 1 * 60 * 1000;
 let charts = {};
 let refreshTimer = null;
 let nextRefreshAt = null;
+let initialLoadComplete = false;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 // For calendar date fields (e.g. Call Scheduled Date stored as UTC midnight):
@@ -1816,7 +1817,10 @@ async function loadAndRender() {
     banner.textContent = `Error loading data: ${err.message}`;
     banner.style.display = 'block';
   } finally {
-    document.getElementById('loading').style.display = 'none';
+    if (!initialLoadComplete) {
+      document.getElementById('loading').style.display = 'none';
+      initialLoadComplete = true;
+    }
   }
 }
 
@@ -1825,7 +1829,6 @@ function scheduleRefresh() {
   if (refreshTimer) clearTimeout(refreshTimer);
   nextRefreshAt = Date.now() + REFRESH_MS;
   refreshTimer = setTimeout(async () => {
-    document.getElementById('loading').style.display = 'flex';
     await loadAndRender();
     scheduleRefresh();
   }, REFRESH_MS);
