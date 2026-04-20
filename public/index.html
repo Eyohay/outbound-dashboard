@@ -1,1202 +1,643 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Outbound Team Capacity Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outbound Consulting — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg:      #070a0f;
+      --card:    #0d1117;
+      --border:  #1f2937;
+      --text:    #f3f4f6;
+      --muted:   #6b7280;
+      --green:   #22c55e;
+      --amber:   #f59e0b;
+      --red:     #ef4444;
+      --teal:    #14b8a6;
+      --blue:    #3b82f6;
+      --purple:  #8b5cf6;
+    }
+
     html, body {
-      height: 100%;
-      min-height: 100vh;
-      overflow: hidden;
-      margin: 0;
-      background: #0a0d14;
-    }
-
-    body {
-      display: grid;
-      grid-template-rows: 48px 28px 72px minmax(240px, auto) 1fr;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
       height: 100vh;
-      min-height: 100vh;
-      max-height: 100vh;
       overflow: hidden;
+    }
+
+    body { display: flex; flex-direction: column; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
       background: #0a0d14;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      height: 40px;
+    }
+    header h1 {
       font-size: 12px;
-    }
-
-    /* ── Row 1: Header (48px) ──────────────────────────────────────────────── */
-    #header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 18px;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .hdr-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #e2e8f0;
-      white-space: nowrap;
-      flex-shrink: 0;
-      letter-spacing: .01em;
-    }
-
-    #runway-pill {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      border-radius: 7px;
-      padding: 4px 10px 4px 4px;
-      flex: 1;
-      min-width: 0;
-      max-width: 720px;
-      overflow: hidden;
-      visibility: hidden;
-      border: 0.5px solid transparent;
-    }
-    #runway-pill.rp-below { background: rgba(34,197,94,0.08);  border-color: rgba(34,197,94,0.25); }
-    #runway-pill.rp-at    { background: rgba(20,184,166,0.08); border-color: rgba(20,184,166,0.3); }
-    #runway-pill.rp-past  { background: rgba(220,38,38,0.08);  border-color: rgba(220,38,38,0.28); }
-
-    /* Left: rounded-square badge with big number */
-    .rp-badge {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      border-radius: 5px; padding: 2px 9px; min-width: 38px; flex-shrink: 0; gap: 0; line-height: 1;
-      margin-right: 10px;
-    }
-    #runway-pill.rp-below .rp-badge { background: rgba(34,197,94,0.2); }
-    #runway-pill.rp-at    .rp-badge { background: rgba(20,184,166,0.2); }
-    #runway-pill.rp-past  .rp-badge { background: rgba(220,38,38,0.22); }
-    .rp-badge-num {
-      font-size: 22px; font-weight: 800; line-height: 1;
-    }
-    #runway-pill.rp-below .rp-badge-num { color: #86efac; }
-    #runway-pill.rp-at    .rp-badge-num { color: #5eead4; }
-    #runway-pill.rp-past  .rp-badge-num { color: #fca5a5; }
-    .rp-badge-lbl {
-      font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; line-height: 1; margin-top: 1px;
-    }
-    #runway-pill.rp-below .rp-badge-lbl { color: rgba(134,239,172,0.65); }
-    #runway-pill.rp-at    .rp-badge-lbl { color: rgba(94,234,212,0.65); }
-    #runway-pill.rp-past  .rp-badge-lbl { color: rgba(252,165,165,0.65); }
-
-    /* Divider */
-    .rp-sep { width: 1px; height: 30px; background: rgba(255,255,255,0.08); flex-shrink: 0; margin: 0 10px; }
-
-    /* Two-line text body */
-    .rp-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow: hidden; }
-    .rp-line1 { font-size: 11px; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rp-line2 { font-size: 9px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rp-line2 strong { color: #94a3b8; }
-
-    /* Right status badge */
-    .rp-status {
-      flex-shrink: 0; padding: 2px 8px; border-radius: 5px;
-      font-size: 9px; font-weight: 700; white-space: nowrap; margin-left: 10px;
-    }
-    .rp-st-ok   { background: rgba(34,197,94,0.15);  color: #86efac; }
-    .rp-st-book { background: rgba(59,130,246,0.15);  color: #93c5fd; }
-    .rp-st-warn { background: rgba(245,158,11,0.15);  color: #fcd34d; }
-
-    .hdr-right {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .live-ind {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      color: #22c55e;
-    }
-
-    .live-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
-      animation: live-pulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes live-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: .4; transform: scale(1.65); box-shadow: 0 0 14px #22c55e; }
-    }
-
-    .cd-wrap  { display: flex; align-items: center; gap: 6px; }
-    .cd-track { width: 60px; height: 2px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
-    .cd-fill  { height: 100%; background: #3b82f6; border-radius: 2px; transition: width 1s linear; width: 100%; }
-    .cd-text  { font-size: 10px; color: #64748b; min-width: 26px; }
-    #last-updated { font-size: 10px; color: #64748b; }
-
-    /* ── Row 2: Glance bar (28px) ──────────────────────────────────────────── */
-    #glance-bar {
-      display: flex;
-      align-items: center;
-      padding: 0 18px;
-      background: #0b0e15;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      font-size: 11px;
-      color: #64748b;
-      overflow: hidden;
-      white-space: nowrap;
-      min-height: 0;
-      gap: 0;
-    }
-
-    .gb-title {
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .08em; color: #334155;
-      margin-right: 12px; flex-shrink: 0;
-    }
-
-    .wg-sep  { display: inline-block; width: 0.5px; height: 14px; background: rgba(255,255,255,0.06); margin: 0 10px; vertical-align: middle; flex-shrink: 0; }
-    .wg-item { flex-shrink: 0; }
-    .wg-week { margin-left: auto; font-size: 10px; color: #334155; flex-shrink: 0; padding-left: 14px; }
-
-    /* ── Row 3: Pipeline Runway card (auto) ─────────────────────────────────── */
-    #runway-card {
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      padding: 7px 16px;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: visible;
-    }
-
-    #runway-left { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-
-    .rw-title-row {
-      display: flex; align-items: baseline; gap: 8px;
-    }
-    .rw-title {
-      font-size: 9px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: #334155;
-    }
-    .rw-sub {
-      font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    /* Zone bar */
-    .rw-zone-wrap {
-      position: relative;
-      height: 14px;
-      border-radius: 6px;
-      overflow: visible;
-      display: flex;
-    }
-    .rw-zone-seg {
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 7.5px;
       font-weight: 600;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .rw-zone-green { background: rgba(34,197,94,0.25); color: #86efac; border-radius: 6px 0 0 6px; }
-    .rw-zone-amber { background: rgba(245,158,11,0.25); color: #fcd34d; }
-    .rw-zone-red   { background: rgba(220,38,38,0.25);  color: #fca5a5; border-radius: 0 6px 6px 0; }
-    .rw-needle {
-      position: absolute;
-      top: -2px; bottom: -2px;
-      width: 2.5px;
-      background: #fff;
-      border-radius: 2px;
-      box-shadow: 0 0 5px rgba(255,255,255,0.7);
-      transition: left 0.5s ease;
-      z-index: 10;
-    }
-
-    /* 4 sub-stat tiles */
-    .rw-tiles {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-    .rw-tile {
-      background: rgba(255,255,255,0.03);
-      border: 0.5px solid rgba(255,255,255,0.07);
-      border-radius: 5px;
-      padding: 4px 7px;
-    }
-    .rw-tile-label { font-size: 7.5px; color: #334155; text-transform: uppercase; letter-spacing: .06em; }
-    .rw-tile-val   { font-size: 16px; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
-    .rw-tile-sub   { font-size: 7.5px; color: #475569; }
-
-
-    /* ── Row 5: M2 heatmap (auto — sized by JS after render) ────────────────── */
-    #m2-row {
-      display: flex;
-      flex-direction: column;
-      background: #0d1017;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      min-height: 0;
-      overflow: visible;
-      padding: 6px 16px;
-      gap: 4px;
-    }
-
-    .row-hdr {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: #334155;
-      flex-shrink: 0; white-space: nowrap; margin-bottom: 2px;
-    }
-
-    #m2-heatmap { flex: 1; overflow: visible; min-height: 0; }
-
-    /* Heatmap table */
-    #m2-heatmap .heatmap-table        { font-size: 9px; border-collapse: separate; border-spacing: 1px; width: 100%; table-layout: fixed; }
-    #m2-heatmap .heatmap-table th     { font-size: 8px; padding: 1px; height: auto; background: transparent; white-space: nowrap; text-align: center; overflow: hidden; color: #64748b; vertical-align: bottom; line-height: 1; }
-    #m2-heatmap .heatmap-table th.rep-col { text-align: left; width: 80px; min-width: 80px; padding-left: 6px; vertical-align: middle; }
-    #m2-heatmap tr                    { height: auto; }
-    #m2-heatmap .hm-cell              { padding: 0 !important; text-align: center; border-radius: 5px; vertical-align: middle; overflow: hidden; line-height: 1; }
-    #m2-heatmap .hm-cell > div       { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; margin: 0; }
-    #m2-heatmap .hm-booking           { font-size: 9px; font-weight: 700; line-height: 1; }
-    #m2-heatmap .hm-pct               { font-size: 7px; opacity: .9; line-height: 1; }
-    #m2-heatmap td.rep-name           { font-size: 9px; font-weight: 600; width: 80px; min-width: 80px; padding: 1px 4px 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #94a3b8; }
-    #m2-heatmap .hm-total-col         { font-size: 9.5px; padding: 0 6px; text-align: center; border-left: 0.5px solid rgba(255,255,255,0.06); }
-    #m2-heatmap .hm-status-col        { font-size: 8.5px; padding: 0 6px; text-align: left; border-left: 0.5px solid rgba(255,255,255,0.06); white-space: nowrap; }
-    #m2-heatmap .weekend-col          { opacity: 0.2; }
-    #m2-heatmap th.today-col          { outline: 1.5px solid #3b82f6; outline-offset: -1px; border-radius: 5px; }
-
-    .hm-slot-pill {
-      display: inline-block;
-      font-size: 8px; font-weight: 700;
-      padding: 1px 5px; border-radius: 10px;
-      margin-bottom: 2px; line-height: 1.4;
-    }
-    .hm-slot-green  { background: rgba(34,197,94,0.12);  color: #86efac; }
-    .hm-slot-amber  { background: rgba(245,158,11,0.12); color: #fcd34d; }
-    .hm-slot-red    { background: rgba(220,38,38,0.12);  color: #fca5a5; }
-
-    /* Zone 1 — within cutoff: colored urgency */
-    .hm-empty { background: rgba(220,38,38,0.45); color: #fca5a5; border-radius: 5px; }
-    .hm-low   { background: rgba(220,38,38,0.25); color: #fca5a5; border-radius: 5px; }
-    .hm-mid   { background: rgba(245,158,11,0.28); color: #fcd34d; border-radius: 5px; }
-    .hm-good  { background: rgba(34,197,94,0.22);  color: #86efac; border-radius: 5px; }
-    .hm-full  { background: rgba(34,197,94,0.45);  color: #86efac; border-radius: 5px; }
-    /* Zone 2 — beyond cutoff: muted gray */
-    .hm-muted { background: rgba(255,255,255,0.04); color: #2d3748; border-radius: 5px; font-size: 9px; }
-    /* Dashed cutoff boundary line */
-    .hm-cutoff-col { border-left: 1.5px dashed rgba(99,153,34,0.4) !important; }
-    /* Absent rep cells */
-    .hm-absent-cell { background: rgba(255,255,255,0.03); color: #334155; border-radius: 5px; font-size: 9px; }
-    /* Beyond-cutoff header slot pill */
-    .hm-slot-muted { display: inline-block; font-size: 8px; font-weight: 500; padding: 1px 5px; border-radius: 10px; background: rgba(255,255,255,0.05); color: #475569; margin-bottom: 2px; line-height: 1.4; }
-
-    /* ── Row 6: M3 full-width table (1fr) ──────────────────────────────────── */
-    #m3-row {
-      display: flex;
-      flex-direction: column;
-      background: #0d1017;
-      min-height: 0;
-      height: 100%;
-      overflow: hidden;
-      padding: 6px 16px 0;
-    }
-
-    .m3-row-hdr {
-      font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .1em; color: #334155;
-      flex-shrink: 0; white-space: nowrap;
-      padding-bottom: 4px;
-    }
-
-    #m3-scroll {
-      flex: 1;
-      overflow: hidden;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #m3-row table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-
-    #m3-row th {
-      font-size: 8.5px;
-      padding: 0 8px;
-      height: 18px;
-      text-align: left;
-      color: #475569;
-      font-weight: 500;
+      letter-spacing: 0.09em;
       text-transform: uppercase;
-      letter-spacing: .04em;
-      border-bottom: 0.5px solid rgba(255,255,255,0.06);
-      background: #0d1017;
-      white-space: nowrap;
+      color: var(--text);
     }
-
-    #m3-row td {
-      padding: 3px 5px;
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .last-updated {
+      margin-left: auto;
       font-size: 10px;
-      border-bottom: 0.5px solid rgba(255,255,255,0.04);
-      vertical-align: middle;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    #m3-row tr:last-child td { border-bottom: none; }
-
-    .m3-group-hdr {
-      text-align: center;
-      font-size: 8.5px; font-weight: 600;
-      letter-spacing: .07em; text-transform: uppercase;
-      height: 17px; padding: 0 8px;
-      border-bottom: none !important;
+    /* ── Main Grid ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      grid-template-rows: 55fr 45fr;
+      gap: 8px;
+      padding: 8px;
+      min-height: 0;
     }
 
-    .m3-group-row th { border-bottom: none; }
-    .m3-div-30-90    { border-left: 0.5px solid rgba(255,255,255,0.1) !important; }
-    .m3-div-funnel   { border-left: 0.5px solid rgba(139,92,246,0.3) !important; text-align: center !important; padding: 4px 8px !important; }
+    .top-left  { grid-column:1; grid-row:1; }
+    .top-right { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:8px; }
+    .bottom-row {
+      grid-column: 1 / -1; grid-row: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
-    .rate-high { color: #22c55e; font-weight: 700; }
-    .rate-mid  { color: #f59e0b; font-weight: 700; }
-    .rate-low  { color: #ef4444; font-weight: 700; }
-
-    /* M3 funnel pill badges */
-    .m3-pill-blue  { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(59,130,246,0.2); color: #93c5fd; }
-    .m3-pill-teal  { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(20,184,166,0.2); color: #5eead4; }
-    .m3-pill-green { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(34,197,94,0.2); color: #86efac; }
-    .m3-true-green { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(34,197,94,0.2); color: #86efac; }
-    .m3-true-amber { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(245,158,11,0.2); color: #fcd34d; }
-    .m3-true-red   { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(220,38,38,0.2); color: #fca5a5; }
-
-    #m3-sanity {
-      padding: 3px 0;
-      font-size: 9px;
-      color: #334155;
-      border-top: 0.5px solid rgba(255,255,255,0.04);
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .card-header {
+      padding: 8px 14px 7px;
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-
-    /* ── Show Rate card ─────────────────────────────────────────────────────── */
-    .kpi-card {
-      background: rgba(255,255,255,0.04);
-      border: 0.5px solid rgba(255,255,255,0.08);
-      border-radius: 7px;
-      padding: 7px 12px;
-      display: flex; flex-direction: column; justify-content: space-between;
-      position: relative; overflow: hidden; min-height: 68px;
+    .card-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
     }
-    .kpi-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      border-radius: 7px 7px 0 0;
+    .card-body {
+      flex: 1;
+      padding: 10px 14px;
+      overflow: hidden;
+      min-height: 0;
+      position: relative;
     }
-    .kpi-card.accent-rose::before { background: #e11d48; }
-    .kpi-label {
-      font-size: 9px; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; color: #475569; line-height: 1;
+
+    /* accent strips */
+    .accent-blue   { border-top: 2px solid var(--blue); }
+    .accent-green  { border-top: 2px solid var(--green); }
+    .accent-amber  { border-top: 2px solid var(--amber); }
+    .accent-teal   { border-top: 2px solid var(--teal); }
+    .accent-purple { border-top: 2px solid var(--purple); }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 200; gap: 14px;
     }
-    .kpi-value { font-size: 26px; font-weight: 800; line-height: 1; }
-    .kpi-sub   { font-size: 9px; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    /* ── Shared helpers ─────────────────────────────────────────────────────── */
-    .bar-wrap  { display: flex; align-items: center; gap: 6px; }
-    .bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; min-width: 40px; }
-    .bar-fill  { height: 100%; border-radius: 6px; }
-    .bar-fill.green  { background: #22c55e; }
-    .bar-fill.yellow { background: #f59e0b; }
-    .bar-fill.red    { background: #ef4444; }
-    .bar-fill.accent { background: #3b82f6; }
-    .bar-pct { font-size: 10px; color: #64748b; min-width: 28px; text-align: right; }
-
-    .chip        { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-    .chip-green  { background: rgba(34,197,94,.15);  color: #86efac; }
-    .chip-yellow { background: rgba(245,158,11,.15); color: #fcd34d; }
-    .chip-red    { background: rgba(220,38,38,.15);  color: #fca5a5; }
-
-    /* ── M2 Status badge pills ─────────────────────────────────────────────── */
-    .status-badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 7px; border-radius: 10px;
-      font-size: 8px; font-weight: 600; white-space: nowrap;
-      border: 0.5px solid transparent;
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
     }
-    .status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .status-active { background: rgba(34,197,94,0.1);  color: #86efac; border-color: rgba(34,197,94,0.2); }
-    .status-active .status-dot { background: #22c55e; }
-    .status-nocall { background: rgba(59,130,246,0.1); color: #93c5fd; border-color: rgba(59,130,246,0.2); }
-    .status-nocall .status-dot { background: #60a5fa; }
-    .status-absent { background: rgba(100,116,139,0.1); color: #64748b; border-color: rgba(100,116,139,0.2); }
-    .status-absent .status-dot { background: #64748b; }
-    .status-limited { background: #2a1f0a; color: #facc15; border-color: #6b4c0a; }
-    .status-limited .status-dot { background: #facc15; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
 
+    /* ── Error banner ── */
     #error-banner {
       display: none;
-      position: fixed;
-      top: 55px; left: 50%; transform: translateX(-50%);
-      background: rgba(220,38,38,.1);
-      border: 1px solid rgba(220,38,38,.3);
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: #ef4444;
-      font-size: 12px;
-      z-index: 9999;
-      max-width: 500px;
+      background: #1a0808; border: 1px solid var(--red);
+      border-radius: 6px; padding: 8px 14px;
+      font-size: 12px; color: var(--red);
+      margin: 8px;
+    }
+
+    /* ── Chart wrapper ── */
+    .chart-wrap { position: relative; width: 100%; height: 100%; }
+
+    /* ── Panel 2a: Belkins mini-bars ── */
+    .mini-bars { display: flex; flex-direction: column; gap: 5px; }
+    .mini-bar-row { display: flex; align-items: center; gap: 7px; }
+    .mini-bar-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted); width: 34px; flex-shrink: 0;
+    }
+    .weekend-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 8px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .05em; color: #92400e;
+      background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.25);
+      border-radius: 3px; padding: 1px 3px; flex-shrink: 0;
+    }
+    .mini-bar-track {
+      flex: 1; height: 10px;
+      background: rgba(34,197,94,.1);
+      border-radius: 2px; overflow: hidden;
+    }
+    .mini-bar-fill {
+      height: 100%; background: var(--green);
+      border-radius: 2px; opacity: .75;
+    }
+    .mini-bar-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text); width: 14px; text-align: right; flex-shrink: 0;
+    }
+
+    /* ── Panel 2b: Rates ── */
+    .rates-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .rates-hdr th {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted);
+      padding: 0 6px 7px; text-align: center;
+    }
+    .rates-hdr th:first-child { text-align: left; padding-left: 0; }
+    .rates-row td { padding: 5px 6px; vertical-align: middle; }
+    .rates-row td:first-child { padding-left: 0; }
+    .rates-channel {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted);
+    }
+    .rates-now-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 6px; padding: 7px 10px; text-align: center;
+    }
+    .rates-now-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 600; display: block; line-height: 1;
+    }
+    .rates-delta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; display: block; margin-top: 2px;
+    }
+    .rates-now-label {
+      font-size: 8px; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); display: block; margin-top: 2px;
+    }
+    .rates-ref-cell { text-align: center; }
+    .rates-ref-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px; color: var(--muted); display: block; line-height: 1;
+    }
+    .rates-ref-label {
+      font-size: 8px; text-transform: uppercase; letter-spacing: .07em;
+      color: rgba(107,114,128,0.55); display: block; margin-top: 3px;
+    }
+    .delta-up   { color: var(--green); }
+    .delta-down { color: var(--red); }
+
+    /* ── Panel 3: Table ── */
+    .perf-table { width: 100%; border-collapse: collapse; }
+    .perf-table th {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted);
+      padding: 6px 10px; border-bottom: 1px solid var(--border);
       text-align: center;
     }
+    .perf-table th:first-child { text-align: left; padding-left: 14px; }
+    .perf-table th.col-30d {
+      border-left: 2px solid rgba(139,148,158,.25);
+    }
+    .perf-table td {
+      padding: 7px 10px; text-align: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      border-bottom: 1px solid rgba(31,41,55,.45);
+    }
+    .perf-table td:first-child {
+      text-align: left; padding-left: 14px;
+      font-family: 'Inter', sans-serif; font-size: 11px;
+      color: #8b949e; max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .perf-table td.col-30d {
+      border-left: 2px solid rgba(139,148,158,.25);
+    }
+    .rate-green { color: #00d26a; }
+    .rate-amber { color: #fbbf24; }
+    .rate-red   { color: #f87171; }
+    .trend-cell { width: 40px; text-align: center; font-size: 16px; font-weight: 600; }
+    /* ── Inline meeting bar column ── */
+    .m30-bar-td { min-width: 120px; padding: 4px 10px 4px 6px !important; text-align: left !important; font-family: inherit !important; }
+    .m30-bar-track { width: 100%; height: 14px; background: #0a1018; border-radius: 2px; position: relative; overflow: hidden; }
+    .m30-bar-fill { height: 100%; border-radius: 2px; position: absolute; top: 0; left: 0; opacity: .8; }
+    .m30-bar-count { position: absolute; top: 50%; left: 4px; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 8px; color: rgba(255,255,255,.85); line-height: 1; }
   </style>
 </head>
 <body>
 
-<!-- ── Row 1: Header (48px) ──────────────────────────────────────────────────── -->
-<header id="header">
-  <h1 class="hdr-title">Outbound Team Capacity Dashboard</h1>
-  <div id="runway-pill">
-    <div class="rp-badge">
-      <span class="rp-badge-num" id="rp-badge-num">—</span>
-      <span class="rp-badge-lbl">days out</span>
-    </div>
-    <div class="rp-sep"></div>
-    <div class="rp-body">
-      <div class="rp-line1" id="rp-line1">—</div>
-      <div class="rp-line2" id="rp-line2"></div>
-    </div>
-    <span class="rp-status" id="rp-status"></span>
-  </div>
-  <div class="hdr-right">
-    <div class="live-ind"><span class="live-dot"></span>&nbsp;LIVE</div>
-    <div class="cd-wrap">
-      <div class="cd-track"><div class="cd-fill" id="cd-fill"></div></div>
-      <span class="cd-text" id="cd-text">60s</span>
-    </div>
-    <span id="last-updated">—</span>
-  </div>
-</header>
-
-<!-- ── Row 2: Glance bar (28px) ─────────────────────────────────────────────── -->
-<div id="glance-bar">
-  <span class="gb-title">This Week</span>
-  <span id="wg-content" style="display:contents"></span>
-</div>
-
-<!-- ── Row 3: Pipeline Runway card (auto) ───────────────────────────────────── -->
-<div id="runway-card">
-  <div id="runway-left">
-    <!-- Zone bar -->
-    <div class="rw-zone-wrap" id="rw-zone-bar">
-      <div class="rw-zone-seg rw-zone-green" style="width:50%">3–6 days · healthy</div>
-      <div class="rw-zone-seg rw-zone-amber" style="width:25%">6–9 · watch</div>
-      <div class="rw-zone-seg rw-zone-red"   style="width:25%">9+ · overbooked</div>
-      <div class="rw-needle" id="rw-needle" style="left:0%"></div>
-    </div>
-    <!-- 4 stat tiles -->
-    <div class="rw-tiles" id="rw-tiles">
-      <div class="rw-tile"><div class="rw-tile-label">Avg booked/day</div><div class="rw-tile-val" id="rw-t-avg">—</div></div>
-      <div class="rw-tile"><div class="rw-tile-label">Raw open slots</div><div class="rw-tile-val" id="rw-t-raw">—</div></div>
-      <div class="rw-tile"><div class="rw-tile-label">Absence-adj. slots</div><div class="rw-tile-val" id="rw-t-adj">—</div></div>
-      <div class="rw-tile"><div class="rw-tile-label">Active reps</div><div class="rw-tile-val" id="rw-t-reps">—</div><div class="rw-tile-sub" id="rw-t-reps-sub"></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Row 5: M2 heatmap ─────────────────────────────────────────────────────── -->
-<div id="m2-row">
-  <div id="m2-heatmap"></div>
-</div>
-
-<!-- ── Row 6: M3 full-width table (1fr) ─────────────────────────────────────── -->
-<div id="m3-row">
-  <div class="m3-row-hdr">M3 · Proposal Hit Rate by Days-Out</div>
-  <div id="m3-scroll">
-    <table>
-      <thead>
-        <tr class="m3-group-row">
-          <th rowspan="2" style="width:88px;vertical-align:bottom">Days Out</th>
-          <th colspan="5" class="m3-group-hdr" style="color:#60a5fa">Last 30 days</th>
-          <th colspan="2" class="m3-group-hdr m3-div-30-90" style="color:#475569">Last 90 days</th>
-          <th colspan="3" class="m3-group-hdr m3-div-funnel" style="color:#8b5cf6;font-size:8px;text-align:center">90d funnel</th>
-        </tr>
-        <tr>
-          <th>Meetings</th><th>Proposals</th><th>Hit rate</th><th>Close rate</th><th>Trend</th>
-          <th class="m3-div-30-90">Hit rate</th><th>Close rate</th>
-          <th class="m3-div-funnel" style="text-align:center">Mtgs</th>
-          <th style="text-align:center">Props · Closes</th>
-          <th style="text-align:center;white-space:nowrap">True rate</th>
-        </tr>
-      </thead>
-      <tbody id="m3-combined-table"></tbody>
-    </table>
-    <div id="m3-sanity"></div>
-  </div>
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Loading dashboard…</p>
 </div>
 
 <div id="error-banner"></div>
 
+<header>
+  <div class="live-dot"></div>
+  <h1>Outbound Consulting — Performance Dashboard</h1>
+  <span class="last-updated" id="last-updated">—</span>
+</header>
+
+<main>
+  <!-- P3: M→P Table — top left (large) -->
+  <div class="card accent-purple top-left">
+    <div class="card-header"><div class="card-title">Meeting → Proposal by Brand</div></div>
+    <div class="card-body" style="overflow:hidden; padding:0 0 4px;">
+      <table class="perf-table" id="mp-table">
+        <thead><tr><th>Brand</th><th>10d</th><th class="col-30d">30d</th><th>60d</th><th style="width:40px;text-align:center;font-size:9px;font-weight:600;text-transform:lowercase;letter-spacing:.04em;color:var(--muted);padding:6px 4px;">trend</th><th style="text-align:left;padding-left:6px;min-width:120px;">30d meetings</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- P2: Top Right stack -->
+  <div class="top-right">
+    <!-- 2a Belkins Future -->
+    <div class="card accent-green" style="flex:0 0 auto;">
+      <div class="card-header"><div class="card-title">Belkins Future Booked</div></div>
+      <div class="card-body" style="padding:8px 14px;">
+        <div class="mini-bars" id="bk-future"></div>
+      </div>
+    </div>
+    <!-- 2b M→P Rates -->
+    <div class="card accent-purple" style="flex:1;">
+      <div class="card-header"><div class="card-title">Meeting → Proposal Rate</div></div>
+      <div class="card-body">
+        <div class="rates-grid" id="mp-rates"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-row">
+    <!-- P4: Close Rate 60d -->
+    <div class="card accent-teal">
+      <div class="card-header"><div class="card-title">Close Rate — 60 Days</div></div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chart-close60"></canvas></div>
+      </div>
+    </div>
+    <!-- P5: Cost Per Close -->
+    <div class="card accent-amber">
+      <div class="card-header"><div class="card-title">Forecasted Cost Per Close</div></div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chart-cpc"></canvas></div>
+      </div>
+    </div>
+  </div>
+</main>
+
 <script>
-// ── State ─────────────────────────────────────────────────────────────────────
-let countdownInterval = null;
-const REFRESH_INTERVAL = 60;
-let secondsLeft = REFRESH_INTERVAL;
+'use strict';
 
-// ── Cursor hide after 3s inactivity ──────────────────────────────────────────
-(function () {
-  let timer;
-  function show() {
-    document.body.style.cursor = '';
-    clearTimeout(timer);
-    timer = setTimeout(() => { document.body.style.cursor = 'none'; }, 3000);
-  }
-  document.addEventListener('mousemove', show, { passive: true });
-  show();
-})();
+const REFRESH_MS  = 5 * 60 * 1000;
+const BK_ALIASES  = ['belkins', 'belkins.io lead', 'belkins no show'];
+const BK_COLOR    = '#22c55e';
+const OC_PALETTE  = ['#3b82f6','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#f97316','#a855f7','#0ea5e9','#84cc16','#fb923c','#10b981','#e879f9'];
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-function fmtDate(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const charts = {};
+
+// ── helpers ──────────────────────────────────────────────
+function pct(n, d)    { return d ? Math.round((n / d) * 100) : 0; }
+function isBk(name)   { return BK_ALIASES.includes(name.toLowerCase()); }
+function brandClr(name, i) { return isBk(name) ? BK_COLOR : OC_PALETTE[i % OC_PALETTE.length]; }
+
+function rateColor(r) {
+  if (r >= 30) return '#22c55e';
+  if (r >= 15) return '#f59e0b';
+  return '#ef4444';
+}
+function rateClass(r) {
+  if (r >= 30) return 'rate-green';
+  if (r >= 15) return 'rate-amber';
+  return 'rate-red';
+}
+function cpcColor(v) {
+  if (v < 1500) return '#22c55e';
+  if (v < 4000) return '#14b8a6';
+  if (v < 7000) return '#f59e0b';
+  return '#ef4444';
 }
 
-function barColor(pct) {
-  if (pct >= 80) return 'green';
-  if (pct >= 50) return 'yellow';
-  return 'red';
+// ── fetch ─────────────────────────────────────────────────
+async function fetchData() {
+  const r = await fetch('/api/data');
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
 }
 
-function rateClass(rate) {
-  if (rate >= 15) return 'rate-high';
-  if (rate >= 10) return 'rate-mid';
-  return 'rate-low';
+function mergeBelkins(brands) {
+  const bkList = brands.filter(b => b.isBk);
+  const others = brands.filter(b => !b.isBk);
+  if (!bkList.length) return brands;
+  const sumP = k => bkList.reduce((s, b) => s + b[k], 0); // proposals only — aliases split these
+  const main = bkList.find(b => b.name === 'Belkins') ?? bkList[0]; // meetings shared across aliases
+  return [...others, {
+    name: 'Belkins',
+    m30: main.m30, p30: sumP('p30'),
+    m60: main.m60, p60: sumP('p60'),
+    m10: main.m10, p10: sumP('p10'),
+    close60: main.close60, cpc: main.cpc,
+    isBk: true, isOC: false,
+  }];
 }
 
-function makeBar(pct, color) {
-  const cls = color || barColor(pct);
-  return `<div class="bar-wrap">
-    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.min(100,pct)}%"></div></div>
-    <span class="bar-pct">${pct}%</span>
-  </div>`;
+// ── Panel 2a: Belkins future mini-bars ────────────────────
+function renderBkFuture(bkFuture) {
+  const max = Math.max(...bkFuture.map(d => d.count), 1);
+  const year = new Date().getFullYear();
+  document.getElementById('bk-future').innerHTML = bkFuture.map(({ date, count }) => {
+    const [m, day] = date.split('/').map(Number);
+    const dow = new Date(year, m - 1, day).getDay();
+    const badge = dow === 6 ? '<span class="weekend-badge">SAT</span>'
+                : dow === 0 ? '<span class="weekend-badge">SUN</span>'
+                : '';
+    return `
+    <div class="mini-bar-row">
+      <span class="mini-bar-label">${date}</span>
+      ${badge}
+      <div class="mini-bar-track">
+        <div class="mini-bar-fill" style="width:${(count / max) * 100}%"></div>
+      </div>
+      <span class="mini-bar-count">${count}</span>
+    </div>`;
+  }).join('');
 }
 
-function chipFor(pct) {
-  if (pct >= 90) return `<span class="chip chip-red">${pct}%</span>`;
-  if (pct >= 65) return `<span class="chip chip-yellow">${pct}%</span>`;
-  return `<span class="chip chip-green">${pct}%</span>`;
+// ── Panel 2b: Blended / OC / Belkins rates ───────────────
+function renderRates(rates) {
+  const rows = [
+    { label: 'Blended', ...rates.blended },
+    { label: 'OC',      ...rates.oc },
+    { label: 'Belkins', ...rates.belkins },
+  ];
+
+  document.getElementById('mp-rates').innerHTML = `
+    <table class="rates-table">
+      <thead class="rates-hdr">
+        <tr>
+          <th>Channel</th>
+          <th>30 days</th>
+          <th>60 days</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(({ label, r30, r60 }) => {
+          const delta = r30 - r60;
+          const pt    = Math.abs(delta);
+          const arrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '';
+          const aCls  = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : '';
+          return `
+            <tr class="rates-row">
+              <td><span class="rates-channel">${label}</span></td>
+              <td>
+                <div class="rates-now-cell">
+                  <span class="rates-now-val" style="color:${rateColor(r30)}">${r30}%</span>
+                  ${delta !== 0 ? `<span class="rates-delta ${aCls}">${arrow}${pt}pt</span>` : ''}
+                  <span class="rates-now-label">now</span>
+                </div>
+              </td>
+              <td>
+                <div class="rates-ref-cell">
+                  <span class="rates-ref-val">${r60}%</span>
+                  <span class="rates-ref-label">60d avg</span>
+                </div>
+              </td>
+            </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
 }
 
-// ── Render ────────────────────────────────────────────────────────────────────
-function render(data) {
+// ── Panel 3: M→P by brand table ───────────────────────────
+function renderMPTable(brands) {
+  const sorted = [...mergeBelkins(brands)].sort((a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30));
+  const maxM30 = Math.max(...sorted.map(b => b.m30), 1);
 
-  // Optimal cutoff (days-out) from M3 booking recommendation
-  const optimalCutoff = (data.module3.bookingRec && data.module3.bookingRec.optimalCutoff > 0)
-    ? data.module3.bookingRec.optimalCutoff : 0;
+  document.querySelector('#mp-table tbody').innerHTML = sorted.map((b, i) => {
+    const r10 = pct(b.p10, b.m10);
+    const r30 = pct(b.p30, b.m30);
+    const r60 = pct(b.p60, b.m60);
 
-  // Runway data
-  const rw = data.runway || {};
-  const repStatusMap = {};
-  (rw.perRepStatus || []).forEach(r => { repStatusMap[r.name] = r; });
-
-  // ── Glance bar ───────────────────────────────────────────────────────────
-  const days      = data.module1.days;
-  const todayStr  = data.todayStr;
-  const todayData = days.find(d => d.date === todayStr) || {};
-  const weekdays10    = days.filter(d => !d.isWeekend);
-  const totalBooked10 = weekdays10.reduce((s, d) => s + d.booked, 0);
-  const totalCap10    = weekdays10.reduce((s, d) => s + d.capacity, 0);
-  const avgFill10     = totalCap10 > 0 ? Math.round((totalBooked10 / totalCap10) * 100) : 0;
-  const avgFillColor  = avgFill10 >= 70 ? '#f59e0b' : avgFill10 >= 50 ? '#22c55e' : '#ef4444';
-
-  if (data.thisWeek) {
-    const tw = data.thisWeek;
-    const fillClr = tw.teamFillPct >= 70 ? '#f59e0b' : tw.teamFillPct >= 50 ? '#22c55e' : '#ef4444';
-    const sep = '<span class="wg-sep"></span>';
-    document.getElementById('wg-content').outerHTML =
-      `<span id="wg-content" style="display:contents">` +
-      `<span class="wg-item">Emptiest: <strong style="color:#ef4444">${tw.emptiestRep ? tw.emptiestRep.name + ' (' + tw.emptiestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
-      `<span class="wg-item">Fullest: <strong style="color:#22c55e">${tw.fullestRep ? tw.fullestRep.name + ' (' + tw.fullestRep.fillPct + '%)' : '—'}</strong></span>${sep}` +
-      `<span class="wg-item">Team fill: <strong style="color:${fillClr}">${tw.teamFillPct}%</strong> <span style="color:#475569">(${tw.totalBooked}/${tw.totalCapacity})</span></span>${sep}` +
-      `<span class="wg-item">Open this week: <strong style="color:#e2e8f0">${tw.openSlots}</strong> slots</span>${sep}` +
-      `<span class="wg-item">Today: <strong style="color:#e2e8f0">${todayData.booked ?? 0}/${todayData.capacity ?? data.totalDailyCapacity}</strong></span>${sep}` +
-      `<span class="wg-item">10d avg: <strong style="color:${avgFillColor}">${avgFill10}%</strong></span>${sep}` +
-      `<span class="wg-item">Reps: <strong style="color:#e2e8f0">${data.outboundRepCount}</strong></span>${sep}` +
-      `<span class="wg-item">Runway: <strong style="color:#e2e8f0">${rw.teamAvgPerDay ?? '—'}/d avg</strong></span>${sep}` +
-      `<span class="wg-item">Slots: <strong style="color:#94a3b8">${rw.absenceAdjustedSlots ?? '—'} adj. open</strong></span>` +
-      `<span class="wg-week">${tw.weekLabel}</span>` +
-      `</span>`;
-  }
-
-  // ── Pipeline Runway card ─────────────────────────────────────────────────
-  (function renderRunway() {
-    if (!rw || typeof rw.daysBookedOut === 'undefined') return;
-
-    const dbo = rw.daysBookedOut;
-
-    // Needle position: scale 0-12 days → 0-100%
-    const MAX_SCALE = 12;
-    const needlePct = Math.min(100, (Math.min(dbo, MAX_SCALE) / MAX_SCALE) * 100);
-    const needle = document.getElementById('rw-needle');
-    if (needle) needle.style.left = needlePct + '%';
-
-    // Tiles
-    document.getElementById('rw-t-avg').textContent  = rw.teamAvgPerDay;
-    document.getElementById('rw-t-raw').textContent  = rw.rawOpenSlots;
-    document.getElementById('rw-t-adj').textContent  = rw.absenceAdjustedSlots;
-    document.getElementById('rw-t-reps').textContent = rw.activeReps + '/' + rw.totalReps;
-    const absentCount  = (rw.absentReps  || []).length;
-    const limitedCount = (rw.limitedReps || []).length;
-    const activeCount  = rw.activeReps   || 0;
-    let repSubText;
-    if (absentCount > 0 || limitedCount > 0) {
-      const parts = [];
-      if (activeCount  > 0) parts.push(`${activeCount} active`);
-      if (limitedCount > 0) parts.push(`${limitedCount} limited`);
-      if (absentCount  > 0) parts.push(`${absentCount} out`);
-      repSubText = parts.join(' · ');
-    } else {
-      repSubText = 'all active';
-    }
-    document.getElementById('rw-t-reps-sub').textContent = repSubText;
-  })();
-
-  // ── Module 2 — Heat Map ──────────────────────────────────────────────────
-  function hmCellClass(pct) {
-    if (pct === 0)  return 'hm-empty';
-    if (pct < 50)   return 'hm-low';
-    if (pct < 80)   return 'hm-mid';
-    if (pct < 100)  return 'hm-good';
-    return 'hm-full';
-  }
-
-  (function renderHeatMap() {
-    const container = document.getElementById('m2-heatmap');
-    const reps      = data.module2.reps;
-    const dayList   = data.module1.days;
-
-    if (!reps.length) {
-      container.innerHTML = '<div style="padding:8px;color:#64748b;font-size:11px">No Outbound Direct reps found</div>';
-      return;
-    }
-
-    // Per-day team totals for slot pills (absence+limited-adjusted)
-    const dayNames2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const dayTotals = dayList.map((day, i) => {
-      if (day.isWeekend) return null;
-      let totalCap    = 0;
-      let totalBooked = 0;
-      for (const rep of reps) {
-        const rs = repStatusMap[rep.name];
-        const isAbsent     = rs && rs.status === 'absent';
-        const isLimitedDay = rs && rs.status === 'limited' && rs.limitedDays && rs.limitedDays.includes(day.date);
-        const noCallDay    = rs && rs.status === 'nocall' && rs.noCallWeekday;
-        const d = new Date(day.date + 'T12:00:00');
-        const isNoCallDay  = noCallDay && dayNames2[d.getDay()] === rs.noCallWeekday;
-
-        if (!isAbsent && !isNoCallDay && !isLimitedDay) {
-          totalCap    += rep.maxPerDay;
-          totalBooked += rep.days[i] ? rep.days[i].booked : 0;
-        }
-      }
-      const open    = Math.max(0, totalCap - totalBooked);
-      const openPct = totalCap > 0 ? (open / totalCap) * 100 : 0;
-      return { totalCap, totalBooked, open, openPct };
-    });
-
-    const headerCols = dayList.map((d, i) => {
-      const isToday   = d.date === todayStr;
-      const beyond    = optimalCutoff > 0 && i >= optimalCutoff;
-      const isCutoff  = optimalCutoff > 0 && i === optimalCutoff;
-
-      const todayLabel = isToday ? `<div style="color:#60a5fa;font-weight:700;font-size:8px">TODAY</div>` : '';
-
-      let slotPill = '';
-      if (!d.isWeekend && dayTotals[i]) {
-        const dt = dayTotals[i];
-        if (beyond) {
-          slotPill = `<div><span class="hm-slot-muted">${dt.open} open</span></div>`;
-        } else {
-          const pillCls = dt.openPct > 50 ? 'hm-slot-green' : dt.openPct > 20 ? 'hm-slot-amber' : 'hm-slot-red';
-          slotPill = `<div><span class="hm-slot-pill ${pillCls}">${dt.open} left</span></div>`;
-        }
-      } else if (d.isWeekend) {
-        slotPill = `<div style="font-size:8px;color:#2d3748">—</div>`;
-      }
-
-      const dateLabel = `<div style="font-size:8.5px;color:${isToday ? '#60a5fa' : beyond ? '#334155' : ''}">${fmtDate(d.date)}</div>`
-        + `<div style="font-size:7.5px;color:${isToday ? '#60a5fa' : beyond ? '#2d3748' : '#475569'}">${d.dayOfWeek.slice(0,3)}</div>`;
-
-      const cutStyle = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4)' : '';
-      if (d.isWeekend) return `<th style="width:12px;min-width:12px;max-width:12px;padding:0;overflow:hidden;opacity:0.2${cutStyle ? ';' + cutStyle : ''}"></th>`;
-      const wkStyle  = '';
-      return `<th style="${['width:7%', cutStyle].filter(Boolean).join(';')}">${todayLabel}${slotPill}${dateLabel}</th>`;
-    }).join('');
-
-    // Next 5 weekday indices starting from tomorrow (index 1)
-    const next5Idxs = [];
-    for (let i = 1; i < dayList.length && next5Idxs.length < 5; i++) {
-      if (!dayList[i].isWeekend) next5Idxs.push(i);
+    let trendArrow = '—', trendColor = '#4b5563';
+    if (b.m10 >= 5) {
+      const up30   = r30 - r60 > 5;
+      const down30 = r60 - r30 > 5;
+      const up10   = r10 - r30 > 5;
+      const down10 = r30 - r10 > 5;
+      if      (up30 && up10)     { trendArrow = '↑'; trendColor = '#00d26a'; }
+      else if (down30 && down10) { trendArrow = '↓'; trendColor = '#f87171'; }
+      else if (up30 || up10)     { trendArrow = '↑'; trendColor = '#fbbf24'; }
+      else if (down30 || down10) { trendArrow = '↓'; trendColor = 'rgba(248,113,113,.5)'; }
+      else                       { trendArrow = '→'; trendColor = '#4b5563'; }
     }
 
-    const dayNamesArr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const barColor = brandClr(b.name, i);
+    const barPct   = Math.round((b.m30 / maxM30) * 100);
 
-    const repRows = reps.map(rep => {
-      const rs            = repStatusMap[rep.name];
-      const isAbsent      = rs && rs.status === 'absent';
-      const isNocall      = rs && rs.status === 'nocall';
-      const isLimited     = rs && rs.status === 'limited';
-      const limitedDaySet = new Set(rs && rs.limitedDays ? rs.limitedDays : []);
-      const rowOpacity    = isAbsent ? 'opacity:0.6;' : '';
-
-      const cells = rep.days.map((d, i) => {
-        const day      = dayList[i];
-        const isToday  = day.date === todayStr;
-        const beyond   = optimalCutoff > 0 && i >= optimalCutoff;
-        const isCutoff = optimalCutoff > 0 && i === optimalCutoff;
-        const todayCls  = isToday ? ' today-col' : '';
-        const cutBorder = isCutoff ? 'border-left:1.5px dashed rgba(99,153,34,0.4);' : '';
-
-        if (d.isWeekend) return `<td class="hm-cell weekend-col" style="${cutBorder}width:12px;min-width:12px;max-width:12px;padding:0;overflow:hidden;"></td>`;
-
-        // Absent rep: all future days gray
-        if (isAbsent && day.date > todayStr) {
-          return `<td class="hm-cell hm-absent-cell${todayCls}" style="${cutBorder}">
-            <div style="line-height:1.2;color:#2d3748">0/${rep.maxPerDay}</div>
-          </td>`;
-        }
-
-        // Limited rep on a limited day: show as zeroed amber-tinted cell
-        if (isLimited && limitedDaySet.has(day.date) && day.date > todayStr) {
-          return `<td class="hm-cell${todayCls}" style="${cutBorder}background:rgba(250,204,21,0.06);border-radius:5px;">
-            <div style="line-height:1.2;color:#92400e;font-size:8px">0/${rep.maxPerDay}</div>
-          </td>`;
-        }
-
-        // No-call rep on their off-day: gray
-        if (isNocall && rs.noCallWeekday) {
-          const dd = new Date(day.date + 'T12:00:00');
-          if (dayNamesArr[dd.getDay()] === rs.noCallWeekday && day.date > todayStr) {
-            return `<td class="hm-cell hm-absent-cell${todayCls}" style="${cutBorder}">
-              <div style="line-height:1.2;color:#2d3748">—</div>
-            </td>`;
-          }
-        }
-
-        const r = 10, circ = 2 * Math.PI * r, qc = (circ * 0.25).toFixed(2);
-
-        if (beyond) {
-          const filled = ((d.fillPct / 100) * circ).toFixed(2);
-          return `<td class="hm-cell hm-muted${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:0;">
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-              <svg width="32" height="32" viewBox="0 0 30 30">
-                <circle cx="15" cy="15" r="10" fill="none" stroke="#1e2535" stroke-width="2.5"/>
-                <circle cx="15" cy="15" r="10" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round"
-                  stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
-                <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="#4b5563" font-size="8" font-weight="700" font-family="monospace">${d.booked}/${rep.maxPerDay}</text>
-              </svg>
-            </div>
-          </td>`;
-        }
-
-        const cls = hmCellClass(d.fillPct);
-        const arcPalette = {
-          'hm-empty': { track:'#3b0606', arc:'#ef4444', text:'#f87171' },
-          'hm-low':   { track:'#3b1200', arc:'#dc6820', text:'#fb923c' },
-          'hm-mid':   { track:'#3b2800', arc:'#f59e0b', text:'#fbbf24' },
-          'hm-good':  { track:'#04200c', arc:'#22c55e', text:'#4ade80' },
-          'hm-full':  { track:'#04200c', arc:'#22c55e', text:'#4ade80' },
-        };
-        const ac = arcPalette[cls] || arcPalette['hm-empty'];
-        const filled = ((d.fillPct / 100) * circ).toFixed(2);
-        return `<td class="hm-cell ${cls}${todayCls}" style="${cutBorder}text-align:center;vertical-align:middle;padding:0;">
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-            <svg width="32" height="32" viewBox="0 0 30 30">
-              <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.track}" stroke-width="2.5"/>
-              <circle cx="15" cy="15" r="10" fill="none" stroke="${ac.arc}" stroke-width="2.5" stroke-linecap="round"
-                stroke-dasharray="${filled} ${circ.toFixed(2)}" stroke-dashoffset="${qc}"/>
-              <text x="15" y="15" text-anchor="middle" dominant-baseline="middle" fill="${ac.text}" font-size="8" font-weight="700" font-family="monospace">${d.booked}/${rep.maxPerDay}</text>
-            </svg>
+    return `
+      <tr>
+        <td title="${b.name}">${b.name}</td>
+        <td class="${rateClass(r10)}">${r10}%</td>
+        <td class="col-30d ${rateClass(r30)}">${r30}%</td>
+        <td class="${rateClass(r60)}">${r60}%</td>
+        <td class="trend-cell" style="color:${trendColor}">${trendArrow}</td>
+        <td class="m30-bar-td">
+          <div class="m30-bar-track">
+            <div class="m30-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
+            <span class="m30-bar-count">${b.m30}</span>
           </div>
-        </td>`;
-      }).join('');
-
-      const n5Booked = next5Idxs.reduce((s, i) => s + (rep.days[i] ? rep.days[i].booked : 0), 0);
-      const n5Cap    = rep.maxPerDay * next5Idxs.length;
-      const p        = n5Cap > 0 ? Math.round((n5Booked / n5Cap) * 100) : 0;
-      const totalColor = p >= 80 ? '#22c55e' : p >= 50 ? '#84cc16' : p >= 30 ? '#f59e0b' : '#ef4444';
-
-      // Status badge pill
-      let statusTag;
-      if (isAbsent) {
-        statusTag = `<span class="status-badge status-absent"><span class="status-dot"></span>Out · 0/d</span>`;
-      } else if (isLimited) {
-        const avg = rs ? rs.avgPerDay : '—';
-        statusTag = `<span class="status-badge status-limited"><span class="status-dot"></span>Limited · ${avg}/d</span>`;
-      } else if (isNocall && rs.noCallWeekday) {
-        statusTag = `<span class="status-badge status-nocall"><span class="status-dot"></span>No-call ${rs.noCallWeekday.slice(0,3)}</span>`;
-      } else {
-        const avg = rs ? rs.avgPerDay : '—';
-        statusTag = `<span class="status-badge status-active"><span class="status-dot"></span>Active · ${avg}/d</span>`;
-      }
-
-      const repNameStyle = isAbsent ? 'color:#334155;' : '';
-      return `<tr style="${rowOpacity}">
-        <td class="rep-name" style="${repNameStyle}">${rep.name}</td>
-        ${cells}
-        <td class="hm-total-col" style="color:${totalColor}"><strong>${p}%</strong></td>
-        <td class="hm-status-col">${statusTag}</td>
+        </td>
       </tr>`;
-    }).join('');
+  }).join('');
+}
 
-    container.innerHTML = `
-      <table class="heatmap-table">
-        <thead>
-          <tr>
-            <th class="rep-col"><div style="font-size:7px;color:#374151;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px;white-space:nowrap">M2 · HEAT MAP</div>Rep</th>
-            ${headerCols}
-            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px;width:52px;min-width:52px">5D AVG<br><span style="color:#334155;font-weight:400;font-size:7px">next 5 days</span></th>
-            <th style="border-left:0.5px solid rgba(255,255,255,0.06);font-size:8px;text-align:left;padding-left:6px;width:110px;min-width:110px">Status</th>
-          </tr>
-        </thead>
-        <tbody>${repRows}</tbody>
-      </table>`;
+// ── Panel 4: Close Rate 60d vertical bar + avg line ───────
+function renderClose60(brands) {
+  const data   = [...brands].filter(b => b.close60 > 0).sort((a, b) => b.close60 - a.close60);
+  const labels = data.map(b => b.name);
+  const vals   = data.map(b => b.close60);
+  const colors = vals.map(v => rateColor(v));
+  const avg    = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
 
-    // ── Uniform compact padding on all heatmap non-arc cells ─────────────
-    const repCount = reps.length;
-    document.querySelectorAll('#m2-heatmap td.rep-name, #m2-heatmap td.hm-total-col, #m2-heatmap td.hm-status-col, #m2-heatmap th').forEach(el => {
-      el.style.fontSize = '9px';
-      el.style.padding  = '1px 2px';
-    });
-  })();
+  const avgLine = {
+    id: 'avgLine',
+    afterDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      const y = scales.y.getPixelForValue(avg);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '10px "JetBrains Mono"';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`avg ${Math.round(avg)}%`, chartArea.right - 3, y - 2);
+      ctx.restore();
+    }
+  };
 
-  // ── Measure actual rendered M2 height, capped so M3 always gets space ────
-  function adjustM2Height() {
-    const table  = document.querySelector('#m2-heatmap .heatmap-table');
-    const runway = document.getElementById('runway-card');
-    if (!table) return;
-    const measured     = table.scrollHeight + 16;
-    const maxM2        = Math.floor(window.innerHeight * 0.99);
-    const m2Height     = Math.min(maxM2, Math.max(320, measured));
-    const runwayHeight = runway ? runway.scrollHeight : 0;
-    document.body.style.gridTemplateRows = `48px 28px ${runwayHeight}px ${m2Height}px 1fr`;
-
-    // ── Enforce dynamic row heights so ALL reps are always visible ────────
-    const thead = document.querySelector('#m2-heatmap thead');
-    const tbody = document.querySelector('#m2-heatmap tbody');
-    if (thead && tbody) {
-      const repRows = tbody.querySelectorAll('tr');
-      if (repRows.length) {
-        const available  = m2Height - thead.offsetHeight - 8;
-        const targetRowH = Math.max(28, Math.floor(available / repRows.length));
-        repRows.forEach(tr => {
-          tr.style.height    = targetRowH + 'px';
-          tr.style.maxHeight = targetRowH + 'px';
-        });
+  if (charts.close60) charts.close60.destroy();
+  charts.close60 = new Chart(document.getElementById('chart-close60'), {
+    type: 'bar',
+    plugins: [avgLine],
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw}%` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7280', font: { family: 'Inter', size: 9 }, maxRotation: 40 }, border: { display: false } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => v + '%' }, border: { display: false }, beginAtZero: true }
       }
     }
+  });
+}
 
-    setTimeout(expandM3Rows, 50);
-  }
+// ── Panel 5: Cost Per Close vertical bar ──────────────────
+function renderCPC(brands) {
+  const data   = [...brands].filter(b => b.cpc > 0).sort((a, b) => a.cpc - b.cpc);
+  const labels = data.map(b => b.name);
+  const vals   = data.map(b => b.cpc);
+  const avg    = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : 0;
+  const DANGER = 6000;
 
-  // ── Expand M3 tbody rows to fill all available height in the 1fr slot ────
-  function expandM3Rows() {
-    const m3    = document.getElementById('m3-row');
-    const hdr   = document.querySelector('.m3-row-hdr');
-    const foot  = document.getElementById('m3-sanity');
-    const thead = document.querySelector('#m3-row thead');
-    if (!m3 || !thead) return;
+  const colors = vals.map(v => {
+    if (v > DANGER)  return 'rgba(248,113,113,.8)';
+    if (v > avg)     return '#f59e0b';
+    return '#22c55e';
+  });
 
-    const available = m3.clientHeight
-      - (hdr   ? hdr.offsetHeight  : 0)
-      - (foot  ? foot.offsetHeight : 0)
-      - thead.offsetHeight
-      - 10;
+  const linesPlugin = {
+    id: 'cpcLines',
+    afterDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      ctx.save();
+      ctx.font = "500 8px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'left';
+      const lx = chartArea.left + 4; // left-side label anchor
 
-    const rows = document.querySelectorAll('#m3-combined-table tr');
-    if (!rows.length || available <= 0) return;
+      // danger line — solid #f87171, label ABOVE the line
+      const yDanger = scales.y.getPixelForValue(DANGER);
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.5; ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yDanger); ctx.lineTo(chartArea.right, yDanger); ctx.stroke();
+      // label background
+      const dLabel = 'danger $6k';
+      const dW = ctx.measureText(dLabel).width;
+      ctx.fillStyle = 'rgba(7,10,15,.75)';
+      ctx.fillRect(lx - 2, yDanger - 14, dW + 4, 11);
+      ctx.fillStyle = '#f87171';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(dLabel, lx, yDanger - 4);
 
-    const rowH = Math.floor(available / rows.length);
-    const padV = Math.max(2, Math.floor((rowH - 16) / 2));
+      // avg line — dashed, label BELOW the line
+      const yAvg = scales.y.getPixelForValue(avg);
+      ctx.strokeStyle = 'rgba(255,255,255,.22)';
+      ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(chartArea.left, yAvg); ctx.lineTo(chartArea.right, yAvg); ctx.stroke();
+      ctx.setLineDash([]);
+      const aLabel = `avg $${(avg / 1000).toFixed(1)}k`;
+      const aW = ctx.measureText(aLabel).width;
+      const extraOffset = Math.abs(yAvg - yDanger) < 16 ? 14 : 0;
+      const ayLabel = yAvg + 4 + extraOffset;
+      ctx.fillStyle = 'rgba(7,10,15,.75)';
+      ctx.fillRect(lx - 2, ayLabel, aW + 4, 11);
+      ctx.fillStyle = 'rgba(255,255,255,.55)';
+      ctx.textBaseline = 'top';
+      ctx.fillText(aLabel, lx, ayLabel);
 
-    rows.forEach(row => {
-      row.style.height = rowH + 'px';
-      row.querySelectorAll('td').forEach(td => {
-        td.style.paddingTop    = padV + 'px';
-        td.style.paddingBottom = padV + 'px';
-      });
-    });
-  }
-
-  setTimeout(adjustM2Height, 100);
-  window.addEventListener('resize', () => { adjustM2Height(); });
-
-  // ── Header runway pill (3-state: below-peak / at-peak / past-peak) ──────
-  (function renderRunwayPill() {
-    const pill = document.getElementById('runway-pill');
-    if (!pill) return;
-
-    const dbo         = rw.daysBookedOut      || 0;
-    const peakDaysOut = rw.peakDaysOut         || 0;
-    const peakTR      = rw.peakTrueRate        || 0;
-    const currTR      = rw.currentTrueRate     || 0;
-    const toReach     = rw.meetingsToReachPeak || 0;
-
-    const badgeNumEl = document.getElementById('rp-badge-num');
-    const line1El    = document.getElementById('rp-line1');
-    const line2El    = document.getElementById('rp-line2');
-    const statusEl   = document.getElementById('rp-status');
-
-    pill.classList.remove('rp-below', 'rp-at', 'rp-past');
-    if (statusEl) statusEl.className = 'rp-status';
-
-    if (badgeNumEl) badgeNumEl.textContent = dbo === 99 ? '∞' : (dbo || '—');
-
-    if (!peakDaysOut || dbo === 0) {
-      pill.classList.add('rp-below');
-      if (line1El) line1El.textContent = 'Calculating pipeline runway…';
-      if (line2El) line2El.textContent = '';
-      if (statusEl) { statusEl.classList.add('rp-st-book'); statusEl.textContent = '—'; }
-
-    } else if (dbo < peakDaysOut) {
-      pill.classList.add('rp-below');
-      if (line1El) line1El.textContent = `Below peak · ${peakDaysOut}d out is the optimal booking window`;
-      if (line2El) line2El.innerHTML = peakTR > 0
-        ? `Peak true close rate: <strong>${peakTR}%</strong>${currTR > 0 ? ` · currently ${currTR}% at ${dbo}d` : ''}`
-        : `Book ${toReach} more meetings to reach peak`;
-      if (statusEl) { statusEl.classList.add('rp-st-book'); statusEl.textContent = `+${toReach} mtgs`; }
-
-    } else if (dbo === peakDaysOut) {
-      pill.classList.add('rp-at');
-      if (line1El) line1El.textContent = `At peak window · optimal booking zone`;
-      if (line2El) line2El.innerHTML = peakTR > 0
-        ? `<strong>${peakTR}%</strong> true close rate — keep booking at this depth`
-        : 'Keep booking at this depth';
-      if (statusEl) { statusEl.classList.add('rp-st-ok'); statusEl.textContent = '✓ On target'; }
-
-    } else {
-      const over = dbo - peakDaysOut;
-      pill.classList.add('rp-past');
-      if (line1El) line1El.textContent = `${over}d past peak · booked to ${dbo}d out`;
-      if (line2El) line2El.innerHTML = (peakTR > 0 && currTR > 0 && currTR < peakTR)
-        ? `Conversion drops: <strong>${peakTR}%</strong> → <strong>${currTR}%</strong> true rate beyond ${peakDaysOut}d`
-        : `Beyond <strong>${peakDaysOut}d</strong> sweet spot`;
-      if (statusEl) { statusEl.classList.add('rp-st-warn'); statusEl.textContent = '⚠ Past peak'; }
+      ctx.restore();
     }
+  };
 
-    pill.style.visibility = 'visible';
-  })();
-
-  // ── Module 3 — 30d + 90d + redesigned funnel columns ────────────────────
-  (function renderCombinedHitTable() {
-    const b30   = data.module3.hitRate30;
-    const b90   = data.module3.hitRate90;
-    const rec   = data.module3.bookingRec;
-    const tbody = document.getElementById('m3-combined-table');
-
-    // ── Detect caution line: peak at 3d+ then 5pp drop that doesn't recover ──
-    let peakIdx        = -1;
-    let peakRate       = -1;
-    let cautionInsertAfterIdx = -1; // insert caution row after this row index
-
-    for (let i = 0; i < b90.length; i++) {
-      const b = b90[i];
-      if (b.daysOut >= 3 && b.total > 0 && b.hitRate > peakRate) {
-        peakRate = b.hitRate;
-        peakIdx  = i;
-      }
-    }
-
-    if (peakIdx >= 0 && peakRate > 0) {
-      // Find first row after peak where rate drops 5+ pp AND next row doesn't recover
-      for (let i = peakIdx + 1; i < b90.length - 1; i++) {
-        const dropPP   = peakRate - b90[i].hitRate;
-        const nextPP   = peakRate - b90[i + 1].hitRate;
-        if (dropPP >= 5 && nextPP >= 5) {
-          cautionInsertAfterIdx = peakIdx; // insert caution after peak row
-          break;
+  if (charts.cpc) charts.cpc.destroy();
+  charts.cpc = new Chart(document.getElementById('chart-cpc'), {
+    type: 'bar',
+    plugins: [linesPlugin],
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 3, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` $${c.raw.toLocaleString('en-US', { maximumFractionDigits: 0 })}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7280', font: { family: 'Inter', size: 9 }, maxRotation: 40 }, border: { display: false } },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#6b7280', font: { family: 'JetBrains Mono', size: 10 }, callback: v => '$' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) },
+          border: { display: false }, beginAtZero: true
         }
       }
     }
-
-    // Track drop rates for caution text
-    const cautionDropFrom = peakRate;
-    const cautionDropTo   = cautionInsertAfterIdx >= 0 && peakIdx + 1 < b90.length
-      ? b90[peakIdx + 1].hitRate : 0;
-
-    let rowsHtml = '';
-    let cautionInjected = false;
-
-    b30.forEach((b, i) => {
-      const c = b90[i];
-      const isPeak    = i === peakIdx && cautionInsertAfterIdx >= 0;
-      const isBelowCaution = cautionInsertAfterIdx >= 0 && i > cautionInsertAfterIdx;
-
-      const rowOpacity = isBelowCaution ? 'opacity:0.65;' : '';
-      const rowBg      = isPeak ? 'background:rgba(34,197,94,0.07);' : '';
-
-      const daysLabel  = `${b.daysOut}d out`;
-      const peakLabel  = isPeak ? ' <span style="font-size:8px;color:#22c55e;font-weight:700">↑ peak</span>' : '';
-      const daysOutCell = `<td style="font-size:10px;min-width:90px;max-width:110px;padding:2px 6px">${daysLabel}${peakLabel}</td>`;
-
-      const rate30 = b.total === 0 ? '—' : `<span class="${rateClass(b.hitRate)}">${b.hitRate}%</span>`;
-      const rate90 = c.total === 0 ? '—' : `<span class="${rateClass(c.hitRate)}">${c.hitRate}%</span>`;
-
-      function closeRateCell(bucket) {
-        if (bucket.proposals === 0) return '<span style="color:#334155">—</span>';
-        const small    = bucket.proposals < 5;
-        const cls      = small ? '' : rateClass(bucket.closeRate);
-        const color    = small ? 'color:#475569' : '';
-        const label    = small ? `~${bucket.closeRate}%` : `${bucket.closeRate}%`;
-        const title    = small ? ` title="Small sample (${bucket.proposals} prop)"` : '';
-        const asterisk = small ? ` <span style="color:#475569;font-size:9px">*</span>` : '';
-        return `<span class="${cls}" style="${color}"${title}>${label}</span>${asterisk}`;
-      }
-
-      // Trend: 30d vs 90d hit rate comparison
-      const diff = b.hitRate - c.hitRate;
-      let trendHtml;
-      if (b.total === 0 || c.total === 0 || Math.abs(diff) <= 1) {
-        trendHtml = '<span style="color:#2d3748">—</span>';
-      } else if (diff > 0) {
-        trendHtml = `<span style="color:#22c55e">▲ +${diff}%</span>`;
-      } else {
-        trendHtml = `<span style="color:#ef4444">▼ ${diff}%</span>`;
-      }
-
-      // New funnel columns (90d)
-      const mtgsBadge = c.total === 0
-        ? '<span style="color:#334155">—</span>'
-        : `<span class="m3-pill-blue">${c.total}</span>`;
-
-      const propClosesBadge = c.total === 0
-        ? '<span style="color:#334155">—</span>'
-        : `<span class="m3-pill-teal">${c.proposals}</span> <span class="m3-pill-green">${c.closes}</span>`;
-
-      const trueRateNum = (c.total > 0 && c.proposals > 0)
-        ? ((c.hitRate / 100) * (c.closeRate / 100) * 100)
-        : null;
-      let trueRateBadge;
-      if (trueRateNum === null) {
-        trueRateBadge = '<span style="color:#334155">—</span>';
-      } else if (trueRateNum >= 4) {
-        trueRateBadge = `<span class="m3-true-green">${trueRateNum.toFixed(1)}%</span>`;
-      } else if (trueRateNum >= 2) {
-        trueRateBadge = `<span class="m3-true-amber">${trueRateNum.toFixed(1)}%</span>`;
-      } else {
-        trueRateBadge = `<span class="m3-true-red">${trueRateNum.toFixed(1)}%</span>`;
-      }
-
-      rowsHtml += `<tr style="${rowOpacity}${rowBg}">
-        ${daysOutCell}
-        <td>${b.total}</td>
-        <td>${b.proposals}</td>
-        <td>${rate30}</td>
-        <td>${closeRateCell(b)}</td>
-        <td style="text-align:center">${trendHtml}</td>
-        <td class="m3-div-30-90">${rate90}</td>
-        <td>${closeRateCell(c)}</td>
-        <td class="m3-div-funnel" style="text-align:center">${mtgsBadge}</td>
-        <td style="text-align:center">${propClosesBadge}</td>
-        <td style="text-align:center">${trueRateBadge}</td>
-      </tr>`;
-
-      // Inject caution row after peak row
-      if (cautionInsertAfterIdx >= 0 && i === cautionInsertAfterIdx && !cautionInjected) {
-        cautionInjected = true;
-        rowsHtml += `<tr style="border-top:1.5px dashed #f59e0b;border-bottom:1.5px dashed #f59e0b;background:rgba(245,158,11,0.07)">
-          <td colspan="11" style="padding:3px 12px;font-size:9px;color:#f59e0b">
-            ⚠ Conversion falls off beyond this point — 90d hit rate drops from ${cautionDropFrom}% → ${cautionDropTo}%
-            <span style="float:right;color:#475569;font-size:8px">auto-detected · updates every 60s</span>
-          </td>
-        </tr>`;
-      }
-    });
-
-    tbody.innerHTML = rowsHtml;
-
-    const s       = data.module3.sanity30;
-    const sanityEl = document.getElementById('m3-sanity');
-    if (sanityEl && s) {
-      sanityEl.innerHTML =
-        `Last 30d: <strong style="color:#64748b">${s.proposals}</strong> proposals`
-        + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.closes}</strong> closes`
-        + ` &nbsp;·&nbsp; <strong style="color:#64748b">${s.blendedCloseRate}%</strong> blended close rate`
-        + ` &nbsp;·&nbsp; <span style="color:#475569">True rate = hit rate × close rate</span>`;
-    }
-  })();
+  });
 }
 
-// ── Fetch & display ───────────────────────────────────────────────────────────
-async function fetchData(forceRefresh = false) {
-  const errBanner = document.getElementById('error-banner');
+// ── Main render ───────────────────────────────────────────
+async function render() {
   try {
-    const url  = '/api/data' + (forceRefresh ? '?refresh=1' : '');
-    const res  = await fetch(url);
-    const data = await res.json();
+    const { brands, bkFuture, rates } = await fetchData();
 
-    errBanner.style.display = 'none';
+    document.getElementById('loading').style.display      = 'none';
+    document.getElementById('error-banner').style.display = 'none';
 
-    if (data.error) {
-      errBanner.textContent = 'Warning: ' + data.error;
-      errBanner.style.display = 'block';
-    }
+    renderBkFuture(bkFuture);
+    renderRates(rates);
+    renderMPTable(brands);
+    renderClose60(brands);
+    renderCPC(brands);
 
-    if (!data.todayStr) {
-      setTimeout(() => fetchData(false), 3000);
-      return;
-    }
-
-    render(data);
-
-    const ts = data.generatedAt
-      ? new Date(data.generatedAt).toLocaleTimeString()
-      : new Date().toLocaleTimeString();
-    document.getElementById('last-updated').textContent = ts;
-
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   } catch (err) {
-    errBanner.textContent = 'Failed to fetch data: ' + err.message;
-    errBanner.style.display = 'block';
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    const b = document.getElementById('error-banner');
+    b.style.display = 'block';
+    b.textContent = 'Failed to load: ' + err.message;
   }
 }
 
-// ── Countdown ─────────────────────────────────────────────────────────────────
-function resetCountdown() {
-  secondsLeft = REFRESH_INTERVAL;
-  updateCountdownUI();
-}
-
-function updateCountdownUI() {
-  const pct  = (secondsLeft / REFRESH_INTERVAL) * 100;
-  const fill = document.getElementById('cd-fill');
-  const text = document.getElementById('cd-text');
-  if (fill) fill.style.width = pct + '%';
-  if (text) text.textContent = secondsLeft + 's';
-}
-
-function startCountdown() {
-  if (countdownInterval) clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
-    secondsLeft--;
-    updateCountdownUI();
-    if (secondsLeft <= 0) {
-      resetCountdown();
-      fetchData(false);
-    }
-  }, 1000);
-}
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
-fetchData(false);
-startCountdown();
+render();
+setInterval(render, REFRESH_MS);
 </script>
 </body>
 </html>
