@@ -593,7 +593,7 @@
           </div>
         </div>
       </div>
-      <div class="forecast-note">Based on 90d avg rates · 30 calendar days · includes weekends</div>
+      <div class="forecast-note">Based on 30d meeting pace · 90d conversion rates · 30 calendar days</div>
     </div>
   </div>
 
@@ -1169,8 +1169,8 @@ function renderFunnel(d) {
     `Overall: ~${overallMtgPer} meetings or ~${overallPropPer} proposals per deal`;
 
   // 30-day forecast
-  const ocDailyAvg = d.oc90 / 90;
-  const belDailyAvg = d.belkins90 / 90;
+  const ocDailyAvg = d.oc_0_30 / 30;
+  const belDailyAvg = d.belkins_0_30 / 30;
   const ocProjMtg = ocDailyAvg * 30;
   const belProjMtg = belDailyAvg * 30;
   const ocPropRate = d.oc90 > 0 ? d.ocProposals90 / d.oc90 : 0;
