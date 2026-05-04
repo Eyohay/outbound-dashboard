@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outbound Consulting — Ops Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f4; color: #1c1917; font-size: 14px; }
+  header { background: #1c1917; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: .02em; }
+  header span { font-size: 12px; color: #a8a29e; }
+  .refresh-btn { background: #292524; border: 1px solid #44403c; color: #e7e5e4; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .refresh-btn:hover { background: #44403c; }
+  .page { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .kpi-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi { background: #fff; border-radius: 8px; padding: 16px 18px; border: 1px solid #e7e5e4; }
+  .kpi-label { font-size: 11px; color: #78716c; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .kpi-val { font-size: 26px; font-weight: 600; }
+  .kpi-sub { font-size: 11px; color: #a8a29e; margin-top: 4px; }
+  .kpi-val.red { color: #dc2626; }
+  .kpi-val.green { color: #16a34a; }
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid #e7e5e4; margin-bottom: 16px; }
+  .tab { padding: 8px 18px; font-size: 13px; cursor: pointer; color: #78716c; border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 4px 4px 0 0; }
+  .tab.active { color: #1c1917; border-bottom-color: #1c1917; font-weight: 500; }
+  .tab:hover:not(.active) { background: #f5f5f4; color: #1c1917; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: #fff; border-radius: 8px; border: 1px solid #e7e5e4; padding: 16px 18px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; font-weight: 500; color: #78716c; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { font-size: 11px; font-weight: 500; color: #78716c; text-align: left; padding: 6px 10px; border-bottom: 1px solid #e7e5e4; white-space: nowrap; }
+  th.r, td.r { text-align: right; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f5f5f4; color: #1c1917; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf9; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-kill { background: #fee2e2; color: #dc2626; }
+  .badge-ok { background: #dcfce7; color: #16a34a; }
+  .badge-warn { background: #fef9c3; color: #ca8a04; }
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-bg { flex: 1; height: 4px; background: #e7e5e4; border-radius: 2px; min-width: 50px; }
+  .bar-fill { height: 4px; border-radius: 2px; }
+  .chart-wrap { position: relative; height: 240px; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .filter-row label { font-size: 12px; color: #78716c; }
+  .filter-row select { font-size: 12px; padding: 5px 10px; border-radius: 6px; border: 1px solid #e7e5e4; background: #fff; color: #1c1917; }
+  .loading { color: #78716c; font-size: 13px; padding: 40px; text-align: center; }
+  .mono { font-family: 'Courier New', monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Outbound Consulting — Ops Dashboard</h1>
+  <div style="display:flex;align-items:center;gap:16px">
+    <span id="last-updated">Loading...</span>
+    <button class="refresh-btn" onclick="forceRefresh()">↻ Refresh</button>
+  </div>
+</header>
+<div class="page">
+  <div id="loading" class="loading">Loading dashboard data — fetching from Airtable and Google Sheets...</div>
+  <div id="main-content" style="display:none">
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Meetings / 30d</div><div class="kpi-val" id="kpi-meetings">—</div><div class="kpi-sub" id="kpi-meetings-trend">—</div></div>
+      <div class="kpi"><div class="kpi-label">Proposals sent / 30d</div><div class="kpi-val" id="kpi-proposals">—</div><div class="kpi-sub" id="kpi-proposals-trend">—</div></div>
+      <div class="kpi"><div class="kpi-label">Deals closed / 30d</div><div class="kpi-val green" id="kpi-closed">—</div><div class="kpi-sub" id="kpi-close-rate">—</div><div class="kpi-sub" id="kpi-closed-trend" style="margin-top:2px">—</div></div>
+      <div class="kpi"><div class="kpi-label">Total sends</div><div class="kpi-val" id="kpi-sends">—</div><div class="kpi-sub" id="kpi-reply-rate">—</div></div>
+      <div class="kpi"><div class="kpi-label">Domains to kill</div><div class="kpi-val red" id="kpi-kill">—</div><div class="kpi-sub">&lt;70% brand avg</div></div>
+      <div class="kpi" style="border-left:3px solid #e11d48"><div class="kpi-label">Deal Bots Filled</div><div class="kpi-val" id="kpi-dealbot" style="color:#6b7280">—</div><div class="kpi-sub" id="kpi-dealbot-sub">loading...</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('brands')">Brand scorecard</div>
+      <div class="tab" onclick="showTab('brandcharts')">Brand charts</div>
+      <div class="tab" onclick="showTab('bdrs')">BDR performance</div>
+      <div class="tab" onclick="showTab('reps')">Sales reps</div>
+      <div class="tab" onclick="showTab('domains')">Domain kill list</div>
+      <div class="tab" onclick="showTab('funnel')">Funnel</div>
+    </div>
+    <div id="panel-brands" class="panel active">
+      <div class="filter-row">
+        <label>Brand:</label>
+        <select id="brand-filter" onchange="renderBrands()"><option value="">All brands</option></select>
+      </div>
+      <div class="card">
+        <table><thead><tr>
+          <th>Brand</th><th class="r">Sends</th><th class="r">Inboxes</th><th class="r">Meetings (30d)</th><th class="r">Trend</th><th class="r">Reply rate</th><th class="r">Bounce rate</th><th class="r">Contacts/mtg</th><th class="r">Cost/mtg</th><th>Status</th>
+        </tr></thead><tbody id="brand-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-brandcharts" class="panel">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card"><div class="card-title">Meetings last 30d by brand</div><div class="chart-wrap" style="height:300px"><canvas id="brandMtgChart"></canvas></div></div>
+        <div class="card"><div class="card-title">Contacts per meeting by brand <span style="font-weight:400;color:#a8a29e">(lower = more efficient)</span></div><div class="chart-wrap" style="height:300px"><canvas id="brandCpmChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cost per meeting by brand ($) <span style="font-weight:400;color:#a8a29e">(from Google Sheets)</span></div>
+        <div class="chart-wrap" style="height:260px"><canvas id="brandCostChart"></canvas></div>
+      </div>
+    </div>
+    <div id="panel-bdrs" class="panel">
+      <div id="bdr-sections"><div class="loading">Loading BDR data...</div></div>
+    </div>
+    <div id="panel-reps" class="panel">
+      <div class="card">
+        <div class="card-title">Sales rep funnel</div>
+        <table><thead><tr>
+          <th>Sales rep</th><th class="r">Meetings</th><th class="r">Proposals</th><th class="r">Closed</th><th class="r">Proposal rate</th><th class="r">Close rate</th>
+        </tr></thead><tbody id="rep-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-domains" class="panel">
+      <div class="filter-row">
+        <label>Brand:</label>
+        <select id="kill-brand-filter" onchange="renderKillList()"><option value="">All brands</option></select>
+        <label style="margin-left:8px">Infra:</label>
+        <select id="kill-infra-filter" onchange="renderKillList()"><option value="">All</option></select>
+      </div>
+      <div class="card">
+        <div class="card-title" id="kill-title">Kill list</div>
+        <table><thead><tr>
+          <th>Domain</th><th>Brand</th><th>Infra</th><th class="r">Inboxes</th><th class="r">Sends</th><th class="r">Replies</th><th class="r">Reply rate</th><th class="r">Brand avg</th><th class="r">% of avg</th><th class="r">Bounce rate</th><th>Action</th>
+        </tr></thead><tbody id="kill-tbody"></tbody></table>
+      </div>
+    </div>
+    <div id="panel-funnel" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Full funnel</div>
+          <div class="chart-wrap"><canvas id="funnelChart"></canvas></div>
+          <div id="funnel-rates" style="display:flex;gap:0;margin-top:14px;border-top:1px solid #e7e5e4;padding-top:12px"></div>
+        </div>
+        <div class="card"><div class="card-title">Meetings &amp; proposals by brand</div><div class="chart-wrap" style="height:300px"><canvas id="meetingsChart"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let DATA = null;
+let _funnelChart, _meetingsChart, _brandMtgChart, _brandCpmChart, _brandCostChart;
+async function loadData() {
+  try {
+    const r = await fetch('/api/metrics');
+    if (!r.ok) throw new Error(await r.text());
+    DATA = await r.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('last-updated').textContent = 'Updated: ' + (DATA.last_updated || '—');
+    renderAll();
+  } catch(e) {
+    DATA = {};
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('last-updated').textContent = 'Metrics unavailable';
+    renderAll();
+  }
+}
+async function forceRefresh() {
+  document.getElementById('last-updated').textContent = 'Refreshing...';
+  await fetch('/api/refresh', {method:'POST'});
+  setTimeout(loadData, 4000);
+}
+function showTab(name) {
+  ['brands','brandcharts','bdrs','reps','domains','funnel'].forEach((n,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', n === name);
+    document.getElementById('panel-' + n).classList.toggle('active', n === name);
+  });
+  if (name === 'funnel') renderFunnelCharts();
+  if (name === 'brandcharts') renderBrandCharts();
+}
+function fmt(n, d=0) { return n == null || n === '' ? '—' : Number(n).toLocaleString(undefined, {minimumFractionDigits:d, maximumFractionDigits:d}); }
+function pct(n) { return n == null ? '—' : (Number(n)*100).toFixed(2) + '%'; }
+function renderAll() {
+  renderKPIs(); populateFilters(); renderBrands(); renderBDRPanel(); renderReps(); renderKillList();
+}
+function trendBadge(curr, prev) {
+  const c = Number(curr)||0, p = Number(prev)||0;
+  if (p === 0) return '<span style="font-size:11px;color:#a8a29e">No prior period data</span>';
+  const diff = c - p;
+  const pct  = Math.round(Math.abs(diff) / p * 100);
+  const color = diff >= 0 ? '#16a34a' : '#dc2626';
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const sign  = diff >= 0 ? '+' : '';
+  return `<span style="font-size:11px;color:${color};font-weight:500">${arrow} ${sign}${diff} vs prior 30d (${sign}${pct}%)</span>`;
+}
+function renderKPIs() {
+  document.getElementById('kpi-meetings').textContent = fmt(DATA.total_meetings);
+  document.getElementById('kpi-meetings-trend').innerHTML = trendBadge(DATA.total_meetings, DATA.meetings_prev);
+  document.getElementById('kpi-proposals').textContent = fmt(DATA.total_proposals);
+  document.getElementById('kpi-proposals-trend').innerHTML = trendBadge(DATA.total_proposals, DATA.proposals_prev);
+  document.getElementById('kpi-closed').textContent = fmt(DATA.total_closed);
+  document.getElementById('kpi-close-rate').textContent = DATA.proposal_to_close_rate + '% close rate';
+  document.getElementById('kpi-closed-trend').innerHTML = trendBadge(DATA.total_closed, DATA.closed_prev);
+  document.getElementById('kpi-kill').textContent = fmt(DATA.kill_count);
+  const bs = DATA.brand_stats || [];
+  const ts = bs.reduce((s,b) => s + (Number(b.total_sent)||0), 0);
+  const tr = bs.reduce((s,b) => s + (Number(b.total_replied)||0), 0);
+  document.getElementById('kpi-sends').textContent = fmt(ts);
+  document.getElementById('kpi-reply-rate').textContent = ts > 0 ? (tr/ts*100).toFixed(2) + '% avg reply rate' : '—';
+}
+function populateFilters() {
+  const brands = [...new Set((DATA.brand_stats||[]).map(b => b['Brand Name']).filter(Boolean))].sort();
+  ['brand-filter','kill-brand-filter'].forEach(id => {
+    const s = document.getElementById(id); const v = s.value;
+    while (s.options.length > 1) s.remove(1);
+    brands.forEach(b => s.add(new Option(b,b))); s.value = v;
+  });
+  const infras = [...new Set((DATA.kill_list||[]).map(d => d['Infrastructure']).filter(Boolean))].sort();
+  const s2 = document.getElementById('kill-infra-filter'); const v2 = s2.value;
+  while (s2.options.length > 1) s2.remove(1);
+  infras.forEach(i => s2.add(new Option(i,i))); s2.value = v2;
+}
+function renderBrands() {
+  const filter = document.getElementById('brand-filter').value;
+  let brands = DATA.brand_stats || [];
+  if (filter) brands = brands.filter(b => b['Brand Name'] === filter);
+  brands = [...brands].sort((a,b) => (Number(b.total_sent)||0) - (Number(a.total_sent)||0));
+  document.getElementById('brand-tbody').innerHTML = brands.map(b => {
+    const mtg = Number(b.meetings) || 0;
+    const prev = Number(b.meetings_prev_brand) || 0;
+    const cpm = mtg > 0 ? Math.round(Number(b.total_sent)/mtg) : null;
+    const br = Number(b.bounce_rate)||0;
+    const brc = br > 0.1 ? '#dc2626' : br > 0.07 ? '#ca8a04' : '#16a34a';
+    const status = mtg === 0 ? '<span class="badge badge-warn">No meetings</span>' : mtg >= 50 ? '<span class="badge badge-ok">Top</span>' : '<span class="badge" style="background:#f5f5f4;color:#78716c">Active</span>';
+    const trend = prev === 0 ? '<span style="color:#a8a29e">—</span>'
+                : mtg > prev ? `<span style="color:#16a34a;font-weight:500">▲ +${mtg-prev}</span>`
+                : mtg < prev ? `<span style="color:#dc2626;font-weight:500">▼ ${mtg-prev}</span>`
+                : '<span style="color:#a8a29e">→ 0</span>';
+    const cost = b.cost_per_meeting ? '$' + Number(b.cost_per_meeting).toLocaleString() : '—';
+    return `<tr><td style="font-weight:500">${b['Brand Name']||'—'}</td><td class="r">${fmt(b.total_sent)}</td><td class="r">${fmt(b.inbox_count)}</td><td class="r" style="font-weight:600">${mtg}</td><td class="r">${trend}</td><td class="r">${pct(b.reply_rate)}</td><td class="r" style="color:${brc}">${pct(b.bounce_rate)}</td><td class="r">${cpm ? fmt(cpm) : '—'}</td><td class="r">${cost}</td><td>${status}</td></tr>`;
+  }).join('');
+}
+function trendBadgeFlt(curr, prev, decimals=1) {
+  const c = Number(curr), p = Number(prev);
+  if (!p || isNaN(p) || isNaN(c)) return '<span style="font-size:11px;color:#a8a29e">No prior data</span>';
+  const diff = c - p;
+  const pctVal = Math.round(Math.abs(diff) / Math.abs(p) * 100);
+  const color = diff >= 0 ? '#16a34a' : '#dc2626';
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const sign  = diff >= 0 ? '+' : '';
+  return `<span style="font-size:11px;color:${color};font-weight:500">${arrow} ${sign}${diff.toFixed(decimals)} vs prior 30d (${sign}${pctVal}%)</span>`;
+}
+function renderBDRPanel() {
+  const BDR_COLORS = {Moon:'#2563eb', Cleo:'#059669', Stevie:'#d97706'};
+  const bdrs = [...(DATA.bdr_performance || [])].sort((a,b) => (Number(b.meetings_30d)||0) - (Number(a.meetings_30d)||0));
+  const brands = [...(DATA.brand_rpm_stats || [])].sort((a,b) => (Number(b.meetings)||0) - (Number(a.meetings)||0));
+
+  if (!bdrs.length) {
+    document.getElementById('bdr-sections').innerHTML = '<div class="loading">No BDR data available.</div>';
+    return;
+  }
+
+  // ── BDR summary cards (3 across) ──────────────────────────────────────────
+  const bdrCards = `<div class="grid-3" style="margin-bottom:20px">${
+    bdrs.map(bdr => {
+      const name    = bdr['BDR'] || '—';
+      const color   = BDR_COLORS[name] || '#6b7280';
+      const mtg30   = Number(bdr.meetings_30d) || 0;
+      const mtgPrev = Number(bdr.meetings_prev) || 0;
+      const rpm     = (bdr.replies_per_meeting != null && bdr.replies_per_meeting !== '') ? Number(bdr.replies_per_meeting) : null;
+      const rpmColor = rpm == null ? '#1c1917' : rpm >= 10 ? '#16a34a' : rpm >= 5 ? '#ca8a04' : '#dc2626';
+      return `
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:8px;padding-bottom:12px;margin-bottom:16px;border-bottom:2px solid ${color}">
+            <div style="width:11px;height:11px;border-radius:50%;background:${color}"></div>
+            <span style="font-size:17px;font-weight:700">${name}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+              <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meetings (30d)</div>
+              <div style="font-size:36px;font-weight:700;line-height:1;color:${color}">${mtg30}</div>
+              <div style="margin-top:8px">${trendBadge(mtg30, mtgPrev)}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Replies / meeting</div>
+              <div style="font-size:36px;font-weight:700;line-height:1;color:${rpmColor}">${rpm != null ? rpm.toFixed(1) : '—'}</div>
+              <div style="margin-top:8px;font-size:11px;color:#a8a29e">Campaign replies ÷ mtgs booked</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('')
+  }</div>`;
+
+  // ── Brand replies-per-meeting table (global) ───────────────────────────────
+  const brandRows = brands.map(b => {
+    const mtg  = Number(b.meetings) || 0;
+    const prev = Number(b.meetings_prev_brand) || 0;
+    const rpm  = (b.replies_per_meeting != null && b.replies_per_meeting !== '') ? Number(b.replies_per_meeting) : null;
+    const rpmColor = rpm == null ? '#1c1917' : rpm >= 10 ? '#16a34a' : rpm >= 5 ? '#ca8a04' : '#dc2626';
+    const trend = prev === 0
+      ? '<span style="color:#a8a29e">—</span>'
+      : mtg > prev ? `<span style="color:#16a34a;font-weight:500">▲ +${mtg-prev}</span>`
+      : mtg < prev ? `<span style="color:#dc2626;font-weight:500">▼ ${mtg-prev}</span>`
+      : '<span style="color:#a8a29e">→ 0</span>';
+    return `<tr>
+      <td style="font-weight:500">${b['Brand Name'] || '—'}</td>
+      <td class="r" style="font-weight:600">${mtg}</td>
+      <td class="r">${trend}</td>
+      <td class="r" style="font-weight:600;color:${rpmColor}">${rpm != null ? rpm.toFixed(1) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const brandTable = `
+    <div class="card">
+      <div class="card-title">Replies per booked meeting — by brand</div>
+      <table><thead><tr>
+        <th>Brand</th>
+        <th class="r">Meetings (30d)</th>
+        <th class="r">Trend vs prior 30d</th>
+        <th class="r">Replies / meeting</th>
+      </tr></thead><tbody>${brandRows || '<tr><td colspan="4" style="color:#a8a29e;text-align:center;padding:16px">No brand data</td></tr>'}</tbody></table>
+    </div>`;
+
+  document.getElementById('bdr-sections').innerHTML = bdrCards + brandTable;
+}
+function renderReps() {
+  document.getElementById('rep-tbody').innerHTML = [...(DATA.rep_stats||[])].sort((a,b)=>(Number(b.meetings)||0)-(Number(a.meetings)||0)).map(r => {
+    const m=Number(r.meetings)||0, p=Number(r.proposals)||0, c=Number(r.closed)||0;
+    return `<tr><td style="font-weight:500">${r['Sales Rep']||'—'}</td><td class="r">${fmt(m)}</td><td class="r">${fmt(p)}</td><td class="r" style="color:#16a34a;font-weight:600">${fmt(c)}</td><td class="r">${m>0?Math.round(p/m*100)+'%':'—'}</td><td class="r">${p>0?Math.round(c/p*100)+'%':'—'}</td></tr>`;
+  }).join('');
+}
+function renderKillList() {
+  const bf = document.getElementById('kill-brand-filter').value;
+  const inf = document.getElementById('kill-infra-filter').value;
+  let list = DATA.kill_list || [];
+  if (bf) list = list.filter(d => d['Brand Name'] === bf);
+  if (inf) list = list.filter(d => d['Infrastructure'] === inf);
+  list = list.sort((a,b) => (Number(a.pct_of_brand_avg)||0)-(Number(b.pct_of_brand_avg)||0));
+  document.getElementById('kill-title').textContent = `Kill list (${list.length} domains)`;
+  document.getElementById('kill-tbody').innerHTML = list.map(d => {
+    const p = Math.round((Number(d.pct_of_brand_avg)||0)*100);
+    const bc = p<40?'#dc2626':p<60?'#ea580c':'#ca8a04';
+    const br = Number(d.bounce_rate)||0;
+    return `<tr><td class="mono">${d.domain||'—'}</td><td>${d['Brand Name']||'—'}</td><td style="font-size:11px;color:#78716c">${d['Infrastructure']||'—'}</td><td class="r">${fmt(d.inbox_count)}</td><td class="r">${fmt(d.sends)}</td><td class="r">${fmt(d.replies)}</td><td class="r">${pct(d.reply_rate)}</td><td class="r">${pct(d.brand_avg_reply_rate)}</td><td class="r"><div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" style="width:${Math.min(p,100)}%;background:${bc}"></div></div><span style="font-size:11px;color:${bc};font-weight:500;min-width:30px;text-align:right">${p}%</span></div></td><td class="r" style="color:${br>0.1?'#dc2626':br>0.07?'#ca8a04':'#1c1917'}">${pct(br)}</td><td><span class="badge badge-kill">Kill</span></td></tr>`;
+  }).join('');
+}
+function renderFunnelCharts() {
+  if (_funnelChart) _funnelChart.destroy();
+  if (_meetingsChart) _meetingsChart.destroy();
+
+  const m = DATA.total_meetings || 0;
+  const p = DATA.total_proposals || 0;
+  const c = DATA.total_closed || 0;
+
+  _funnelChart = new Chart(document.getElementById('funnelChart').getContext('2d'), {
+    type:'bar',
+    data:{labels:['Meetings','Proposals','Closed'], datasets:[{data:[m,p,c], backgroundColor:['#3b82f6','#f59e0b','#10b981'], borderRadius:4}]},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+  });
+
+  // Conversion rate pills below chart
+  const mp = m > 0 ? Math.round(p/m*100) : 0;
+  const pc = p > 0 ? Math.round(c/p*100) : 0;
+  const mc = m > 0 ? (c/m*100).toFixed(1) : 0;
+  const rateItems = [
+    {label:'Mtg → Proposal', val: mp+'%', color:'#f59e0b'},
+    {label:'Proposal → Close', val: pc+'%', color:'#10b981'},
+    {label:'Mtg → Close (direct)', val: mc+'%', color:'#6366f1'},
+  ];
+  document.getElementById('funnel-rates').innerHTML = rateItems.map((r,i) => `
+    <div style="flex:1;text-align:center;padding:8px 4px;${i < rateItems.length-1 ? 'border-right:1px solid #e7e5e4' : ''}">
+      <div style="font-size:11px;color:#78716c;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${r.label}</div>
+      <div style="font-size:22px;font-weight:700;color:${r.color}">${r.val}</div>
+    </div>`).join('');
+
+  // Meetings + proposals grouped by brand
+  const propMap = {};
+  (DATA.proposals_by_brand || []).forEach(b => { propMap[b['Brand Name']] = Number(b.proposals)||0; });
+  const md = [...(DATA.brand_stats||[])].filter(b=>b['Brand Name']&&(Number(b.meetings)||0)>0).sort((a,b)=>(Number(b.meetings)||0)-(Number(a.meetings)||0)).slice(0,14);
+  _meetingsChart = new Chart(document.getElementById('meetingsChart').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: md.map(b=>b['Brand Name']||''),
+      datasets:[
+        {label:'Meetings', data:md.map(b=>Number(b.meetings)||0), backgroundColor:'#3b82f6', borderRadius:3},
+        {label:'Proposals', data:md.map(b=>propMap[b['Brand Name']]||0), backgroundColor:'#f59e0b', borderRadius:3}
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:12, font:{size:11}}}},
+      scales:{x:{beginAtZero:true, ticks:{precision:0}}}
+    }
+  });
+}
+function renderBrandCharts() {
+  if (_brandMtgChart) _brandMtgChart.destroy();
+  if (_brandCpmChart) _brandCpmChart.destroy();
+  if (_brandCostChart) _brandCostChart.destroy();
+  const bs = [...(DATA.brand_stats||[])].filter(b => b['Brand Name']);
+  // 1. Meetings by brand (sorted desc)
+  const mtgData = [...bs].sort((a,b) => (Number(b.meetings)||0) - (Number(a.meetings)||0));
+  _brandMtgChart = new Chart(document.getElementById('brandMtgChart').getContext('2d'), {
+    type:'bar', data:{labels:mtgData.map(b=>b['Brand Name']), datasets:[{data:mtgData.map(b=>Number(b.meetings)||0), backgroundColor:'#3b82f6', borderRadius:3}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}
+  });
+  // 2. Contacts per meeting (sorted asc — lower = more efficient)
+  const cpmData = [...bs].filter(b=>(Number(b.meetings)||0)>0).sort((a,b)=>{
+    const ca=(Number(a.total_sent)||0)/(Number(a.meetings)||1), cb=(Number(b.total_sent)||0)/(Number(b.meetings)||1);
+    return ca-cb;
+  });
+  _brandCpmChart = new Chart(document.getElementById('brandCpmChart').getContext('2d'), {
+    type:'bar', data:{labels:cpmData.map(b=>b['Brand Name']), datasets:[{data:cpmData.map(b=>Math.round((Number(b.total_sent)||0)/(Number(b.meetings)||1))), backgroundColor:'#6366f1', borderRadius:3}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.parsed.x.toLocaleString()+' contacts/mtg'}}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}
+  });
+  // 3. Cost per meeting (sorted asc — cheapest first)
+  const costData = [...bs].filter(b=>b.cost_per_meeting&&Number(b.cost_per_meeting)>0).sort((a,b)=>(Number(a.cost_per_meeting)||0)-(Number(b.cost_per_meeting)||0));
+  if (costData.length > 0) {
+    _brandCostChart = new Chart(document.getElementById('brandCostChart').getContext('2d'), {
+      type:'bar', data:{labels:costData.map(b=>b['Brand Name']), datasets:[{data:costData.map(b=>Number(b.cost_per_meeting)||0), backgroundColor:'#10b981', borderRadius:3}]},
+      options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>'$'+ctx.parsed.x.toLocaleString()}}}, scales:{x:{beginAtZero:true}}}
+    });
+  } else {
+    document.getElementById('brandCostChart').parentElement.innerHTML = '<p style="color:#78716c;font-size:13px;padding:20px">No cost data available — check "cost per meeting" Google Sheet tab.</p>';
+  }
+}
+async function loadDealBots() {
+  const AT_KEY = '';
+  const BASE = 'appSlS4aXPKvMhSTl';
+  const TABLE = 'tblIM2ox6XbOY2tqd';
+  const valEl = document.getElementById('kpi-dealbot');
+  const subEl = document.getElementById('kpi-dealbot-sub');
+  try {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    let records = [], offset = '';
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?returnFieldsByFieldId=true&pageSize=100${offset ? '&offset=' + offset : ''}`;
+      const r = await fetch(url, {headers:{Authorization:'Bearer ' + AT_KEY}});
+      if (!r.ok) throw new Error('Airtable ' + r.status);
+      const j = await r.json();
+      records = records.concat(j.records || []);
+      offset = j.offset || '';
+    } while (offset);
+
+    const todayMtgs = records.filter(r => {
+      const sched = r.fields['fldzfYMT58yVWPrgm'];
+      if (!sched) return false;
+      return new Date(sched).toLocaleDateString('en-CA') === todayStr
+        && r.fields['fldHf2ZJrIAUcdwSS'] === 'Sales';
+    });
+    const total = todayMtgs.length;
+    const happened = todayMtgs.filter(r => r.fields['fld1JsS7z7gy0eLlD']).length;
+    const pending = total - happened;
+    const srPct = total > 0 ? Math.round(happened / total * 100) : null;
+    if (valEl) {
+      valEl.textContent = srPct !== null ? srPct + '%' : '—';
+      valEl.style.color = srPct === null ? '#6b7280' : srPct >= 70 ? '#16a34a' : srPct >= 50 ? '#ca8a04' : '#dc2626';
+    }
+    if (subEl) subEl.textContent = total > 0 ? happened + ' of ' + total + ' updated · ' + pending + ' pending' : 'No meetings today';
+  } catch(e) {
+    if (valEl) { valEl.textContent = '—'; valEl.style.color = '#6b7280'; }
+    if (subEl) subEl.textContent = 'error: ' + e.message;
+  }
+}
+loadData();
+loadDealBots();
+setInterval(loadDealBots, 60000);
+</script>
+</body>
+</html>
