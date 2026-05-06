@@ -593,7 +593,7 @@
           </div>
         </div>
       </div>
-      <div class="forecast-note">Based on 30d meeting pace · 90d conversion rates · 30 calendar days</div>
+      <div class="forecast-note">Based on 90d avg rates · 30 calendar days · includes weekends</div>
     </div>
   </div>
 
@@ -677,7 +677,6 @@ const REFRESH_MS = 1 * 60 * 1000;
 let charts = {};
 let refreshTimer = null;
 let nextRefreshAt = null;
-let initialLoadComplete = false;
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 // For calendar date fields (e.g. Call Scheduled Date stored as UTC midnight):
@@ -1169,8 +1168,8 @@ function renderFunnel(d) {
     `Overall: ~${overallMtgPer} meetings or ~${overallPropPer} proposals per deal`;
 
   // 30-day forecast
-  const ocDailyAvg = d.oc_0_30 / 30;
-  const belDailyAvg = d.belkins_0_30 / 30;
+  const ocDailyAvg = d.oc90 / 90;
+  const belDailyAvg = d.belkins90 / 90;
   const ocProjMtg = ocDailyAvg * 30;
   const belProjMtg = belDailyAvg * 30;
   const ocPropRate = d.oc90 > 0 ? d.ocProposals90 / d.oc90 : 0;
@@ -1817,10 +1816,7 @@ async function loadAndRender() {
     banner.textContent = `Error loading data: ${err.message}`;
     banner.style.display = 'block';
   } finally {
-    if (!initialLoadComplete) {
-      document.getElementById('loading').style.display = 'none';
-      initialLoadComplete = true;
-    }
+    document.getElementById('loading').style.display = 'none';
   }
 }
 
@@ -1829,6 +1825,7 @@ function scheduleRefresh() {
   if (refreshTimer) clearTimeout(refreshTimer);
   nextRefreshAt = Date.now() + REFRESH_MS;
   refreshTimer = setTimeout(async () => {
+    document.getElementById('loading').style.display = 'flex';
     await loadAndRender();
     scheduleRefresh();
   }, REFRESH_MS);
