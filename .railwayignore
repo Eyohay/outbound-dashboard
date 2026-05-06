@@ -1,0 +1,7 @@
+app.py
+requirements.txt
+fetch_data.py
+__pycache__/
+*.pyc
+.venv/
+venv/
