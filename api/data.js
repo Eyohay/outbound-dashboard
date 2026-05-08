@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
     // --- Brands ---
-    const brandParams = new URLSearchParams({ filterByFormula: '{fldCaUzDXtZI0KNtD}>4', returnFieldsByFieldId: 'true' });
+    const brandParams = new URLSearchParams({ filterByFormula: 'OR({fldG7jYf1BSVoHohy}>0,{fldCaUzDXtZI0KNtD}>0,{fldDIYGSKi8nC7Pmz}>0)', returnFieldsByFieldId: 'true' });
     [
       'fldshFXjqXByq1s9M', // name
       'fldCaUzDXtZI0KNtD', // m30

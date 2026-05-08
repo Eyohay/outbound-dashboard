@@ -253,6 +253,8 @@
     .rate-amber { color: #fbbf24; }
     .rate-red   { color: #f87171; }
     .trend-cell { width: 40px; text-align: center; font-size: 16px; font-weight: 600; }
+    .rate-low-confidence { opacity: 0.5; }
+    .rate-low-confidence .rate-n { font-size: 9px; color: #4b5563; }
     /* ── Inline meeting bar column ── */
     .m30-bar-td { min-width: 120px; padding: 4px 10px 4px 6px !important; text-align: left !important; font-family: inherit !important; }
     .m30-bar-track { width: 100%; height: 14px; background: #0a1018; border-radius: 2px; position: relative; overflow: hidden; }
@@ -448,16 +450,33 @@ function renderRates(rates) {
 
 // ── Panel 3: M→P by brand table ───────────────────────────
 function renderMPTable(brands) {
-  const sorted = [...mergeBelkins(brands)].sort((a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30));
-  const maxM30 = Math.max(...sorted.map(b => b.m30), 1);
+  // Include brands with ≥1 meeting in any window
+  const qualified = mergeBelkins(brands).filter(b => b.m10 > 0 || b.m30 > 0 || b.m60 > 0);
+  // High-confidence = m30 ≥ 5; sort each tier by 30d rate descending
+  const byRate  = (a, b) => pct(b.p30, b.m30) - pct(a.p30, a.m30);
+  const hiConf  = qualified.filter(b => b.m30 >= 5).sort(byRate);
+  const loConf  = qualified.filter(b => b.m30 < 5).sort(byRate);
+  const sorted  = [...hiConf, ...loConf];
+  const maxM30  = Math.max(...sorted.map(b => b.m30), 1);
 
   document.querySelector('#mp-table tbody').innerHTML = sorted.map((b, i) => {
-    const r10 = pct(b.p10, b.m10);
-    const r30 = pct(b.p30, b.m30);
-    const r60 = pct(b.p60, b.m60);
+    const r10 = b.m10 > 0 ? pct(b.p10, b.m10) : null;
+    const r30 = b.m30 > 0 ? pct(b.p30, b.m30) : null;
+    const r60 = b.m60 > 0 ? pct(b.p60, b.m60) : null;
+    const lc10 = b.m10 > 0 && b.m10 < 5;
+    const lc30 = b.m30 > 0 && b.m30 < 5;
+    const lc60 = b.m60 > 0 && b.m60 < 5;
+    const anyLowConf = lc10 || lc30 || lc60;
+
+    function rateCell(r, m, lc, extraClass) {
+      if (r === null) return `<td class="${extraClass || ''}" style="color:#374151">—</td>`;
+      const cls = [extraClass, rateClass(r), lc ? 'rate-low-confidence' : ''].filter(Boolean).join(' ');
+      const n   = lc ? ` <span class="rate-n">(n=${m})</span>` : '';
+      return `<td class="${cls}">${r}%${n}</td>`;
+    }
 
     let trendArrow = '—', trendColor = '#4b5563';
-    if (b.m10 >= 5) {
+    if (!anyLowConf && b.m10 >= 5 && r10 !== null && r30 !== null && r60 !== null) {
       const up30   = r30 - r60 > 5;
       const down30 = r60 - r30 > 5;
       const up10   = r10 - r30 > 5;
@@ -475,9 +494,9 @@ function renderMPTable(brands) {
     return `
       <tr>
         <td title="${b.name}">${b.name}</td>
-        <td class="${rateClass(r10)}">${r10}%</td>
-        <td class="col-30d ${rateClass(r30)}">${r30}%</td>
-        <td class="${rateClass(r60)}">${r60}%</td>
+        ${rateCell(r10, b.m10, lc10)}
+        ${rateCell(r30, b.m30, lc30, 'col-30d')}
+        ${rateCell(r60, b.m60, lc60)}
         <td class="trend-cell" style="color:${trendColor}">${trendArrow}</td>
         <td class="m30-bar-td">
           <div class="m30-bar-track">
